@@ -10,9 +10,10 @@ interface ProjectCardProps {
   project: Project
   href: string
   showStatus?: boolean
+  routingProgress?: number
 }
 
-export const ProjectCard: React.FC<ProjectCardProps> = ({ project, href, showStatus = true }) => {
+export const ProjectCard: React.FC<ProjectCardProps> = ({ project, href, showStatus = true, routingProgress }) => {
   const isOverdue = false // project-level overdue not computed; use task level
   const bg = project.current_status === 'completed' ? 'bg-[#F0FFF4]' : 'bg-white'
 
@@ -57,6 +58,22 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({ project, href, showSta
           {formatCurrency(project.rates)}
         </div>
       </div>
+
+      {/* Routing Progress Bar */}
+      {routingProgress !== undefined && routingProgress > 0 && (
+        <div className="mt-3">
+          <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <span>Project Progress</span>
+            <span>{routingProgress}%</span>
+          </div>
+          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-indigo-600 transition-all duration-300"
+              style={{ width: `${routingProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
     </Link>
   )
 }

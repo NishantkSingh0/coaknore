@@ -12,21 +12,24 @@ import { formatDate, formatCurrency } from '../../utils'
 import { Pencil, Trash2, Route, Calendar, Package, IndianRupee, Eye, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import type { RoutingEntry } from '../../types'
+import { useAuthStore } from '../../store/authStore'
 
 export const ProjectDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { user } = useAuthStore()
   const [showEdit, setShowEdit] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
   const [proofPreview, setProofPreview] = useState<RoutingEntry | null>(null)
+
+  const isAdmin = user?.role === 'admin'
 
   const { data: project, isLoading } = useQuery({
     queryKey: ['project', id],
     queryFn: () => getProject(id!),
     enabled: !!id,
   })
-  console.log("project",project)
 
   const { data: routing = [] } = useQuery({
     queryKey: ['routing', id],
@@ -52,6 +55,7 @@ export const ProjectDetailPage: React.FC = () => {
     routingGrouped[r.sequence_order].push(r)
   })
   const isPdfProof = proofPreview?.completion_proof_url?.toLowerCase().includes('.pdf')
+  console.log("Image URL", project.image_url)
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -64,14 +68,16 @@ export const ProjectDetailPage: React.FC = () => {
           </div>
           <h2 className="text-2xl font-bold text-gray-900">{project.project_name}</h2>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" icon={<Pencil size={14} />} onClick={() => setShowEdit(true)}>
-            Edit
-          </Button>
-          <Button variant="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => setShowDelete(true)}>
-            Delete
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" icon={<Pencil size={14} />} onClick={() => setShowEdit(true)}>
+              Edit
+            </Button>
+            <Button variant="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => setShowDelete(true)}>
+              Delete
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Image */}

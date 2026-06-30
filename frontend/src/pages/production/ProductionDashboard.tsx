@@ -27,7 +27,7 @@ export const ProductionDashboard: React.FC = () => {
   }
 
   const todayReports: DailyReport[] = Array.isArray(data?.today_reports) ? data.today_reports : []
-  const pendingIssues: any[]        = Array.isArray(data?.pending_issues) ? data.pending_issues : []
+  const pendingIssues: any[] = Array.isArray(data?.pending_issues) ? data.pending_issues : []
 
   return (
     <div className="space-y-8">

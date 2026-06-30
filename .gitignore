@@ -5,7 +5,6 @@ backend/*.exe
 
 # Frontend
 frontend/node_modules/
-frontend/dist/
 frontend/.env.local
 
 # General
@@ -14,3 +13,6 @@ frontend/.env.local
 *.env
 */node_modules
 /plan
+*.gocache
+*.vscode
+*.env.local

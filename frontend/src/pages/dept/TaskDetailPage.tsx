@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getTask, updateTask } from '../../api/tasks'
+import { getProject } from '../../api/projects'
 import { uploadFile } from '../../api/files'
 import { Badge } from '../../components/common/Badge'
 import { Button } from '../../components/common/Button'
@@ -10,7 +11,7 @@ import { IssueModal } from '../../components/issue/IssueModal'
 import { Spinner } from '../../components/common/Spinner'
 import { formatDate } from '../../utils'
 import { cn } from '../../utils/cn'
-import { ArrowLeft, AlertCircle, Upload, FileCheck } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Upload, FileCheck, Calendar, Package, IndianRupee } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const STATUS_OPTIONS = [
@@ -30,6 +31,12 @@ export const TaskDetailPage: React.FC = () => {
     queryKey: ['task', taskId],
     queryFn: () => getTask(taskId!),
     enabled: !!taskId,
+  })
+
+  const { data: project } = useQuery({
+    queryKey: ['project', task?.project_id],
+    queryFn: () => getProject(task!.project_id),
+    enabled: !!task?.project_id,
   })
 
   const [status, setStatus]         = useState(task?.status ?? '')
@@ -111,6 +118,85 @@ export const TaskDetailPage: React.FC = () => {
           </div>
           <Badge status={task.status} />
         </div>
+
+        {project && (
+          <div className="space-y-4 pt-4 border-t border-gray-200">
+            {/* Project Image */}
+            {project.image_url && (
+              <img
+                src={project.image_url}
+                alt={project.project_name}
+                className="w-full max-h-48 object-cover rounded-lg border border-gray-200"
+              />
+            )}
+
+            {/* Project Details Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Dimension', value: project.dimensions ?? '—', icon: null },
+                { label: 'Quantity', value: String(project.quantity), icon: <Package size={14} /> },
+                { label: 'Rate', value: `₹${project.rates}`, icon: <IndianRupee size={14} /> },
+                { label: 'Receiving Date', value: formatDate(project.receiving_date), icon: <Calendar size={14} /> },
+              ].map(item => (
+                <div key={item.label} className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500 mb-1">{item.label}</p>
+                  <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
+                    {item.icon}{item.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Text Fields */}
+            {[
+              { label: 'Specification', value: project.specification },
+              { label: 'Upholstery / Finish', value: project.upholstery_finish },
+              { label: 'Remarks', value: project.remarks },
+            ].some(f => f.value) && (
+              <div className="bg-gray-50 rounded-lg divide-y divide-gray-200">
+                {[
+                  { label: 'Specification', value: project.specification },
+                  { label: 'Upholstery / Finish', value: project.upholstery_finish },
+                  { label: 'Remarks', value: project.remarks },
+                ]
+                  .filter(f => f.value)
+                  .map((f) => (
+                    <div key={f.label} className="p-3">
+                      <p className="text-xs text-gray-500 mb-1">{f.label}</p>
+                      <p className="text-sm text-gray-800 whitespace-pre-wrap">{f.value}</p>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {/* URLs */}
+            {(project.cad_urls || project.pdf_urls || project.render_urls || project.jobcard_urls) && (
+              <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+                <p className="text-xs font-medium text-gray-500 mb-2">Project Files</p>
+                {project.cad_urls && (
+                  <a href={project.cad_urls} target="_blank" rel="noreferrer" className="block text-sm text-indigo-600 hover:text-indigo-800">
+                    CAD Files
+                  </a>
+                )}
+                {project.pdf_urls && (
+                  <a href={project.pdf_urls} target="_blank" rel="noreferrer" className="block text-sm text-indigo-600 hover:text-indigo-800">
+                    PDF Files
+                  </a>
+                )}
+                {project.render_urls && (
+                  <a href={project.render_urls} target="_blank" rel="noreferrer" className="block text-sm text-indigo-600 hover:text-indigo-800">
+                    Render Files
+                  </a>
+                )}
+                {project.jobcard_urls && (
+                  <a href={project.jobcard_urls} target="_blank" rel="noreferrer" className="block text-sm text-indigo-600 hover:text-indigo-800">
+                    Job Card Files
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {task.is_overdue && (
           <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
