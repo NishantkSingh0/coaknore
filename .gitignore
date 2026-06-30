@@ -16,3 +16,5 @@ frontend/.env.local
 *.gocache
 *.vscode
 *.env.local
+
+*/dist
