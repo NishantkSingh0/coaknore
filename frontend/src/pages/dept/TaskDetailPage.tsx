@@ -134,8 +134,6 @@ export const TaskDetailPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               {[
                 { label: 'Dimension', value: project.dimensions ?? '—', icon: null },
-                { label: 'Quantity', value: String(project.quantity), icon: <Package size={14} /> },
-                { label: 'Rate', value: `₹${project.rates}`, icon: <IndianRupee size={14} /> },
                 { label: 'Receiving Date', value: formatDate(project.receiving_date), icon: <Calendar size={14} /> },
               ].map(item => (
                 <div key={item.label} className="bg-gray-50 rounded-lg p-3">
@@ -211,13 +209,16 @@ export const TaskDetailPage: React.FC = () => {
             type="date"
             value={startDate}
             onChange={e => setStartDate(e.target.value)}
+            disabled={!!task.start_date}
           />
+
           <Input
             label="Due Date"
             type="date"
             value={dueDate}
             onChange={e => setDueDate(e.target.value)}
             min={startDate}
+            disabled={!!task.due_date}
           />
           <div className="col-span-2">
             <Select

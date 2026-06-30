@@ -21,31 +21,29 @@ export const IssueModal: React.FC<IssueModalProps> = ({ open, onClose, projectId
   const [step, setStep] = useState<'type' | 'details'>('type')
   const [issueType, setIssueType] = useState('')
   const [description, setDescription] = useState('')
-  const [createdIssueId, setCreatedIssueId] = useState<string | null>(null)
 
   const reset = () => {
-    setStep('type'); setIssueType(''); setDescription(''); setCreatedIssueId(null)
+    setStep('type'); setIssueType(''); setDescription('')
     onClose()
   }
 
   const createMutation = useMutation({
     mutationFn: () => createIssue({ project_id: projectId, task_id: taskId, issue_type: issueType, description }),
-    onSuccess: (data) => {
-      setCreatedIssueId(data.id)
-      if (issueType === 'item_missing' || issueType === 'rework_required') {
-        setStep('details')
-      } else {
-        qc.invalidateQueries({ queryKey: ['issues'] })
-        toast.success('Issue raised successfully')
-        reset()
-      }
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['issues'] })
+      toast.success('Issue raised successfully')
+      reset()
     },
     onError: (err: any) => toast.error(err.response?.data?.error?.message ?? 'Failed to raise issue'),
   })
 
   const handleNext = () => {
     if (!issueType) { toast.error('Select an issue type'); return }
-    createMutation.mutate()
+    if (issueType === 'item_missing' || issueType === 'rework_required') {
+      setStep('details')
+    } else {
+      createMutation.mutate()
+    }
   }
 
   const handleSecondarySubmit = () => {
@@ -80,12 +78,12 @@ export const IssueModal: React.FC<IssueModalProps> = ({ open, onClose, projectId
         </div>
       )}
 
-      {step === 'details' && createdIssueId && issueType === 'item_missing' && (
-        <MaterialReqForm issueId={createdIssueId} onSuccess={handleSecondarySubmit} onCancel={reset} />
+      {step === 'details' && issueType === 'item_missing' && (
+        <MaterialReqForm projectId={projectId} taskId={taskId} issueType={issueType} description={description} onSuccess={handleSecondarySubmit} onCancel={reset} />
       )}
 
-      {step === 'details' && createdIssueId && issueType === 'rework_required' && (
-        <ReworkForm issueId={createdIssueId} onSuccess={handleSecondarySubmit} onCancel={reset} />
+      {step === 'details' && issueType === 'rework_required' && (
+        <ReworkForm projectId={projectId} taskId={taskId} issueType={issueType} description={description} onSuccess={handleSecondarySubmit} onCancel={reset} />
       )}
     </Modal>
   )

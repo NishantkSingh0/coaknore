@@ -1,22 +1,28 @@
 import React, { useState } from 'react'
 import { Textarea } from '../common/Input'
 import { Button } from '../common/Button'
-import { createReworkRequest } from '../../api/issues'
-import { useMutation } from '@tanstack/react-query'
+import { createReworkRequest, createIssue } from '../../api/issues'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
-interface ReworkFormProps { issueId: string; onSuccess: () => void; onCancel: () => void }
+interface ReworkFormProps { projectId: string; taskId?: string; issueType: string; description: string; onSuccess: () => void; onCancel: () => void }
 
-export const ReworkForm: React.FC<ReworkFormProps> = ({ issueId, onSuccess, onCancel }) => {
+export const ReworkForm: React.FC<ReworkFormProps> = ({ projectId, taskId, issueType, description, onSuccess, onCancel }) => {
+  const qc = useQueryClient()
   const [desc, setDesc] = useState('')
 
   const mutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       if (!desc.trim()) throw new Error('Description is required')
-      return createReworkRequest(issueId, desc)
+      const issue = await createIssue({ project_id: projectId, task_id: taskId, issue_type: issueType, description })
+      await createReworkRequest(issue.id, desc)
     },
-    onSuccess,
-    onError: (err: any) => toast.error(err.message ?? 'Failed'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['issues'] })
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+      onSuccess()
+    },
+    onError: (err: any) => toast.error(err.message ?? err.response?.data?.error?.message ?? 'Failed'),
   })
 
   return (

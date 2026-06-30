@@ -2,16 +2,17 @@ import React, { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Input } from '../common/Input'
 import { Button } from '../common/Button'
-import { createMaterialRequisition } from '../../api/issues'
-import { useMutation } from '@tanstack/react-query'
+import { createMaterialRequisition, createIssue } from '../../api/issues'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
 interface Item { material_name: string; material_description: string; quantity_required: string; unit: string }
 const emptyItem = (): Item => ({ material_name: '', material_description: '', quantity_required: '', unit: '' })
 
-interface MaterialReqFormProps { issueId: string; onSuccess: () => void; onCancel: () => void }
+interface MaterialReqFormProps { projectId: string; taskId?: string; issueType: string; description: string; onSuccess: () => void; onCancel: () => void }
 
-export const MaterialReqForm: React.FC<MaterialReqFormProps> = ({ issueId, onSuccess, onCancel }) => {
+export const MaterialReqForm: React.FC<MaterialReqFormProps> = ({ projectId, taskId, issueType, description, onSuccess, onCancel }) => {
+  const qc = useQueryClient()
   const [department, setDepartment] = useState('')
   const [requestDate, setRequestDate] = useState(new Date().toISOString().split('T')[0])
   const [items, setItems] = useState<Item[]>([emptyItem()])
@@ -20,17 +21,28 @@ export const MaterialReqForm: React.FC<MaterialReqFormProps> = ({ issueId, onSuc
     setItems(prev => prev.map((it, idx) => idx === i ? { ...it, [field]: value } : it))
 
   const mutation = useMutation({
-    mutationFn: () => createMaterialRequisition(issueId, {
-      department, request_date: requestDate,
-      items: items.map(it => ({
-        material_name: it.material_name,
-        material_description: it.material_description || undefined,
-        quantity_required: Number(it.quantity_required),
-        unit: it.unit || undefined,
-      })),
-    }),
-    onSuccess,
-    onError: (err: any) => toast.error(err.response?.data?.error?.message ?? 'Failed'),
+    mutationFn: async () => {
+      if (!department.trim()) throw new Error('Department is required')
+      if (items.some(it => !it.material_name.trim() || !it.quantity_required.trim())) {
+        throw new Error('Please fill in material name and quantity for all items')
+      }
+      const issue = await createIssue({ project_id: projectId, task_id: taskId, issue_type: issueType, description })
+      await createMaterialRequisition(issue.id, {
+        department, request_date: requestDate,
+        items: items.map(it => ({
+          material_name: it.material_name,
+          material_description: it.material_description || undefined,
+          quantity_required: Number(it.quantity_required),
+          unit: it.unit || undefined,
+        })),
+      })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['issues'] })
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+      onSuccess()
+    },
+    onError: (err: any) => toast.error(err.message ?? err.response?.data?.error?.message ?? 'Failed'),
   })
 
   return (

@@ -18,14 +18,14 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ tasks }) => (
     {COLUMNS.map(col => {
       const colTasks = tasks.filter(t => t.status === col.status)
       return (
-        <div key={col.status} className="min-w-[260px] w-64 shrink-0">
+        <div key={col.status} className="min-w-65 w-64 shrink-0">
           <div className={`flex items-center justify-between px-3 py-2 rounded-t-lg ${col.color}`}>
             <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
               {col.label}
             </span>
             <span className="text-xs font-bold text-gray-500">{colTasks.length}</span>
           </div>
-          <div className="space-y-3 p-2 bg-gray-50/80 rounded-b-lg min-h-[120px]">
+          <div className="space-y-3 p-2 bg-gray-50/80 rounded-b-lg min-h-30">
             {colTasks.length === 0
               ? <p className="text-xs text-gray-400 text-center py-6">Empty</p>
               : colTasks.map(t => <TaskCard key={t.id} task={t} />)

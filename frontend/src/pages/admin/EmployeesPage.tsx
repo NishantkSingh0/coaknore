@@ -27,8 +27,8 @@ export const EmployeesPage: React.FC = () => {
   const [passwordTarget, setPasswordTarget] = useState<{ id: string; name: string } | null>(null)
   const [newPassword, setNewPassword] = useState('')
 
-  const { data: users = [], isLoading }    = useQuery({ queryKey: ['users'],       queryFn: getUsers })
-  const { data: departments = [] }          = useQuery({ queryKey: ['departments'], queryFn: getDepartments })
+  const { data: users = [], isLoading } = useQuery({ queryKey: ['users'],       queryFn: getUsers })
+  const { data: departments = [] } = useQuery({ queryKey: ['departments'], queryFn: getDepartments })
 
   const [form, setForm] = useState({ name: '', email: '', password: '', role: '', department_id: '', phone: '' })
   const set = (f: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -40,12 +40,12 @@ export const EmployeesPage: React.FC = () => {
       phone: form.phone || undefined,
       department_id: form.department_id || undefined,
     }),
-onSuccess: () => {
-  qc.invalidateQueries({ queryKey: ['users'] })
-  toast.success('Member created')
-  setShowCreate(false)
-  setEmailEdited(false)
-  setForm({ name: '', email: '', password: '', role: '', department_id: '', phone: ''})},
+  onSuccess: () => {
+    qc.invalidateQueries({ queryKey: ['users'] })
+    toast.success('Member created')
+    setShowCreate(false)
+    setEmailEdited(false)
+    setForm({ name: '', email: '', password: '', role: '', department_id: '', phone: ''})},
     onError: (err: any) => toast.error(err.response?.data?.error?.message ?? 'Failed'),
   })
 
@@ -149,34 +149,34 @@ onSuccess: () => {
       {/* Create Modal */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="Add Member" size="md">
         <div className="space-y-4">
-<Input
-  label="Full Name"
-  value={form.name}
-  onChange={(e) => {
-    const name = e.target.value
+          <Input
+            label="Full Name"
+            value={form.name}
+            onChange={(e) => {
+              const name = e.target.value
 
-    setForm(prev => ({
-      ...prev,
-      name,
-      email: emailEdited
-        ? prev.email
-        : `${name.trim().split(/\s+/)[0].toLowerCase()}@oaknore.in`,
-    }))
-  }}
-/>
-<Input
-  label="Email"
-  type="email"
-  value={form.email}
-  placeholder="name@oaknore.in"
-  onChange={(e) => {
-    setEmailEdited(true)
-    setForm(prev => ({
-      ...prev,
-      email: e.target.value,
-    }))
-  }}
-/>
+              setForm(prev => ({
+                ...prev,
+                name,
+                email: emailEdited
+                  ? prev.email
+                  : `${name.trim().split(/\s+/)[0].toLowerCase()}@oaknore.in`,
+              }))
+            }}
+          />
+          <Input
+            label="Email"
+            type="email"
+            value={form.email}
+            placeholder="name@oaknore.in"
+            onChange={(e) => {
+              setEmailEdited(true)
+              setForm(prev => ({
+                ...prev,
+                email: e.target.value,
+              }))
+            }}
+          />
           <Input label="Password" type="password" value={form.password} onChange={set('password')} helper="Minimum 8 characters" />
           <Input label="Phone (optional)" value={form.phone} onChange={set('phone')} />
           <Select label="Role" options={ROLE_OPTIONS} value={form.role} onChange={set('role')} />
