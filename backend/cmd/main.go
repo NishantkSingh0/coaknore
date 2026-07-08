@@ -57,7 +57,14 @@ func main() {
 	notifSvc := services.NewNotificationService(db)
 	orgSvc := services.NewOrganizationService(db)
 	authSvc := services.NewAuthService(db)
-	projectSvc := services.NewProjectService(db, auditSvc, notifSvc)
+
+	var fileSvc *services.FileService
+	fileSvc, err = services.NewFileService(db)
+	if err != nil {
+		log.Printf("WARNING: S3 file service unavailable (%v) — uploads will fail", err)
+	}
+
+	projectSvc := services.NewProjectService(db, auditSvc, notifSvc, fileSvc)
 	routingSvc := services.NewRoutingService(db, auditSvc, notifSvc)
 	taskSvc := services.NewTaskService(db, auditSvc, notifSvc, routingSvc)
 	routingSvc.SetTaskService(taskSvc)
@@ -67,12 +74,6 @@ func main() {
 	reportSvc := services.NewDailyReportService(db, auditSvc, notifSvc)
 	matSvc := services.NewMaterialService(db, auditSvc, notifSvc)
 	searchSvc := services.NewSearchService(db)
-
-	var fileSvc *services.FileService
-	fileSvc, err = services.NewFileService(db)
-	if err != nil {
-		log.Printf("WARNING: S3 file service unavailable (%v) — uploads will fail", err)
-	}
 
 	// ── Handlers ────────────────────────────────────────────────────────────
 	authHandler := handlers.NewAuthHandler(authSvc, orgSvc)

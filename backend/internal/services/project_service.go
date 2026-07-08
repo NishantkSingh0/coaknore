@@ -15,10 +15,11 @@ type ProjectService struct {
 	db       *sql.DB
 	auditSvc *AuditService
 	notifSvc *NotificationService
+	fileSvc  *FileService
 }
 
-func NewProjectService(db *sql.DB, audit *AuditService, notif *NotificationService) *ProjectService {
-	return &ProjectService{db: db, auditSvc: audit, notifSvc: notif}
+func NewProjectService(db *sql.DB, audit *AuditService, notif *NotificationService, fileSvc *FileService) *ProjectService {
+	return &ProjectService{db: db, auditSvc: audit, notifSvc: notif, fileSvc: fileSvc}
 }
 
 type CreateProjectRequest struct {
@@ -296,13 +297,25 @@ func (s *ProjectService) GetProject(id uuid.UUID) (*models.Project, error) {
 	if createdByName.Valid {
 		p.CreatedByName = createdByName.String
 	}
-	// Embed drawing file details for the frontend
+	// Embed drawing file details for the frontend with presigned URL
 	if drawFileID.Valid && drawFileURL.Valid {
 		fileID, _ := uuid.Parse(drawFileID.String)
 		p.DrawingFileID = &fileID
+		// Generate presigned URL for drawing file
+		presignedURL := drawFileURL.String // fallback to stored URL
+		if s.fileSvc != nil {
+			// Get the S3 key from the file_assets table
+			var s3Key sql.NullString
+			s.db.QueryRow(`SELECT s3_key FROM file_assets WHERE id = $1`, fileID).Scan(&s3Key)
+			if s3Key.Valid {
+				if generatedURL, err := s.fileSvc.GetSignedURL(s3Key.String, 1*time.Hour); err == nil {
+					presignedURL = generatedURL
+				}
+			}
+		}
 		p.DrawingFile = &models.FileAsset{
 			ID:           fileID,
-			S3URL:        drawFileURL.String,
+			S3URL:        presignedURL,
 			OriginalName: drawFileOriginalName.String,
 		}
 	}

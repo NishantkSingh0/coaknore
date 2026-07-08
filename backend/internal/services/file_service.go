@@ -72,20 +72,27 @@ func (s *FileService) UploadFile(
 	uniqueName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
 	s3Key := buildS3Key(orgID, ownerType, ownerID, uniqueName)
 
-	// Upload to S3
+	// Upload to S3 (no ACL - use presigned URLs for access)
 	_, err := s.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucket),
 		Key:         aws.String(s3Key),
 		Body:        file,
 		ContentType: aws.String(header.Header.Get("Content-Type")),
 		ContentDisposition: aws.String(
-			fmt.Sprintf(`attachment; filename="%s"`, header.Filename),
+			fmt.Sprintf(`inline; filename="%s"`, header.Filename),
 		),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload file to S3: %w", err)
 	}
 
+	// Generate presigned URL for immediate access (1 hour expiry)
+	presignedURL, err := s.GetSignedURL(s3Key, 1*time.Hour)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate presigned URL: %w", err)
+	}
+
+	// Store base URL in DB, but return presigned URL
 	s3URL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s",
 		s.bucket, appconfig.App.AWSRegion, s3Key)
 
@@ -120,6 +127,8 @@ func (s *FileService) UploadFile(
 		return nil, fmt.Errorf("failed to save file record: %w", err)
 	}
 
+	// Return presigned URL for immediate frontend use
+	asset.S3URL = presignedURL
 	return asset, nil
 }
 
@@ -167,6 +176,11 @@ func (s *FileService) GetFilesByOwner(ownerType models.FileOwnerType, ownerID uu
 		}
 		if uploaderName.Valid {
 			f.UploaderName = uploaderName.String
+		}
+		// Generate fresh presigned URL for each file
+		presignedURL, err := s.GetSignedURL(f.S3Key, 1*time.Hour)
+		if err == nil {
+			f.S3URL = presignedURL
 		}
 		files = append(files, f)
 	}

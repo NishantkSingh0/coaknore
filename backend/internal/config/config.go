@@ -79,6 +79,12 @@ func Load() {
 	if App.JWTSecret == "" {
 		log.Fatal("JWT_SECRET must be set in environment")
 	}
+
+	// Warn if AWS credentials are not configured (file uploads will fail)
+	if App.AWSAccessKeyID == "" || App.AWSSecretAccessKey == "" || App.AWSS3Bucket == "" {
+		log.Println("WARNING: AWS S3 credentials not configured. File uploads will fail.")
+		log.Println("Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_S3_BUCKET in .env")
+	}
 }
 
 func (c *Config) DBConnectionString() string {
