@@ -177,7 +177,7 @@ export default function TaskDetailPage() {
           <div className="space-y-3 p-4 bg-orange-50 border border-orange-200 rounded-xl">
             <p className="text-sm font-semibold text-orange-800">Material Requisition Details</p>
             <div>
-              <label className="label">Department (auto-filled)</label>
+              <label className="label">Department</label>
               <input value={task.department_name || ''} disabled className="input bg-gray-100 cursor-not-allowed" />
             </div>
             <div>

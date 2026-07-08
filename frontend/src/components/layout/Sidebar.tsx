@@ -22,7 +22,6 @@ export default function Sidebar({ onOpenQueries }: Props) {
   const commonNav = [
     navItem('/dashboard', 'Dashboard', HomeIcon),
     navItem('/projects', 'Projects', FolderIcon),
-    navItem('/notifications', 'Notifications', BellIcon),
   ]
 
   const layer3Nav = [
@@ -52,14 +51,14 @@ export default function Sidebar({ onOpenQueries }: Props) {
   const roleNav = isAdmin ? adminNav : isLayerTwo ? layer2Nav : layer3Nav
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-full flex-shrink-0">
-      {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-gray-200">
+    <aside className="group w-[70px] hover:w-64 bg-white border-r border-gray-200 flex flex-col h-full flex-shrink-0 transition-all duration-300 overflow-hidden">
+      <div className="h-16 flex items-center px-5 border-b border-gray-200">
         <div className="flex items-center gap-2">
-          <WrenchScrewdriverIcon className="w-8 h-8 text-brand-600" />
-          <div>
-            <p className="text-sm font-bold text-gray-900 leading-none">PMS</p>
-            <p className="text-xs text-gray-400 leading-none">Production System</p>
+          <img src="/logo4.png" alt="Logo" className="w-8 h-8" />
+
+          <div className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 whitespace-nowrap">
+            <p className="text-sm font-bold text-gray-900 pb-1 leading-none">Crafted Oak & Ore</p>
+            <p className="text-xs text-gray-400 leading-none">Luxury Goods Atelier</p>
           </div>
         </div>
       </div>
@@ -75,7 +74,11 @@ export default function Sidebar({ onOpenQueries }: Props) {
             }
           >
             <Icon className="w-5 h-5 flex-shrink-0" />
-            <span>{label}</span>
+            <span
+              className="whitespace-nowrap opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-40 transition-all duration-300"
+            >
+              {label}
+            </span>
           </NavLink>
         ))}
 
@@ -85,40 +88,38 @@ export default function Sidebar({ onOpenQueries }: Props) {
           className="w-full sidebar-item-inactive"
         >
           <ChatBubbleLeftRightIcon className="w-5 h-5 flex-shrink-0" />
-          <span>Queries</span>
+          <span
+            className=" whitespace-nowrap opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-40 transition-all duration-300"
+          >
+            Queries
+          </span>
         </button>
-
-        {/* Settings */}
-        <NavLink
-          to="/settings"
-          className={({ isActive }) =>
-            clsx(isActive ? 'sidebar-item-active' : 'sidebar-item-inactive')
-          }
-        >
-          <Cog6ToothIcon className="w-5 h-5 flex-shrink-0" />
-          <span>Settings</span>
-        </NavLink>
       </nav>
 
       {/* User info at bottom */}
-      <div className="px-4 py-3 border-t border-gray-200">
+      <NavLink
+        to="/settings"
+        className="block mx-2 px-2 py-3 border-t border-gray-200 hover:bg-gray-50 transition-colors"
+      >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
             <span className="text-brand-700 text-xs font-semibold">
-              {user?.first_name?.[0]}{user?.last_name?.[0]}
+              {user?.first_name?.[0]}
+              {user?.last_name?.[0]}
             </span>
           </div>
-          <div className="min-w-0">
+
+          <div className="min-w-0 opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-40 transition-all duration-300">
             <p className="text-sm font-medium text-gray-900 truncate">
               {user?.first_name} {user?.last_name}
             </p>
+
             <p className="text-xs text-gray-400 truncate capitalize">
-              {user?.layer?.replace('_', ' ')}
-              {user?.department_name ? ` · ${user.department_name}` : ''}
+              {user?.department_name || "Admin"}
             </p>
           </div>
         </div>
-      </div>
+      </NavLink>
     </aside>
   )
 }

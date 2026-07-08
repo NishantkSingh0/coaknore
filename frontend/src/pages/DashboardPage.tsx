@@ -12,6 +12,202 @@ import { fmtDate, fmtRelative, taskStatusColor, taskStatusLabel, issueStatusColo
 import { ProjectBadge, IssueBadge, ReworkBadge } from '../components/ui/StatusBadge'
 import clsx from 'clsx'
 
+const getGreeting = () => {
+  const hour = new Date().getHours()
+
+  if (hour >= 5 && hour < 12) return "Good Morning"
+  if (hour >= 12 && hour < 17) return "Good Afternoon"
+  if (hour >= 17 && hour < 21) return "Good Evening"
+  return "Good Night"
+}
+
+const motivationalQuotes = [
+  "Precision today becomes perfection tomorrow.",
+  "Every masterpiece begins with disciplined craftsmanship.",
+  "Quality is remembered long after speed is forgotten.",
+  "Luxury is built through consistency, not shortcuts.",
+  "Every component reflects our commitment to excellence.",
+  "Great products are created by great teams.",
+  "Craft every detail with pride.",
+  "Excellence is a habit, not an achievement.",
+  "Small improvements create extraordinary products.",
+  "The finest furniture begins with the finest effort.",
+  "Build with precision. Deliver with pride.",
+  "Your craftsmanship defines our reputation.",
+  "Attention to detail creates timeless products.",
+  "Every project is an opportunity to exceed expectations.",
+  "Discipline transforms materials into masterpieces.",
+  "Success is measured in quality, not quantity.",
+  "Today's effort becomes tomorrow's legacy.",
+  "Innovation begins on the workshop floor.",
+  "Work with purpose. Build with passion.",
+  "Perfection is achieved through continuous improvement.",
+  "Strong teams create exceptional products.",
+  "A single detail can define the entire experience.",
+  "Commitment is visible in every finished piece.",
+  "Manufacturing excellence starts with personal excellence.",
+  "Every challenge is an opportunity to improve.",
+  "Take ownership of every task you complete.",
+  "Reliable work builds lasting trust.",
+  "Precision is the language of luxury.",
+  "Every finished product carries your signature.",
+  "Success comes from doing ordinary work extraordinarily well.",
+  "Your dedication shapes the company's future.",
+  "Progress is built one quality task at a time.",
+  "Excellence leaves no room for compromise.",
+  "Consistency creates confidence.",
+  "A better process creates a better product.",
+  "Every cut, every finish, every detail matters.",
+  "Luxury is engineered through discipline.",
+  "The strongest foundation is built with teamwork.",
+  "Today's craftsmanship becomes tomorrow's customer satisfaction.",
+  "Every improvement strengthens the organization.",
+  "Think beyond completion, think perfection.",
+  "True professionals never stop learning.",
+  "Lead through action and quality.",
+  "Focus on solutions, not obstacles.",
+  "Great manufacturing begins with great responsibility.",
+  "The best products are built with patience.",
+  "Quality is everyone's responsibility.",
+  "Together we transform ideas into reality.",
+  "Be proud of what you build today.",
+  "Excellence starts with you.",
+  "Every joint you fit is a promise you keep.",
+  "Fine grain deserves a finer hand.",
+  "The polish shows, but the prep is what lasts.",
+  "Measure with care, cut with confidence.",
+  "A well-sanded edge speaks before the customer touches it.",
+  "Your patience today is someone's heirloom tomorrow.",
+  "The workshop rewards those who slow down to speed up.",
+  "No shortcut ever built a legacy piece.",
+  "Craft it as if your name goes on the tag.",
+  "The client sees the finish; we know the effort beneath it.",
+  "Every sample board is a small promise of quality.",
+  "Real luxury is invisible flaws, not visible shortcuts.",
+  "A steady hand today saves a costly fix tomorrow.",
+  "Great furniture starts with a great attitude.",
+  "Treat every plank like it's going into a showroom.",
+  "The finish is only as good as the honesty behind it.",
+  "Small hands, big impact, every worker shapes the brand.",
+  "We don't build furniture, we build trust in wood and metal.",
+  "Craftsmanship is quiet, but its results speak loudly.",
+  "Every measurement matters more than it seems.",
+  "One flawless piece builds ten new customers.",
+  "The team that checks twice, ships once.",
+  "Pride in process becomes pride in product.",
+  "Excellence isn't inspected in, it's built in.",
+  "A clean workstation reflects a clear mind.",
+  "The best joinery is the one no one notices.",
+  "Every varnish stroke tells the story of your care.",
+  "Details whisper luxury; shortcuts shout mediocrity.",
+  "We finish what we start, and we finish it right.",
+  "Consistency is the quiet hero of quality.",
+  "A masterpiece is just discipline, repeated daily.",
+  "Your effort today becomes someone's favorite chair.",
+  "The grain remembers every pass of the sander.",
+  "Precision isn't extra, it's the standard.",
+  "Every screw tightened is a promise kept.",
+  "We don't rush perfection; we build toward it.",
+  "The finest wood deserves the finest attention.",
+  "Every checklist completed is trust earned.",
+  "Great craftsmanship starts with great focus.",
+  "A team that takes pride finishes with pride.",
+  "The smallest flaw can undo the biggest effort, stay sharp.",
+  "Luxury lives in the details others skip.",
+  "Every piece we build carries our promise forward.",
+  "Show up for the process, not just the paycheck.",
+  "The best finish is the one built on patience.",
+  "A steady process is the backbone of premium quality.",
+  "We measure twice because customers only see it once.",
+  "Every day on the floor is a chance to raise the bar.",
+  "Good enough never built a luxury brand.",
+  "The mark of mastery is consistency under pressure.",
+  "Care in craftsmanship is care for the customer.",
+  "Every polished surface reflects the hands that shaped it.",
+  "We build furniture, but we deliver confidence.",
+  "Excellence is a decision made at every workstation.",
+  "The wood doesn't lie, neither should our effort.",
+  "A well-built frame holds more than weight; it holds our name.",
+  "Quality control starts with quality intention.",
+  "Every finished order is a chapter in our reputation.",
+  "The best teams sweat the details no one asks about.",
+  "Craftsmanship is the signature we leave without writing our name.",
+  "Precision in the workshop becomes prestige in the showroom.",
+  "Every day you improve, the brand improves with you.",
+  "We don't cut corners, we craft them.",
+  "The strength of a joint reflects the strength of our standards.",
+  "A calm, focused hand builds the finest furniture.",
+  "Every task done right is a brick in our legacy.",
+  "Luxury isn't a material, it's a mindset.",
+  "The best finish starts with the best intention.",
+  "We build slow enough to build it right.",
+  "Every inspection passed is a promise delivered.",
+  "Great work doesn't need to be loud to be noticed.",
+  "The details you perfect are the details customers remember.",
+  "A craftsman's pride is measured in precision, not speed.",
+  "Every plank has potential, it's our job to reveal it.",
+  "We don't just assemble furniture, we assemble trust.",
+  "The workshop is where reputations are built, one piece at a time.",
+  "Excellence is the standard, not the exception.",
+  "Every hand on the line shapes the brand's future.",
+  "A single scratch can undo a hundred perfect cuts, stay careful.",
+  "The finest craftsmanship comes from the calmest hands.",
+  "We polish wood, but we build character.",
+  "Every order fulfilled with care is a customer kept for life.",
+  "Discipline on the floor becomes elegance in the showroom.",
+  "The best products come from teams who refuse to settle.",
+  "Every seam we hide is a flaw we didn't allow.",
+  "Craft with intention, finish with pride.",
+  "The mark of true luxury is what you don't see going wrong.",
+  "We don't chase perfection, we practice it daily.",
+  "Every worker's care becomes every customer's comfort.",
+  "The strongest brands are built on the smallest details.",
+  "Quality isn't checked at the end, it's built from the start.",
+  "Every stitch, weld, and polish tells our story.",
+  "We build furniture that outlives trends because we outwork shortcuts.",
+  "The finest finish begins with the finest focus.",
+  "Every day is a new chance to raise our own bar.",
+  "Craftsmanship is patience, practiced under pressure.",
+  "The best teams don't need reminders to care, they just do.",
+  "Every piece leaving this floor represents all of us.",
+  "We don't build fast, we build to last.",
+  "The wood trusts our hands; let's honor that trust.",
+  "Every improvement, however small, moves the whole team forward.",
+  "Precision is our promise, quality is our proof.",
+  "The finest details separate good furniture from great furniture.",
+  "We measure success in flawless finishes, not fast ones.",
+  "Every worker who takes pride adds value to the brand.",
+  "Craft with care, someone's home depends on it.",
+  "The best legacy is a product that never needs an apology.",
+  "Every task matters, because every customer matters.",
+  "We don't settle for close enough, we finish it right.",
+  "The finest furniture is built by the finest attitudes.",
+  "Every day of discipline builds a lifetime of trust.",
+  "Craftsmanship isn't a skill, it's a standard we live by.",
+]
+
+const getDailyMotivationalQuote = () => {
+  const today = new Date().toISOString().split("T")[0]
+
+  const storedDate = localStorage.getItem("dashboard_quote_date")
+  const storedIndex = localStorage.getItem("dashboard_quote_index")
+
+  if (
+    storedDate === today &&
+    storedIndex !== null &&
+    motivationalQuotes[Number(storedIndex)]
+  ) {
+    return motivationalQuotes[Number(storedIndex)]
+  }
+
+  const randomIndex = Math.floor(Math.random() * motivationalQuotes.length)
+
+  localStorage.setItem("dashboard_quote_date", today)
+  localStorage.setItem("dashboard_quote_index", randomIndex.toString())
+
+  return motivationalQuotes[randomIndex]
+}
+
 function StatCard({
   label, value, icon: Icon, color, to, subtitle
 }: {
@@ -311,22 +507,16 @@ function Layer3Dashboard() {
 
 export default function DashboardPage() {
   const { user, isAdmin, isLayerTwo, isLayerThree } = useAuth()
-
+  const greeting = getGreeting()
+  const quote = getDailyMotivationalQuote()  
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Good day, {user?.first_name} 👋
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          {user?.department_name
-            ? `${user.department_name} · `
-            : ''}
-          {user?.layer === 'super_admin' ? 'Super Admin'
-            : user?.layer === 'layer1' ? 'Admin'
-            : user?.layer === 'layer2' ? 'Production Management'
-            : 'Execution'}
-        </p>
+        <h1 className="text-3xl font-bold text-gray-900"> {greeting}, {user?.first_name} 👋</h1>
+        {/* {(isAdmin || isLayerTwo) && ( */}
+          <p className="mt-2 text-base italic text-brand-600 font-medium">`{quote}`</p>
+        {/* )} */}
+
       </div>
 
       {isAdmin        && <AdminDashboard />}

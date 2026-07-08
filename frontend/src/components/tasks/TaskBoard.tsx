@@ -10,9 +10,9 @@ import type { TaskStatus, DepartmentTask } from '../../types'
 
 const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
   { status: 'pending', label: 'Pending', color: 'bg-gray-50 border-gray-200' },
-  { status: 'in_progress', label: 'In Progress', color: 'bg-blue-50 border-blue-200' },
-  { status: 'hold', label: 'On Hold', color: 'bg-yellow-50 border-yellow-200' },
   { status: 'issue_hold', label: 'Issue Hold', color: 'bg-red-50 border-red-200' },
+  { status: 'hold', label: 'On Hold', color: 'bg-yellow-50 border-yellow-200' },
+  { status: 'in_progress', label: 'In Progress', color: 'bg-blue-50 border-blue-200' },
   { status: 'completed', label: 'Completed', color: 'bg-green-50 border-green-200' },
 ]
 

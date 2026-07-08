@@ -3,6 +3,7 @@ import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { orgApi } from '../services/api'
 import { useAsync, useAsyncAction } from '../hooks/useAsync'
 import { layerLabel, fmtDate } from '../utils/helpers'
+import { Key } from "lucide-react";
 import Modal from '../components/ui/Modal'
 import toast from 'react-hot-toast'
 import type { LayerType, DepartmentLayer } from '../types'
@@ -33,10 +34,11 @@ export default function EmployeesPage() {
     email: '', password: '', first_name: '', last_name: '',
     phone: '', layer: 'layer3', department_id: ''
   })
-
+  const filteredDepartments = depts?.filter((d) => d.layer === form.layer) ?? []
   const handleCreate = async () => {
-    if (!form.email || !form.password || !form.first_name || !form.last_name) {
-      toast.error('Email, password, first name and last name required'); return
+    if (!form.email || !form.password || !form.first_name || !form.last_name || !form.department_id) { 
+      toast.error('Please fill in all required fields, including the department.'); 
+      return;
     }
     const ok = await execute(() => orgApi.createEmployee(form))
     if (ok !== null) {
@@ -67,7 +69,7 @@ export default function EmployeesPage() {
   const LAYER_OPTS: { label: string; value: LayerType | '' }[] = [
     { label: 'All', value: '' },
     { label: 'Admin', value: 'layer1' },
-    { label: 'Production Mgmt', value: 'layer2' },
+    { label: 'Staff Management', value: 'layer2' },
     { label: 'Execution', value: 'layer3' },
   ]
 
@@ -143,7 +145,7 @@ export default function EmployeesPage() {
                   <td>
                     <span className="badge-blue">{layerLabel[emp.layer]}</span>
                   </td>
-                  <td>{emp.department_name || '—'}</td>
+                  <td>{emp.department_name || 'Admin'}</td>
                   <td>
                     <span className={emp.is_active ? 'badge-green' : 'badge-gray'}>
                       {emp.is_active ? 'Active' : 'Disabled'}
@@ -162,7 +164,7 @@ export default function EmployeesPage() {
                         onClick={() => setResetId(emp.id)}
                         className="btn-ghost btn-sm text-xs"
                       >
-                        Reset Pwd
+                        <Key height={14} width={14}/>
                       </button>
                     </div>
                   </td>
@@ -221,18 +223,20 @@ export default function EmployeesPage() {
           </div>
           <div>
             <label className="label">Layer / Role <span className="text-red-500">*</span></label>
-            <select value={form.layer} onChange={(e) => setForm((f) => ({ ...f, layer: e.target.value as LayerType }))} className="input">
+            <select  value={form.layer} onChange={(e) => setForm((f) => ({ ...f, layer: e.target.value as LayerType, department_id: ""}))} className="input"> 
               <option value="layer1">Admin (Layer 1)</option>
-              <option value="layer2">Production Mgmt (Layer 2)</option>
+              <option value="layer2">Staff Management (Layer 2)</option>
               <option value="layer3">Execution (Layer 3)</option>
             </select>
           </div>
           <div>
             <label className="label">Department</label>
-            <select value={form.department_id} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value }))} className="input">
-              <option value="">— No Department —</option>
-              {depts?.map((d) => (
-                <option key={d.id} value={d.id}>{d.name} ({d.layer})</option>
+            <select value={form.department_id} onChange={(e) => setForm((f) => ({  ...f,  department_id: e.target.value, })) } className="input">
+              <option value="">Select Department</option>
+              {filteredDepartments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
               ))}
             </select>
           </div>
