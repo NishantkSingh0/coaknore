@@ -32,11 +32,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-brand-600 rounded-2xl flex items-center justify-center mb-4">
-            <WrenchScrewdriverIcon className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">PMS</h1>
-          <p className="text-sm text-gray-500">Production Management System</p>
+          <img src="/invertedLogo.png" alt="logo" height={50} width={50} />
+          <h1 className="text-2xl font-bold text-gray-900">Crafted Oak & Ore Pvt. Ltd.</h1>
+          <p className="text-sm text-gray-500">Project Management System</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">

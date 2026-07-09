@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { PlusIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import { projectApi } from '../services/api'
 import { useAsync } from '../hooks/useAsync'
@@ -25,6 +25,7 @@ export default function ProjectsPage() {
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const { openPreview } = usePreviewModal()
+  const navigate = useNavigate()
   const [status, setStatus] = useState<ProjectStatus | ''>(
 
     (searchParams.get('status') as ProjectStatus) || ''
@@ -66,7 +67,7 @@ export default function ProjectsPage() {
               onClick={() => { setStatus(opt.value); setPage(1) }}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 status === opt.value
-                  ? 'bg-brand-600 text-white'
+                  ? 'bg-black text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -89,7 +90,6 @@ export default function ProjectsPage() {
                 <th>Project</th>
                 <th>PO Number</th>
                 <th>Client</th>
-                <th>Quantity</th>
                 <th>Status</th>
                 <th>Delivery</th>
                 <th>Revision</th>
@@ -101,31 +101,36 @@ export default function ProjectsPage() {
                 <tr><td colSpan={8} className="text-center py-12 text-gray-400">No projects found</td></tr>
               )}
               {data?.data?.map((project) => (
-                <tr key={project.id} className="cursor-pointer">
-                  <td>
-                    <Link to={`/projects/${project.id}`} className="font-medium text-brand-700 hover:underline">
-                      {project.project_name}
-                    </Link>
+                <tr
+                  key={project.id}
+                  className="cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => navigate(`/projects/${project.id}`)}
+                >                  
+                  <td className="font-medium text-brand-700">
+                    {project.project_name}
+
                     {project.cover_image_url && (
-                      <div 
+                      <div
                         className="relative group w-8 h-8 rounded overflow-hidden mt-1 cursor-pointer"
                         onClick={(e) => {
                           e.preventDefault()
-                          e.stopPropagation()
+                          e.stopPropagation() // Prevent row navigation
                           openPreview(project.cover_image_url!, 'Cover Image')
                         }}
                       >
-                        <img src={project.cover_image_url} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                        <img
+                          src={project.cover_image_url}
+                          alt=""
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
                           <PlusIcon className="w-3 h-3 text-white" />
                         </div>
                       </div>
                     )}
-
                   </td>
-                  <td className="font-mono text-xs">{project.po_number}</td>
+                  <td className="font-mono text-xs" title={project.po_number}>{project.po_number.length > 25 ? `${project.po_number.slice(0, 20)}...` : project.po_number}</td>                  
                   <td>{project.client_name}</td>
-                  <td>{project.quantity}</td>
                   <td><ProjectBadge status={project.status} /></td>
                   <td>{fmtDate(project.delivery_date)}</td>
                   <td>

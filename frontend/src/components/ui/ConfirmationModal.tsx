@@ -38,19 +38,19 @@ export default function ConfirmationModal({
     warning: {
       icon: ExclamationTriangleIcon,
       bgColor: 'bg-amber-100',
-      iconColor: 'text-amber-600',
-      btnColor: 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500 text-white',
+      iconColor: 'text-amber-800',
+      btnColor: 'bg-amber-800 hover:bg-amber-700 focus:ring-amber-500 text-white',
     },
     danger: {
       icon: ExclamationTriangleIcon,
       bgColor: 'bg-red-100',
-      iconColor: 'text-red-600',
-      btnColor: 'bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white',
+      iconColor: 'text-red-800',
+      btnColor: 'bg-red-800 hover:bg-red-700 focus:ring-red-500 text-white',
     },
     info: {
       icon: InformationCircleIcon,
       bgColor: 'bg-blue-100',
-      iconColor: 'text-blue-600',
+      iconColor: 'text-blue-800',
       btnColor: 'bg-brand-600 hover:bg-brand-700 focus:ring-brand-500 text-white',
     },
     success: {

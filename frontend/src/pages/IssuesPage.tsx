@@ -37,7 +37,7 @@ export default function IssuesPage() {
             key={opt.value}
             onClick={() => { setStatus(opt.value); setPage(1) }}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              status === opt.value ? 'bg-brand-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              status === opt.value ? 'bg-black text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             {opt.label}
