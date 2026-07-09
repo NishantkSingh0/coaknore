@@ -7,6 +7,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 import clsx from 'clsx'
+import { Avatar } from '../ui/Avatar'
 
 interface Props {
   onOpenQueries: () => void
@@ -42,7 +43,7 @@ export default function Sidebar({ onOpenQueries }: Props) {
   const adminNav = [
     navItem('/projects', 'Projects', FolderIcon),
     navItem('/employees', 'Employees', UserGroupIcon),
-    navItem('/departments', 'Departments', BuildingOfficeIcon),
+    navItem('/sdepartments', 'Departments', BuildingOfficeIcon),
     navItem('/issues', 'Issues', ExclamationCircleIcon),
     navItem('/reworks', 'Reworks', ArrowPathIcon),
     navItem('/reports', 'Reports', DocumentTextIcon),
@@ -60,7 +61,6 @@ export default function Sidebar({ onOpenQueries }: Props) {
             alt="Logo"
             className="w-8 h-8 transition-transform duration-[1500ms] ease-in-out group-hover/logo:rotate-[360deg]"
           />
-
           <div className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 whitespace-nowrap">
             <p className="text-sm font-bold text-gray-900 pb-1 leading-none">
               Crafted Oak & Ore
@@ -111,12 +111,7 @@ export default function Sidebar({ onOpenQueries }: Props) {
         className="block mx-2 px-2 py-3 border-t-2 border-gray-200 hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
-            <span className="text-brand-700 text-xs font-semibold">
-              {user?.first_name?.[0]}
-              {user?.last_name?.[0]}
-            </span>
-          </div>
+          <Avatar src={user?.avatar_url} firstName={user?.first_name} lastName={user?.last_name} size="sm" />
 
           <div className="min-w-0 opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-40 transition-all duration-300">
             <p className="text-sm font-medium text-gray-900 truncate">

@@ -528,6 +528,7 @@ func (s *RoutingService) ListProjectRoutings(projectID uuid.UUID) ([]models.Rout
 		if rCreatedByName.Valid {
 			r.CreatedByName = rCreatedByName.String
 		}
+		r.Steps, _ = s.GetRoutingSteps(r.ID)
 		routings = append(routings, r)
 	}
 	return routings, nil

@@ -2,16 +2,58 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { authApi } from '../services/api'
 import toast from 'react-hot-toast'
-import { ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
+import { ArrowRightOnRectangleIcon, CameraIcon } from '@heroicons/react/24/outline'
+import { Avatar } from '../components/ui/Avatar'
 
 
 export default function SettingsPage() {
-  const { logout } = useAuth()
+  const { logout, updateUser } = useAuth()
   const { user } = useAuth()
   const [currentPwd, setCurrentPwd] = useState('')
   const [newPwd, setNewPwd] = useState('')
   const [confirmPwd, setConfirmPwd] = useState('')
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Limit to 5MB and image types
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const updatedUser = await authApi.updateAvatar(file)
+      updateUser(updatedUser)
+      toast.success('Avatar updated successfully')
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Failed to upload avatar')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemoveAvatar = async () => {
+    if (!window.confirm('Are you sure you want to remove your avatar?')) return
+    setUploading(true)
+    try {
+      const updatedUser = await authApi.removeAvatar()
+      updateUser(updatedUser)
+      toast.success('Avatar removed successfully')
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Failed to remove avatar')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,17 +94,48 @@ export default function SettingsPage() {
         </div>
         <div className="card-body space-y-3 text-sm">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-brand-100 flex items-center justify-center">
-              <span className="text-brand-700 text-2xl font-bold">
-                {user?.first_name?.[0]}{user?.last_name?.[0]}
-              </span>
+            <div className="relative group w-16 h-16 rounded-full overflow-hidden border border-gray-200">
+              <Avatar src={user?.avatar_url} firstName={user?.first_name} lastName={user?.last_name} size="lg" />
+              <label
+                htmlFor="avatar-upload"
+                className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+              >
+                <CameraIcon className="w-5 h-5 text-white" />
+              </label>
+              <input
+                type="file"
+                id="avatar-upload"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                disabled={uploading}
+                className="hidden"
+              />
+              {uploading && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
             </div>
             <div>
               <p className="text-lg font-bold text-gray-900">{user?.first_name} {user?.last_name}</p>
               <p className="text-gray-500">{user?.email}</p>
-              <p className="text-xs text-gray-400 mt-1 capitalize">
-                {user?.department_name ? ` · ${user.department_name}` : 'Admin'}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-gray-400 capitalize">
+                  {user?.department_name ? ` · ${user.department_name}` : 'Admin'}
+                </span>
+                {user?.avatar_url && (
+                  <>
+                    <span className="text-gray-300">•</span>
+                    <button
+                      onClick={handleRemoveAvatar}
+                      disabled={uploading}
+                      className="text-xs text-red-600 hover:text-red-800 font-medium cursor-pointer"
+                    >
+                      Remove photo
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

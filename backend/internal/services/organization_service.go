@@ -449,6 +449,17 @@ func (s *OrganizationService) GetOrganization(id uuid.UUID) (*models.Organizatio
 	return org, nil
 }
 
+func (s *OrganizationService) UpdateAvatar(employeeID uuid.UUID, avatarURL *string) error {
+	var val interface{}
+	if avatarURL != nil && *avatarURL != "" {
+		val = *avatarURL
+	} else {
+		val = nil
+	}
+	_, err := s.db.Exec(`UPDATE employees SET avatar_url = $1, updated_at = NOW() WHERE id = $2`, val, employeeID)
+	return err
+}
+
 func nullStr(s string) interface{} {
 	if s == "" {
 		return nil

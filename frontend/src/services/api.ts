@@ -73,6 +73,20 @@ export const authApi = {
     })
     return unwrap(res)
   },
+  updateAvatar: async (file: File) => {
+    const formData = new FormData()
+    formData.append('avatar', file)
+    const res = await api.post<ApiResponse<Employee>>('/auth/me/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return unwrap(res)
+  },
+  removeAvatar: async () => {
+    const res = await api.delete<ApiResponse<Employee>>('/auth/me/avatar')
+    return unwrap(res)
+  },
 }
 
 // ============================================================

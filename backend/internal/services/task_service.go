@@ -270,7 +270,7 @@ func (s *TaskService) AssignEmployees(taskID uuid.UUID, employeeIDs []string) er
 
 func (s *TaskService) getTaskEmployees(taskID uuid.UUID) ([]models.Employee, error) {
 	rows, err := s.db.Query(`
-		SELECT e.id, e.first_name, e.last_name, e.email, e.layer, COALESCE(d.name,'')
+		SELECT e.id, e.first_name, e.last_name, e.email, e.layer, COALESCE(d.name,''), COALESCE(e.avatar_url, '')
 		FROM employees e
 		JOIN task_employee_assignments tea ON tea.employee_id = e.id
 		LEFT JOIN departments d ON d.id = e.department_id
@@ -284,7 +284,11 @@ func (s *TaskService) getTaskEmployees(taskID uuid.UUID) ([]models.Employee, err
 	var employees []models.Employee
 	for rows.Next() {
 		var e models.Employee
-		rows.Scan(&e.ID, &e.FirstName, &e.LastName, &e.Email, &e.Layer, &e.DepartmentName)
+		var avatarURL sql.NullString
+		rows.Scan(&e.ID, &e.FirstName, &e.LastName, &e.Email, &e.Layer, &e.DepartmentName, &avatarURL)
+		if avatarURL.Valid {
+			e.AvatarURL = avatarURL.String
+		}
 		e.FullName = e.FirstName + " " + e.LastName
 		employees = append(employees, e)
 	}

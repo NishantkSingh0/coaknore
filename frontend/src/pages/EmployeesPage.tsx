@@ -7,6 +7,7 @@ import { Key } from "lucide-react";
 import Modal from '../components/ui/Modal'
 import ConfirmationModal from '../components/ui/ConfirmationModal'
 import toast from 'react-hot-toast'
+import { Avatar } from '../components/ui/Avatar'
 import type { LayerType, DepartmentLayer } from '../types'
 import clsx from 'clsx'
 
@@ -135,11 +136,7 @@ export default function EmployeesPage() {
                 <tr key={emp.id}>
                   <td>
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-brand-700 text-xs font-bold">
-                          {emp.first_name[0]}{emp.last_name[0]}
-                        </span>
-                      </div>
+                      <Avatar src={emp.avatar_url} firstName={emp.first_name} lastName={emp.last_name} size="sm" />
                       <span className="font-medium">{emp.first_name} {emp.last_name}</span>
                     </div>
                   </td>

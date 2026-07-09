@@ -338,7 +338,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
                   ? activeQuery.recipient_name
                   : activeQuery.sender_name}
                 {activeQuery.project_name && (
-                  <span className="text-brand-600"> · {activeQuery.project_name}</span>
+                  <span className="text-black font-semibold"> · {activeQuery.project_name}</span>
                 )}
               </p>
             </div>
@@ -362,7 +362,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
           {view === 'list' && (
             <button
               onClick={() => setView('new')}
-              className="p-1.5 text-brand-600 hover:bg-brand-50 rounded-lg"
+              className="p-1.5 text-black hover:bg-brand-50 rounded-lg"
               title="New Query"
             >
               <PlusIcon className="w-5 h-5" />
@@ -490,7 +490,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
                       <div className={clsx(
                         'px-3 py-2 rounded-2xl text-sm leading-relaxed',
                         isMe
-                          ? 'bg-brand-600 text-white rounded-br-md'
+                          ? 'bg-black text-white rounded-br-md'
                           : 'bg-gray-100 text-gray-900 rounded-bl-md'
                       )}>
                         {msg.message}
@@ -504,7 +504,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
                         className={clsx(
                           'flex items-center gap-2 px-3 py-2 rounded-xl text-xs border cursor-pointer text-left',
                           isMe
-                            ? 'bg-brand-50 border-brand-200 text-brand-700'
+                            ? 'bg-brand-50 border-brand-200 text-black'
                             : 'bg-white border-gray-200 text-gray-700'
                         )}
                       >
@@ -538,7 +538,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="Type a message... (Enter to send)"
+                  placeholder="Type a message..."
                   rows={1}
                   className="input flex-1 py-2 resize-none"
                   style={{ minHeight: '38px', maxHeight: '96px' }}
@@ -564,7 +564,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
                 <button
                   onClick={sendMessage}
                   disabled={sending || (!message.trim() && !attachFile)}
-                  className="p-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50 flex-shrink-0"
+                  className="p-2 bg-black text-white rounded-lg hover:bg-black disabled:opacity-50 flex-shrink-0"
                   title="Send"
                 >
                   <PaperAirplaneIcon className="w-5 h-5" />

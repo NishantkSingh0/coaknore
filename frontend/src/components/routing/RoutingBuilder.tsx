@@ -34,6 +34,7 @@ export default function RoutingBuilder({
   projectId: string; project: Project; onPublish?: () => void
 }) {
   const { isLayerTwo, isAdmin } = useAuth()
+  const [viewRouting, setViewRouting] = useState<Routing | null>(null)
   const canEdit = isLayerTwo || isAdmin
 
   const { data: routings, refetch: refetchRoutings } = useAsync(
@@ -250,7 +251,7 @@ export default function RoutingBuilder({
         {steps.map((step, idx) => (
           <div key={step.id} className="border border-gray-200 rounded-xl overflow-hidden">
             <div className="bg-gray-50 px-4 py-3 flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+              <div className="w-7 h-7 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                 {step.stepOrder}
               </div>
               <input
@@ -294,7 +295,7 @@ export default function RoutingBuilder({
                     <button key={dept.id} onClick={() => toggleDept(step.id, dept.id)}
                       className={clsx(
                         'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border',
-                        selected ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-700 border-gray-200 hover:border-brand-400'
+                        selected ? 'bg-black text-white border-black' : 'bg-white text-gray-700 border-gray-200 hover:border-black'
                       )}>
                       {selected && <CheckIcon className="w-3 h-3" />}
                       {dept.name}
@@ -348,6 +349,23 @@ export default function RoutingBuilder({
               <RoutingVersionRow
                 key={r.id}
                 routing={r}
+                viewing={viewRouting?.id === r.id}
+                onView={() => {
+                  if (viewRouting?.id === r.id) {
+                    setViewRouting(null)
+                  } else {
+                    setViewRouting(r)
+
+                    setTimeout(() => {
+                      document
+                        .getElementById("active-production-flow")
+                        ?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        })
+                    }, 0)
+                  }
+                }}
                 onPublish={() => publishRouting(r.id)}
                 onEdit={() => requestEdit(r)}
                 onTimeline={() => viewTimeline(r.id)}
@@ -357,6 +375,11 @@ export default function RoutingBuilder({
             ))}
           </div>
         </div>
+      )}
+
+      {/* Active flow */}
+      {viewRouting && (
+        <ActiveRoutingFlow routing={viewRouting} />
       )}
 
       {/* Builder area */}
@@ -379,11 +402,6 @@ export default function RoutingBuilder({
             </div>
           )}
         </div>
-      )}
-
-      {/* Active flow */}
-      {routings?.find((r) => r.status === 'active') && (
-        <ActiveRoutingFlow routing={routings.find((r) => r.status === 'active')!} />
       )}
 
       {/* Edit warning modal */}
@@ -455,12 +473,24 @@ export default function RoutingBuilder({
 }
 
 function RoutingVersionRow({
-  routing, onPublish, onEdit, onTimeline, publishing, canEdit,
+  routing,
+  viewing,
+  onView,
+  onPublish,
+  onEdit,
+  onTimeline,
+  publishing,
+  canEdit,
 }: {
-  routing: Routing; onPublish: () => void; onEdit: () => void;
-  onTimeline: () => void; publishing: boolean; canEdit: boolean
+  routing: Routing
+  viewing: boolean
+  onView: () => void
+  onPublish: () => void
+  onEdit: () => void
+  onTimeline: () => void
+  publishing: boolean
+  canEdit: boolean
 }) {
-  const [expanded, setExpanded] = useState(false)
   return (
     <div>
       <div className="flex items-center gap-4 px-6 py-4">
@@ -483,8 +513,14 @@ function RoutingVersionRow({
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-          <button onClick={() => setExpanded((e) => !e)} className="btn-secondary btn-sm">
-            {expanded ? 'Hide' : 'View'} Steps
+          <button
+            onClick={onView}
+            className={clsx(
+              "btn-sm",
+              viewing ? "btn-primary" : "btn-secondary"
+            )}
+          >
+            {viewing ? "Hide Routing" : "View Routing"}
           </button>
           <button onClick={onTimeline} className="btn-secondary btn-sm" title="Edit Timeline">
             <ClockIcon className="w-3.5 h-3.5" />
@@ -502,49 +538,22 @@ function RoutingVersionRow({
           )}
         </div>
       </div>
-      {expanded && routing.steps && (
-        <div className="px-6 pb-4 bg-gray-50">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2">
-            {routing.steps.map((step, idx) => (
-              <div key={step.id} className="flex items-center gap-2 flex-shrink-0">
-                <div className="bg-white border border-gray-200 rounded-xl p-3 min-w-36">
-                  <div className="flex items-center gap-1 mb-1">
-                    <span className="w-5 h-5 bg-brand-600 text-white rounded-full text-xs flex items-center justify-center">
-                      {step.step_order}
-                    </span>
-                    {step.name && <span className="text-xs font-medium text-gray-700">{step.name}</span>}
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {step.departments?.map((d) => (
-                      <span key={d.id} className="badge-blue text-xs">{d.name}</span>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1.5">
-                    {step.dependency_policy === 'require_all' ? '⚡ All' : '⚡ Any'}
-                  </p>
-                </div>
-                {idx < routing.steps.length - 1 && <span className="text-gray-400 text-lg">→</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
 
 function ActiveRoutingFlow({ routing }: { routing: Routing }) {
   return (
-    <div className="card">
+    <div id="active-production-flow" className="card">
       <div className="card-header">
-        <h3 className="font-semibold text-green-700">Active Production Flow — v{routing.version}</h3>
+        <h3 className="font-semibold text-green-700">Active Production Flow  (v{routing.version}</h3>
       </div>
       <div className="card-body overflow-x-auto">
         <div className="flex items-start gap-4 min-w-max">
           {routing.steps?.map((step, idx) => (
             <div key={step.id} className="flex items-center gap-4">
               <div className="flex flex-col items-center">
-                <div className="w-8 h-8 rounded-full bg-brand-600 text-white text-sm font-bold flex items-center justify-center mb-2">
+                <div className="w-8 h-8 rounded-full bg-black text-white text-sm font-bold flex items-center justify-center mb-2">
                   {step.step_order}
                 </div>
                 <div className="bg-white border border-brand-200 rounded-xl p-3 min-w-32 text-center shadow-sm">

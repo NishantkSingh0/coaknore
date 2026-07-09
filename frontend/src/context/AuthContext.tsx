@@ -8,6 +8,7 @@ interface AuthContextValue {
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
+  updateUser: (updatedUser: Employee) => void
   isAdmin: boolean
   isLayerTwo: boolean
   isLayerThree: boolean
@@ -45,12 +46,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null)
   }, [])
 
+  const updateUser = useCallback((updatedUser: Employee) => {
+    localStorage.setItem('pms_user', JSON.stringify(updatedUser))
+    setUser(updatedUser)
+  }, [])
+
   const isAdmin = user?.layer === 'layer1' || user?.layer === 'super_admin'
   const isLayerTwo = user?.layer === 'layer2'
   const isLayerThree = user?.layer === 'layer3'
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, isAdmin, isLayerTwo, isLayerThree }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser, isAdmin, isLayerTwo, isLayerThree }}>
       {children}
     </AuthContext.Provider>
   )

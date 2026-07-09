@@ -19,6 +19,8 @@ export default {
           800: '#3b5bdb',
           900: '#364fc7',
         },
+        oak: '#2c2118',
+        ore: '#c2a47d',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

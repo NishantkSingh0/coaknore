@@ -1,7 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+
+// Authentication
 import LoginPage from './pages/LoginPage'
+
+// Layout
 import AppLayout from './components/layout/AppLayout'
+
+// Application Pages
 import DashboardPage from './pages/DashboardPage'
 import ProjectsPage from './pages/ProjectsPage'
 import ProjectDetailPage from './pages/ProjectDetailPage'
@@ -18,8 +24,17 @@ import MyTasksPage from './pages/MyTasksPage'
 import TaskDetailPage from './pages/TaskDetailPage'
 import SettingsPage from './pages/SettingsPage'
 
+// Website Pages
+import Home from './HomePages/Home'
+import About from './HomePages/About'
+import Products from './HomePages/Products'
+import Services from './HomePages/Services'
+import Departments from './HomePages/Departments'
+import Contact from './HomePages/Contact'
+
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -27,40 +42,53 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-  if (!user) return <Navigate to="/login" replace />
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
   return <>{children}</>
 }
 
 export default function App() {
   return (
     <Routes>
+      {/* ---------------- Public Website ---------------- */}
+      <Route path="/" element={<Home />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/products" element={<Products />} />
+      <Route path="/services" element={<Services />} />
+      <Route path="/departments" element={<Departments />} />
+      <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <AppLayout />
-          </RequireAuth>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="projects" element={<ProjectsPage />} />
-        <Route path="projects/new" element={<ProjectFormPage />} />
-        <Route path="projects/:id" element={<ProjectDetailPage />} />
-        <Route path="projects/:id/edit" element={<ProjectFormPage />} />
-        <Route path="tasks" element={<MyTasksPage />} />
-        <Route path="tasks/:id" element={<TaskDetailPage />} />
-        <Route path="issues" element={<IssuesPage />} />
-        <Route path="issues/:id" element={<IssueDetailPage />} />
-        <Route path="reworks" element={<ReworksPage />} />
-        <Route path="reports" element={<ReportsPage />} />
-        <Route path="materials" element={<MaterialsPage />} />
-        <Route path="notifications" element={<NotificationsPage />} />
-        <Route path="employees" element={<EmployeesPage />} />
-        <Route path="departments" element={<DepartmentsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+
+      {/* ---------------- Protected Application ---------------- */}
+      <Route element={<RequireAuth> <AppLayout /> </RequireAuth>}>
+        <Route path="/dashboard" element={<DashboardPage />} />
+
+        <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/projects/new" element={<ProjectFormPage />} />
+        <Route path="/projects/:id" element={<ProjectDetailPage />} />
+        <Route path="/projects/:id/edit" element={<ProjectFormPage />} />
+
+        <Route path="/tasks" element={<MyTasksPage />} />
+        <Route path="/tasks/:id" element={<TaskDetailPage />} />
+
+        <Route path="/issues" element={<IssuesPage />} />
+        <Route path="/issues/:id" element={<IssueDetailPage />} />
+
+        <Route path="/reworks" element={<ReworksPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/materials" element={<MaterialsPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+
+        <Route path="/employees" element={<EmployeesPage />} />
+        <Route path="/sdepartments" element={<DepartmentsPage />} />
+
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
+
+      {/* ---------------- 404 ---------------- */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

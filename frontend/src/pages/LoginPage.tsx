@@ -30,15 +30,18 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-50 to-brand-100 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
-        <div className="flex flex-col items-center mb-8">
-          <img src="/invertedLogo.png" alt="logo" height={50} width={50} />
-          <h1 className="text-2xl font-bold text-gray-900">Crafted Oak & Ore Pvt. Ltd.</h1>
-          <p className="text-sm text-gray-500">Project Management System</p>
+      <div className="hero-enter bg-white rounded-2xl shadow-xl w-full max-w-md p-8">
+        <div className="hero-enter hero-enter-delay-1 group flex flex-col items-center mb-8">
+          <img
+            src="/invertedLogo.png"
+            alt="Logo"
+            className="w-16 h-16 transition-transform duration-[1500ms] ease-in-out group-hover:rotate-[360deg]"
+          />
+          <h1 className="text-2xl font-bold pt-3 text-gray-900">Crafted Oak & Ore Pvt. Ltd.</h1>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <div>
+          <div className="hero-enter hero-enter-delay-2">
             <label className="label">Email</label>
             <input
               type="email"
@@ -51,7 +54,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <div>
+          <div className="hero-enter hero-enter-delay-3">
             <label className="label">Password</label>
             <input
               type="password"
@@ -64,11 +67,17 @@ export default function LoginPage() {
             />
           </div>
 
-          <button type="submit" disabled={loading} className="btn-primary w-full">
+          <button
+            type="submit"
+            disabled={loading}
+            className="hero-enter hero-enter-delay-4 btn-primary w-full"
+          >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
+        <p className="hero-enter hero-enter-delay-5 mt-6 text-center text-xs text-gray-500 leading-relaxed">This system is intended exclusively for authorized personnel of Crafted Oak &amp; Ore Pvt. Ltd.</p>
       </div>
+      
     </div>
   )
 }

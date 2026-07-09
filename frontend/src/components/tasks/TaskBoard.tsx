@@ -6,6 +6,7 @@ import { useAsync } from '../../hooks/useAsync'
 import { useAuth } from '../../context/AuthContext'
 import { fmtDate } from '../../utils/helpers'
 import { TaskBadge } from '../ui/StatusBadge'
+import { Avatar } from '../ui/Avatar'
 import type { TaskStatus, DepartmentTask } from '../../types'
 
 const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
@@ -95,11 +96,7 @@ function TaskCard({ task }: { task: DepartmentTask }) {
           {task.assigned_employees && task.assigned_employees.length > 0 && (
             <div className="flex -space-x-1">
               {task.assigned_employees.slice(0, 3).map((e) => (
-                <div key={e.id} className="w-5 h-5 rounded-full bg-brand-100 border border-white flex items-center justify-center">
-                  <span className="text-brand-700 text-xs font-bold leading-none">
-                    {e.first_name?.[0]}
-                  </span>
-                </div>
+                <Avatar key={e.id} src={e.avatar_url} firstName={e.first_name} lastName={e.last_name} size="xs" className="border border-white" />
               ))}
             </div>
           )}

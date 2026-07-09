@@ -76,7 +76,7 @@ func main() {
 	searchSvc := services.NewSearchService(db)
 
 	// ── Handlers ────────────────────────────────────────────────────────────
-	authHandler := handlers.NewAuthHandler(authSvc, orgSvc)
+	authHandler := handlers.NewAuthHandler(authSvc, orgSvc, fileSvc)
 	orgHandler := handlers.NewOrganizationHandler(orgSvc, authSvc)
 	projectHandler := handlers.NewProjectHandler(projectSvc, auditSvc, fileSvc)
 	routingHandler := handlers.NewRoutingHandler(routingSvc)
@@ -111,6 +111,7 @@ func main() {
 		r.Post("/api/auth/login", authHandler.Login)
 		r.Post("/api/auth/forgot-password", authHandler.ForgotPassword)
 		r.Post("/api/auth/reset-password", authHandler.ResetPassword)
+		r.Get("/api/public/avatar", authHandler.GetAvatarProxy)
 		r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprintln(w, `{"status":"ok"}`)
@@ -127,6 +128,8 @@ func main() {
 		// Auth
 		r.Get("/api/auth/me", authHandler.Me)
 		r.Post("/api/auth/change-password", authHandler.ChangePassword)
+		r.Post("/api/auth/me/avatar", authHandler.UpdateAvatar)
+		r.Delete("/api/auth/me/avatar", authHandler.RemoveAvatar)
 
 		// Notifications (all layers)
 		r.Get("/api/notifications", notifHandler.GetNotifications)

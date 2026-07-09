@@ -241,3 +241,62 @@ func IsAllowedMimeType(mime string) bool {
 	// Allow CAD-like types by extension
 	return strings.HasPrefix(mime, "image/") || strings.HasPrefix(mime, "application/")
 }
+
+func (s *FileService) UploadAvatar(
+	orgID, employeeID uuid.UUID,
+	file multipart.File,
+	header *multipart.FileHeader,
+) (string, error) {
+	ext := filepath.Ext(header.Filename)
+	uniqueName := fmt.Sprintf("avatar_%s_%d%s", employeeID, time.Now().Unix(), ext)
+	s3Key := fmt.Sprintf("org/%s/avatars/%s", orgID, uniqueName)
+
+	_, err := s.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(s3Key),
+		Body:        file,
+		ContentType: aws.String(header.Header.Get("Content-Type")),
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to upload avatar to S3: %w", err)
+	}
+
+	s3URL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s",
+		s.bucket, appconfig.App.AWSRegion, s3Key)
+
+	if appconfig.App.AWSS3Endpoint != "" {
+		s3URL = fmt.Sprintf("%s/%s/%s", appconfig.App.AWSS3Endpoint, s.bucket, s3Key)
+	}
+
+	return s3URL, nil
+}
+
+func (s *FileService) DeleteAvatar(avatarURL string) {
+	if avatarURL == "" {
+		return
+	}
+	key := extractS3KeyFromURL(avatarURL, s.bucket)
+	if key == "" {
+		return
+	}
+	_, _ = s.s3Client.DeleteObject(context.Background(), &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(key),
+	})
+}
+
+func extractS3KeyFromURL(s3URL, bucket string) string {
+	// Look for bucket name in URL
+	idx := strings.Index(s3URL, "/"+bucket+"/")
+	if idx != -1 {
+		return s3URL[idx+len(bucket)+2:]
+	}
+	// Otherwise look for standard amazonaws.com format: https://<bucket>.s3.<region>.amazonaws.com/<key>
+	prefix := ".amazonaws.com/"
+	idx = strings.Index(s3URL, prefix)
+	if idx != -1 {
+		return s3URL[idx+len(prefix):]
+	}
+	return ""
+}
+
