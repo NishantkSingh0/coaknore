@@ -3,6 +3,7 @@ import { PlusIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline'
 import { orgApi } from '../services/api'
 import { useAsync, useAsyncAction } from '../hooks/useAsync'
 import Modal from '../components/ui/Modal'
+import ConfirmationModal from '../components/ui/ConfirmationModal'
 import toast from 'react-hot-toast'
 import type { DepartmentLayer } from '../types'
 import clsx from 'clsx'
@@ -13,6 +14,7 @@ export default function DepartmentsPage() {
 
   const [createOpen, setCreateOpen] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', layer: 'layer3' as DepartmentLayer })
+  const [toggleConfirm, setToggleConfirm] = useState<{ id: string; active: boolean; name: string } | null>(null)
 
   const handleCreate = async () => {
     if (!form.name) { toast.error('Name is required'); return }
@@ -59,7 +61,7 @@ export default function DepartmentsPage() {
             {dept.is_active ? 'Active' : 'Inactive'}
           </span>
           <button
-            onClick={() => handleToggle(dept.id, !dept.is_active)}
+            onClick={() => setToggleConfirm({ id: dept.id, active: !dept.is_active, name: dept.name })}
             className="btn-ghost btn-sm text-xs"
           >
             {dept.is_active ? 'Disable' : 'Enable'}
@@ -149,6 +151,26 @@ export default function DepartmentsPage() {
           </div>
         </div>
       </Modal>
+
+      {toggleConfirm && (
+        <ConfirmationModal
+          open={!!toggleConfirm}
+          onClose={() => setToggleConfirm(null)}
+          onConfirm={async () => {
+            const { id, active } = toggleConfirm
+            setToggleConfirm(null)
+            await handleToggle(id, active)
+          }}
+          title={toggleConfirm.active ? 'Enable Department' : 'Disable Department'}
+          message={
+            toggleConfirm.active
+              ? `Are you sure you want to enable the department "${toggleConfirm.name}"?`
+              : `Are you sure you want to disable the department "${toggleConfirm.name}"? This might affect tasks and employees associated with it.`
+          }
+          confirmText={toggleConfirm.active ? 'Enable' : 'Disable'}
+          type={toggleConfirm.active ? 'info' : 'warning'}
+        />
+      )}
     </div>
   )
 }

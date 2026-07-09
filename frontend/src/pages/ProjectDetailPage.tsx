@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
-import { PencilIcon, ChevronRightIcon, LockClosedIcon } from '@heroicons/react/24/outline'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import ConfirmationModal from '../components/ui/ConfirmationModal'
+import { PencilIcon, ChevronRightIcon, LockClosedIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { projectApi, routingApi } from '../services/api'
 import { useAsync } from '../hooks/useAsync'
 import { useAuth } from '../context/AuthContext'
@@ -10,13 +11,22 @@ import RoutingBuilder from '../components/routing/RoutingBuilder'
 import TaskBoard from '../components/tasks/TaskBoard'
 import ProjectTimeline from '../components/project/ProjectTimeline'
 import ProjectRevisionList from '../components/project/ProjectRevisionList'
+import { usePreviewModal } from '../hooks/usePreviewModal'
+
 
 type Tab = 'overview' | 'routing' | 'tasks' | 'timeline' | 'revisions'
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { isAdmin, isLayerTwo, isLayerThree } = useAuth()
-  const [activeTab, setActiveTab] = useState<Tab>('overview')
+  const storageKey = `project-tab-${id}`
+
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    const saved = sessionStorage.getItem(storageKey) as Tab | null
+    return saved ?? 'overview'
+  })
+  const navigate = useNavigate()
+  const [editConfirm, setEditConfirm] = useState(false)
 
   const { data: project, loading, refetch } = useAsync(() => projectApi.get(id!), [id])
   const { data: routings } = useAsync(() => routingApi.listForProject(id!), [id])
@@ -24,7 +34,16 @@ export default function ProjectDetailPage() {
     () => (isLayerThree && id ? projectApi.getRestricted(id) : Promise.resolve(null)),
     [id, isLayerThree]
   )
+  console.log('restrictedProject', restrictedProject)
+  console.log('routings', routings)
+  console.log('project', project)
+  const { openPreview } = usePreviewModal()
 
+
+  useEffect(() => {
+    sessionStorage.setItem(storageKey, activeTab)
+  }, [storageKey, activeTab])
+  
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -66,22 +85,32 @@ export default function ProjectDetailPage() {
           )}
         </div>
         {isAdmin && (
-          <Link to={`/projects/${project.id}/edit`} className="btn-secondary flex-shrink-0">
-            <PencilIcon className="w-4 h-4" /> Edit
-          </Link>
+          <button
+            onClick={() => setEditConfirm(true)}
+            className="btn-secondary flex-shrink-0"
+          >
+            <PencilIcon className="w-4 h-4" />
+            Edit
+          </button>
         )}
       </div>
 
       {/* ── Drawing preview — always visible at top ───────────────────────── */}
       {project.drawing_file?.s3_url && (
-        <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-50">
+        <div 
+          className="relative group rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-50 cursor-pointer"
+          onClick={() => openPreview(project.drawing_file!.s3_url, project.drawing_file!.original_name)}
+        >
           <img
             src={project.drawing_file.s3_url}
             alt="Project drawing"
-            className="w-full max-h-72 object-contain"
+            className="w-full max-h-72 object-contain transition-transform duration-300 group-hover:scale-105"
           />
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+            <PlusIcon className="w-10 h-10 text-white" />
+          </div>
           {project.drawing_file.original_name && (
-            <p className="px-4 py-2 text-xs text-gray-500 border-t border-gray-100">
+            <p className="relative z-10 px-4 py-2 text-xs text-gray-500 border-t border-gray-100 bg-white">
               {project.drawing_file.original_name}
             </p>
           )}
@@ -96,13 +125,18 @@ export default function ProjectDetailPage() {
             <p className="font-semibold text-gray-900">{project.po_number}</p>
           </div>
           {project.render_files_url && (
-            <a href={project.render_files_url} target="_blank" rel="noopener noreferrer" className="card p-4 hover:bg-brand-50 transition-colors">
+            <button
+              type="button"
+              onClick={() => openPreview(project.render_files_url!, 'Render Files')}
+              className="card p-4 hover:bg-brand-50 transition-colors text-left cursor-pointer"
+            >
               <p className="text-xs text-gray-500 mb-0.5">Render Files</p>
               <p className="text-sm font-medium text-brand-600 flex items-center gap-1">
                 View Renders <ChevronRightIcon className="w-4 h-4" />
               </p>
-            </a>
+            </button>
           )}
+
           {(restrictedProject as Record<string, any>)?.routed_to_dept_at && (
             <div className="card p-4">
               <p className="text-xs text-gray-500 mb-0.5">Routed to Department</p>
@@ -129,7 +163,7 @@ export default function ProjectDetailPage() {
           {visibleTabs.map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => { setActiveTab(tab.key) }}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.key
                   ? 'border-brand-600 text-brand-700'
@@ -147,9 +181,18 @@ export default function ProjectDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4">
             {project.cover_image_url && (
-              <img src={project.cover_image_url} alt="cover"
-                className="w-full max-h-48 object-cover rounded-xl border border-gray-200" />
+              <div 
+                className="relative group overflow-hidden rounded-xl border border-gray-200 bg-gray-50 cursor-pointer"
+                onClick={() => openPreview(project.cover_image_url!, 'Cover Image')}
+              >
+                <img src={project.cover_image_url} alt="cover"
+                  className="w-full max-h-48 object-cover transition-transform duration-300 group-hover:scale-105" />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                  <PlusIcon className="w-10 h-10 text-white" />
+                </div>
+              </div>
             )}
+
 
             <div className="card">
               <div className="card-header"><h3 className="font-semibold">Project Details</h3></div>
@@ -209,16 +252,21 @@ export default function ProjectDetailPage() {
                   ['Job Cards', project.job_cards_url],
                   ['Render Files', project.render_files_url],
                 ].map(([label, url]) => url ? (
-                  <a key={label as string} href={url as string} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center justify-between text-sm text-brand-700 hover:underline py-1">
+                  <button
+                    key={label as string}
+                    type="button"
+                    onClick={() => openPreview(url as string, label as string)}
+                    className="flex items-center justify-between text-sm text-brand-700 hover:underline py-1 w-full text-left cursor-pointer"
+                  >
                     <span>{label as string}</span>
                     <ChevronRightIcon className="w-4 h-4" />
-                  </a>
+                  </button>
                 ) : (
                   <div key={label as string} className="flex items-center justify-between text-sm text-gray-400 py-1">
                     <span>{label as string}</span><span>—</span>
                   </div>
                 ))}
+
               </div>
             </div>
 
@@ -254,6 +302,18 @@ export default function ProjectDetailPage() {
       {activeTab === 'tasks' && <TaskBoard projectId={id!} />}
       {activeTab === 'timeline' && <ProjectTimeline projectId={id!} />}
       {activeTab === 'revisions' && <ProjectRevisionList projectId={id!} />}
+      <ConfirmationModal
+        open={editConfirm}
+        onClose={() => setEditConfirm(false)}
+        onConfirm={() => {
+          setEditConfirm(false)
+          navigate(`/projects/${project.id}/edit`)
+        }}
+        title="Edit Project"
+        message={`Are you sure you want to edit this project? Editing project details may affect ongoing workflows and routing!`}
+        confirmText="Continue Editing"
+        type="warning"
+      />
     </div>
   )
 }

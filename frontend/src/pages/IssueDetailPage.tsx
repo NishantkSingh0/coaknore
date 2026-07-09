@@ -6,18 +6,24 @@ import { useAuth } from '../context/AuthContext'
 import { fmtDateTime, issueTypeLabel } from '../utils/helpers'
 import { IssueBadge } from '../components/ui/StatusBadge'
 import Modal from '../components/ui/Modal'
+import ConfirmationModal from '../components/ui/ConfirmationModal'
 import toast from 'react-hot-toast'
+import { usePreviewModal } from '../hooks/usePreviewModal'
+
 
 export default function IssueDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { isLayerTwo, isAdmin, isLayerThree } = useAuth()
   const { data: issue, loading, refetch } = useAsync(() => issueApi.get(id!), [id])
   const { execute, loading: actLoading } = useAsyncAction()
+  const { openPreview } = usePreviewModal()
+
 
   const [reviewOpen, setReviewOpen] = useState(false)
   const [resolveOpen, setResolveOpen] = useState(false)
   const [notes, setNotes] = useState('')
   const [approve, setApprove] = useState(true)
+  const [showReviewConfirm, setShowReviewConfirm] = useState(false)
 
   const handleReview = async () => {
     const ok = await execute(() => issueApi.review(id!, approve, notes))
@@ -108,11 +114,12 @@ export default function IssueDetailPage() {
           <div className="card-header"><h3 className="font-semibold">Attachments</h3></div>
           <div className="card-body flex flex-wrap gap-2">
             {issue.files.map((f) => (
-              <a key={f.id} href={f.s3_url} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-brand-300">
+              <button key={f.id} type="button" onClick={() => openPreview(f.s3_url, f.original_name)}
+                className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-brand-300 cursor-pointer text-left">
                 📎 {f.original_name}
-              </a>
+              </button>
             ))}
+
           </div>
         </div>
       )}
@@ -122,7 +129,7 @@ export default function IssueDetailPage() {
         footer={
           <>
             <button onClick={() => setReviewOpen(false)} className="btn-secondary">Cancel</button>
-            <button onClick={handleReview} disabled={actLoading}
+            <button onClick={() => setShowReviewConfirm(true)} disabled={actLoading}
               className={approve ? 'btn-primary' : 'btn-danger'}>
               {actLoading ? 'Saving...' : approve ? 'Approve' : 'Reject'}
             </button>
@@ -167,6 +174,26 @@ export default function IssueDetailPage() {
             rows={4} className="input resize-none" placeholder="Describe how the issue was resolved..." />
         </div>
       </Modal>
+
+      {showReviewConfirm && (
+        <ConfirmationModal
+          open={showReviewConfirm}
+          onClose={() => setShowReviewConfirm(false)}
+          onConfirm={async () => {
+            setShowReviewConfirm(false)
+            await handleReview()
+          }}
+          title={approve ? 'Approve Issue' : 'Reject Issue'}
+          message={
+            approve
+              ? 'Are you sure you want to approve this issue?'
+              : 'Are you sure you want to reject this issue?'
+          }
+          confirmText={approve ? 'Approve' : 'Reject'}
+          type={approve ? 'success' : 'danger'}
+          loading={actLoading}
+        />
+      )}
     </div>
   )
 }

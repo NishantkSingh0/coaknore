@@ -17,11 +17,10 @@ const navItem = (to: string, label: string, Icon: React.ComponentType<{ classNam
 })
 
 export default function Sidebar({ onOpenQueries }: Props) {
-  const { user, isAdmin, isLayerTwo } = useAuth()
+  const { user, isAdmin, isLayerTwo, isLayerThree } = useAuth()
 
   const commonNav = [
     navItem('/dashboard', 'Dashboard', HomeIcon),
-    navItem('/projects', 'Projects', FolderIcon),
   ]
 
   const layer3Nav = [
@@ -33,6 +32,7 @@ export default function Sidebar({ onOpenQueries }: Props) {
   ]
 
   const layer2Nav = [
+    navItem('/projects', 'Projects', FolderIcon),
     navItem('/issues', 'Issues', ExclamationCircleIcon),
     navItem('/reworks', 'Reworks', ArrowPathIcon),
     navItem('/reports', 'Reports', DocumentTextIcon),
@@ -40,6 +40,7 @@ export default function Sidebar({ onOpenQueries }: Props) {
   ]
 
   const adminNav = [
+    navItem('/projects', 'Projects', FolderIcon),
     navItem('/employees', 'Employees', UserGroupIcon),
     navItem('/departments', 'Departments', BuildingOfficeIcon),
     navItem('/issues', 'Issues', ExclamationCircleIcon),
@@ -52,13 +53,21 @@ export default function Sidebar({ onOpenQueries }: Props) {
 
   return (
     <aside className="group w-[70px] hover:w-64 bg-white border-r border-gray-200 flex flex-col h-full flex-shrink-0 transition-all duration-300 overflow-hidden">
-      <div className="h-16 flex items-center px-5 border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <img src="/logo4.png" alt="Logo" className="w-8 h-8" />
+      <div className="h-[55px] flex items-center px-2 mx-3 border-b-2 border-gray-200">
+        <div className="group/logo flex items-center gap-2">
+          <img
+            src="/invertedLogo.png"
+            alt="Logo"
+            className="w-8 h-8 transition-transform duration-[1500ms] ease-in-out group-hover/logo:rotate-[360deg]"
+          />
 
           <div className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 whitespace-nowrap">
-            <p className="text-sm font-bold text-gray-900 pb-1 leading-none">Crafted Oak & Ore</p>
-            <p className="text-xs text-gray-400 leading-none">Luxury Goods Atelier</p>
+            <p className="text-sm font-bold text-gray-900 pb-1 leading-none">
+              Crafted Oak & Ore
+            </p>
+            <p className="text-xs text-gray-400 leading-none text-center">
+              Luxury Goods Atelier
+            </p>
           </div>
         </div>
       </div>
@@ -99,7 +108,7 @@ export default function Sidebar({ onOpenQueries }: Props) {
       {/* User info at bottom */}
       <NavLink
         to="/settings"
-        className="block mx-2 px-2 py-3 border-t border-gray-200 hover:bg-gray-50 transition-colors"
+        className="block mx-2 px-2 py-3 border-t-2 border-gray-200 hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">

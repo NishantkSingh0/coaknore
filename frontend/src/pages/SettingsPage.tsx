@@ -61,7 +61,7 @@ export default function SettingsPage() {
               <p className="text-lg font-bold text-gray-900">{user?.first_name} {user?.last_name}</p>
               <p className="text-gray-500">{user?.email}</p>
               <p className="text-xs text-gray-400 mt-1 capitalize">
-                Department  {user?.department_name ? ` · ${user.department_name}` : ''}
+                {user?.department_name ? ` · ${user.department_name}` : 'Admin'}
               </p>
             </div>
           </div>

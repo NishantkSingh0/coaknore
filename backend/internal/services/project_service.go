@@ -324,14 +324,15 @@ func (s *ProjectService) GetProject(id uuid.UUID) (*models.Project, error) {
 
 func (s *ProjectService) GetProjectRestricted(projectID, deptID uuid.UUID) (map[string]interface{}, error) {
 	var poNumber, renderFilesURL sql.NullString
-	var drawFileURL, drawFileName sql.NullString
+	var drawFileID sql.NullString
+	var drawFileKey, drawFileName sql.NullString
 	var routedAt sql.NullTime
 	var expectedCompletion sql.NullTime
 	var completionLocked bool
 
 	err := s.db.QueryRow(`
 		SELECT p.po_number, p.render_files_url,
-		       f.s3_url as drawing_url, f.original_name as drawing_name,
+		       f.id as drawing_id, f.s3_key as drawing_key, f.original_name as drawing_name,
 		       t.routed_to_dept_at, t.expected_completion_date, t.completion_date_locked
 		FROM projects p
 		LEFT JOIN file_assets f ON f.id = p.drawing_file_id
@@ -341,7 +342,7 @@ func (s *ProjectService) GetProjectRestricted(projectID, deptID uuid.UUID) (map[
 		LIMIT 1
 	`, projectID, deptID).Scan(
 		&poNumber, &renderFilesURL,
-		&drawFileURL, &drawFileName,
+		&drawFileID, &drawFileKey, &drawFileName,
 		&routedAt, &expectedCompletion, &completionLocked,
 	)
 	if err == sql.ErrNoRows {
@@ -351,10 +352,19 @@ func (s *ProjectService) GetProjectRestricted(projectID, deptID uuid.UUID) (map[
 		return nil, err
 	}
 
+	// Generate presigned URL for drawing file
+	drawingURL := ""
+	if drawFileKey.Valid && s.fileSvc != nil {
+		presignedURL, err := s.fileSvc.GetSignedURL(drawFileKey.String, 1*time.Hour)
+		if err == nil {
+			drawingURL = presignedURL
+		}
+	}
+
 	result := map[string]interface{}{
 		"po_number":               poNumber.String,
 		"render_files_url":        renderFilesURL.String,
-		"drawing_url":             drawFileURL.String,
+		"drawing_url":             drawingURL,
 		"drawing_name":            drawFileName.String,
 		"completion_date_locked":  completionLocked,
 	}

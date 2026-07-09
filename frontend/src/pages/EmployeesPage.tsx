@@ -5,6 +5,7 @@ import { useAsync, useAsyncAction } from '../hooks/useAsync'
 import { layerLabel, fmtDate } from '../utils/helpers'
 import { Key } from "lucide-react";
 import Modal from '../components/ui/Modal'
+import ConfirmationModal from '../components/ui/ConfirmationModal'
 import toast from 'react-hot-toast'
 import type { LayerType, DepartmentLayer } from '../types'
 import clsx from 'clsx'
@@ -25,6 +26,7 @@ export default function EmployeesPage() {
   const [editId, setEditId] = useState<string | null>(null)
   const [resetId, setResetId] = useState<string | null>(null)
   const [newPassword, setNewPassword] = useState('')
+  const [toggleConfirm, setToggleConfirm] = useState<{ id: string; active: boolean; name: string } | null>(null)
   const [form, setForm] = useState({
     email: '', password: '', first_name: '', last_name: '',
     phone: '', layer: 'layer3' as LayerType, department_id: ''
@@ -155,7 +157,7 @@ export default function EmployeesPage() {
                   <td>
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => handleToggle(emp.id, !emp.is_active)}
+                        onClick={() => setToggleConfirm({ id: emp.id, active: !emp.is_active, name: `${emp.first_name} ${emp.last_name}` })}
                         className="btn-ghost btn-sm text-xs"
                       >
                         {emp.is_active ? 'Disable' : 'Enable'}
@@ -249,17 +251,39 @@ export default function EmployeesPage() {
           <>
             <button onClick={() => { setResetId(null); setNewPassword('') }} className="btn-secondary">Cancel</button>
             <button onClick={handleResetPassword} disabled={actLoading} className="btn-primary">
-              {actLoading ? 'Resetting...' : 'Reset Password'}
+              {actLoading ? 'Saving...' : 'Reset Password'}
             </button>
           </>
         }
       >
-        <div>
-          <label className="label">New Password <span className="text-red-500">*</span></label>
-          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-            className="input" placeholder="Min 8 characters" />
+        <div className="space-y-4">
+          <div>
+            <label className="label">New Password</label>
+            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+              className="input" placeholder="Min 8 characters" />
+          </div>
         </div>
       </Modal>
+
+      {toggleConfirm && (
+        <ConfirmationModal
+          open={!!toggleConfirm}
+          onClose={() => setToggleConfirm(null)}
+          onConfirm={async () => {
+            const { id, active } = toggleConfirm
+            setToggleConfirm(null)
+            await handleToggle(id, active)
+          }}
+          title={toggleConfirm.active ? 'Enable Employee' : 'Disable Employee'}
+          message={
+            toggleConfirm.active
+              ? `Are you sure you want to enable ${toggleConfirm.name}? They will regain access to the system.`
+              : `Are you sure you want to disable ${toggleConfirm.name}? They will no longer be able to log in or access the system.`
+          }
+          confirmText={toggleConfirm.active ? 'Enable' : 'Disable'}
+          type={toggleConfirm.active ? 'info' : 'warning'}
+        />
+      )}
     </div>
   )
 }

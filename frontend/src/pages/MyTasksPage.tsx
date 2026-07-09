@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClockIcon } from '@heroicons/react/24/outline'
-import { taskApi } from '../services/api'
+import { ClockIcon, FolderIcon, CalendarDaysIcon, LockClosedIcon } from '@heroicons/react/24/outline'
+import { taskApi, projectApi } from '../services/api'
 import { useAsync } from '../hooks/useAsync'
+import { useAuth } from '../context/AuthContext'
 import { fmtDate, taskStatusColor, taskStatusLabel, priorityColor, priorityLabel } from '../utils/helpers'
 import { TaskBadge } from '../components/ui/StatusBadge'
 import type { TaskStatus } from '../types'
@@ -18,6 +19,7 @@ const STATUS_OPTS: { label: string; value: TaskStatus | '' }[] = [
 ]
 
 export default function MyTasksPage() {
+  const { isLayerThree } = useAuth()
   const [status, setStatus] = useState<TaskStatus | ''>('')
   const [page, setPage] = useState(1)
 
@@ -70,7 +72,24 @@ export default function MyTasksPage() {
                     <p className="text-sm font-semibold text-gray-900">
                       {task.title || task.department_name}
                     </p>
-                    {task.due_date && (
+                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <FolderIcon className="w-3.5 h-3.5" />
+                        {task.project_name}
+                      </span>
+                      <span>•</span>
+                      <span>{task.department_name}</span>
+                    </div>
+                    {isLayerThree && task.expected_completion_date && (
+                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                        <CalendarDaysIcon className="w-3.5 h-3.5" />
+                        Expected: {fmtDate(task.expected_completion_date)}
+                        {task.completion_date_locked && (
+                          <LockClosedIcon className="w-3 h-3 ml-1" />
+                        )}
+                      </p>
+                    )}
+                    {!isLayerThree && task.due_date && (
                       <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                         <ClockIcon className="w-3.5 h-3.5" />
                         Due {fmtDate(task.due_date)}

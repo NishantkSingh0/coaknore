@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 import QuerySidebar from '../queries/QuerySidebar'
+import PreviewModal from '../ui/PreviewModal'
 import { useState } from 'react'
 
 export default function AppLayout() {
@@ -22,6 +23,10 @@ export default function AppLayout() {
 
       {/* Right Query Sidebar */}
       <QuerySidebar open={querySidebarOpen} onClose={() => setQuerySidebarOpen(false)} />
+
+      {/* Global File Preview Modal */}
+      <PreviewModal />
     </div>
   )
 }
+

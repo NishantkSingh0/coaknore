@@ -31,23 +31,25 @@ func (s *TaskService) GetTask(id uuid.UUID) (*models.DepartmentTask, error) {
 	var startDate, dueDate, startedAt, completedAt sql.NullTime
 	var expectedCompletion, routedAt sql.NullTime
 	var completionLocked bool
-	var deptName sql.NullString
+	var deptName, projName sql.NullString
 
 	err := s.db.QueryRow(`
 		SELECT t.id, t.project_id, t.routing_id, t.routing_step_id, t.department_id,
 		       t.title, t.description, t.priority, t.status,
 		       t.start_date, t.due_date, t.dates_frozen, t.started_at, t.completed_at,
 		       t.expected_completion_date, t.completion_date_locked, t.routed_to_dept_at,
-		       t.created_at, t.updated_at, COALESCE(d.name,'') as dept_name
+		       t.created_at, t.updated_at, COALESCE(d.name,'') as dept_name,
+		       COALESCE(p.project_name,'') as project_name
 		FROM department_tasks t
 		LEFT JOIN departments d ON d.id = t.department_id
+		LEFT JOIN projects p ON p.id = t.project_id
 		WHERE t.id = $1
 	`, id).Scan(
 		&t.ID, &t.ProjectID, &t.RoutingID, &t.RoutingStepID, &t.DepartmentID,
 		&title, &desc, &t.Priority, &t.Status,
 		&startDate, &dueDate, &t.DatesFrozen, &startedAt, &completedAt,
 		&expectedCompletion, &completionLocked, &routedAt,
-		&t.CreatedAt, &t.UpdatedAt, &deptName,
+		&t.CreatedAt, &t.UpdatedAt, &deptName, &projName,
 	)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("task not found")
@@ -64,6 +66,9 @@ func (s *TaskService) GetTask(id uuid.UUID) (*models.DepartmentTask, error) {
 	}
 	if deptName.Valid {
 		t.DepartmentName = deptName.String
+	}
+	if projName.Valid {
+		t.ProjectName = projName.String
 	}
 	if startDate.Valid {
 		t.StartDate = &startDate.Time
@@ -330,6 +335,20 @@ func (s *TaskService) CreateSubtask(taskID uuid.UUID, req CreateSubtaskRequest) 
 	}
 	if stNotes.Valid {
 		st.Notes = stNotes.String
+	}
+	if req.IsRequired {
+		_, err = s.db.Exec(`
+			UPDATE department_tasks
+			SET status = 'in_progress',
+				completed_at = NULL,
+				updated_at = NOW()
+			WHERE id = $1
+			AND status = 'completed'
+		`, taskID)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 	return st, nil
 }

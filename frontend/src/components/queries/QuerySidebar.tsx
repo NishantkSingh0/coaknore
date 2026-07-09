@@ -9,6 +9,8 @@ import { useAuth } from '../../context/AuthContext'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
+import { usePreviewModal } from '../../hooks/usePreviewModal'
+
 
 interface Props {
   open: boolean
@@ -23,6 +25,8 @@ const TRANSITION_MS = 300
 export default function QuerySidebar({ open, onClose }: Props) {
   const { user } = useAuth()
   const [view, setView] = useState<View>('list')
+  const { openPreview } = usePreviewModal()
+
   const [queries, setQueries] = useState<Query[]>([])
   const [activeQuery, setActiveQuery] = useState<Query | null>(null)
   const [message, setMessage] = useState('')
@@ -493,13 +497,12 @@ export default function QuerySidebar({ open, onClose }: Props) {
                       </div>
                     )}
                     {msg.files?.map((f) => (
-                      <a
+                      <button
                         key={f.id}
-                        href={f.s3_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        type="button"
+                        onClick={() => openPreview(f.s3_url, f.original_name)}
                         className={clsx(
-                          'flex items-center gap-2 px-3 py-2 rounded-xl text-xs border',
+                          'flex items-center gap-2 px-3 py-2 rounded-xl text-xs border cursor-pointer text-left',
                           isMe
                             ? 'bg-brand-50 border-brand-200 text-brand-700'
                             : 'bg-white border-gray-200 text-gray-700'
@@ -507,8 +510,9 @@ export default function QuerySidebar({ open, onClose }: Props) {
                       >
                         <PaperClipIcon className="w-4 h-4 flex-shrink-0" />
                         <span className="truncate max-w-[160px]">{f.original_name}</span>
-                      </a>
+                      </button>
                     ))}
+
                     <span className="text-xs text-gray-400 px-1">
                       {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
                     </span>

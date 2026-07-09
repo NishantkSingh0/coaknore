@@ -7,6 +7,8 @@ import { useAuth } from '../context/AuthContext'
 import { fmtDate } from '../utils/helpers'
 import { ProjectBadge } from '../components/ui/StatusBadge'
 import type { ProjectStatus } from '../types'
+import { usePreviewModal } from '../hooks/usePreviewModal'
+
 
 const STATUS_OPTIONS: { label: string; value: ProjectStatus | '' }[] = [
   { label: 'All', value: '' },
@@ -22,7 +24,9 @@ export default function ProjectsPage() {
   const { isAdmin } = useAuth()
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState('')
+  const { openPreview } = usePreviewModal()
   const [status, setStatus] = useState<ProjectStatus | ''>(
+
     (searchParams.get('status') as ProjectStatus) || ''
   )
   const [page, setPage] = useState(1)
@@ -103,10 +107,21 @@ export default function ProjectsPage() {
                       {project.project_name}
                     </Link>
                     {project.cover_image_url && (
-                      <div className="w-8 h-8 rounded overflow-hidden mt-1">
-                        <img src={project.cover_image_url} alt="" className="w-full h-full object-cover" />
+                      <div 
+                        className="relative group w-8 h-8 rounded overflow-hidden mt-1 cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          openPreview(project.cover_image_url!, 'Cover Image')
+                        }}
+                      >
+                        <img src={project.cover_image_url} alt="" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                          <PlusIcon className="w-3 h-3 text-white" />
+                        </div>
                       </div>
                     )}
+
                   </td>
                   <td className="font-mono text-xs">{project.po_number}</td>
                   <td>{project.client_name}</td>

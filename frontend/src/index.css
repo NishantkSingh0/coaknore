@@ -14,7 +14,6 @@
   ::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded-full; }
   ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
 }
-
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed;

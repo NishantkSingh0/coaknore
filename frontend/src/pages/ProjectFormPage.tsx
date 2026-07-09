@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { projectApi } from '../services/api'
 import toast from 'react-hot-toast'
+import ConfirmationModal from '../components/ui/ConfirmationModal'
 
 type FormValues = {
   po_number: string
@@ -31,6 +32,7 @@ export default function ProjectFormPage() {
   const isEdit = Boolean(id)
   const [loading, setLoading] = useState(false)
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null)
+  const [pendingValues, setPendingValues] = useState<FormValues | null>(null)
 
   // Drawing file upload state
   const [drawingFile, setDrawingFile] = useState<File | null>(null)
@@ -82,7 +84,7 @@ export default function ProjectFormPage() {
     if (file) handleDrawingFileChange(file)
   }
 
-  const onSubmit = async (values: FormValues) => {
+  const executeSubmit = async (values: FormValues) => {
     setLoading(true)
     try {
       const payload = {
@@ -106,11 +108,6 @@ export default function ProjectFormPage() {
       let projectId: string
 
       if (isEdit && id) {
-        if (!values.revision_reason.trim()) {
-          toast.error('Revision reason is required when editing')
-          setLoading(false)
-          return
-        }
         await projectApi.update(id, {
           ...payload,
           revision_reason: values.revision_reason.trim(),
@@ -146,6 +143,18 @@ export default function ProjectFormPage() {
       toast.error(msg)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const onSubmit = async (values: FormValues) => {
+    if (isEdit && id) {
+      if (!values.revision_reason.trim()) {
+        toast.error('Revision reason is required when editing')
+        return
+      }
+      setPendingValues(values)
+    } else {
+      await executeSubmit(values)
     }
   }
 
@@ -307,6 +316,22 @@ export default function ProjectFormPage() {
           </button>
         </div>
       </form>
+
+      {pendingValues && (
+        <ConfirmationModal
+          open={!!pendingValues}
+          onClose={() => setPendingValues(null)}
+          onConfirm={async () => {
+            const vals = pendingValues
+            setPendingValues(null)
+            await executeSubmit(vals)
+          }}
+          title="Save Changes"
+          message="Are you sure you want to save these changes? Every edit creates a new project revision."
+          confirmText="Save"
+          type="warning"
+        />
+      )}
     </div>
   )
 }

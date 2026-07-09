@@ -12,7 +12,10 @@ import { TaskBadge } from '../components/ui/StatusBadge'
 import type { TaskStatus, IssueType } from '../types'
 import toast from 'react-hot-toast'
 import Modal from '../components/ui/Modal'
+import ConfirmationModal from '../components/ui/ConfirmationModal'
 import clsx from 'clsx'
+import { usePreviewModal } from '../hooks/usePreviewModal'
+
 
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -20,10 +23,13 @@ export default function TaskDetailPage() {
   const canAct = isLayerThree || isLayerTwo || isAdmin
   const { data: task, loading, refetch } = useAsync(() => taskApi.getTask(id!), [id])
   const { execute, loading: actionLoading } = useAsyncAction()
+  const { openPreview } = usePreviewModal()
+
   const { data: restrictedProject } = useAsync(
     () => (isLayerThree && task?.project_id ? projectApi.getRestricted(task.project_id) : Promise.resolve(null)),
     [task?.project_id, isLayerThree]
   )
+  console.log(restrictedProject)
 
   // modals
   const [addSubtaskOpen, setAddSubtaskOpen] = useState(false)
@@ -40,6 +46,9 @@ export default function TaskDetailPage() {
   })
   const [issueImage, setIssueImage] = useState<File | null>(null)
   const issueFileRef = useRef<HTMLInputElement>(null)
+  
+  const [proofConfirm, setProofConfirm] = useState<{ subtaskId: string; file: File; previewUrl: string } | null>(null)
+  const [uploadingProof, setUploadingProof] = useState(false)
 
   // ── handlers ──────────────────────────────────────────────────────────────
   const handleStatusChange = async (status: TaskStatus) => {
@@ -54,6 +63,30 @@ export default function TaskDetailPage() {
     if (ok !== null) {
       toast.success('Subtask added'); setAddSubtaskOpen(false)
       setNewSubtask({ title: '', description: '', is_required: true }); refetch()
+    }
+  }
+
+  const handleProofSelected = (subtaskId: string, file: File) => {
+    const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : ''
+    setProofConfirm({ subtaskId, file, previewUrl })
+  }
+
+  const handleConfirmProofUpload = async () => {
+    if (!proofConfirm) return
+    const { subtaskId, file, previewUrl } = proofConfirm
+    setUploadingProof(true)
+    try {
+      const ok = await execute(() => taskApi.uploadSubtaskProof(subtaskId, file))
+      if (ok !== null) {
+        toast.success('Proof uploaded — subtask completed automatically')
+        refetch()
+        setProofConfirm(null)
+      } else {
+        toast.error('Upload failed')
+      }
+    } finally {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      setUploadingProof(false)
     }
   }
 
@@ -231,13 +264,45 @@ export default function TaskDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      {/* ── Drawing Preview (Level 3) ───────────────────────────────────────────── */}
+      {isLayerThree && rp?.drawing_url && task && (
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="font-semibold text-gray-900">{task.project_name}</h3>
+            </div>
+          </div>
+          <div 
+            className="relative group bg-gray-50 rounded-lg overflow-hidden cursor-pointer"
+            onClick={() => openPreview(rp.drawing_url!, rp.drawing_name || 'Project Drawing')}
+          >
+            <img
+              src={rp.drawing_url}
+              alt={rp.drawing_name || 'Project Drawing'}
+              className="w-full h-auto max-h-96 object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+              onError={(e) => {
+                e.currentTarget.parentElement?.style.setProperty('display', 'none')
+              }}
+            />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+              <PlusIcon className="w-10 h-10 text-white" />
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {/* ── Header ───────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link to={`/projects/${task.project_id}`} className="text-sm text-gray-500 hover:text-gray-700">
-              {task.project_name}
-            </Link>
+            {isLayerThree ? (
+              <span className="text-sm text-gray-500">{task.project_name}</span>
+            ) : (
+              <Link to={`/projects/${task.project_id}`} className="text-sm text-gray-500 hover:text-gray-700">
+                {task.project_name}
+              </Link>
+            )}
             <span className="text-gray-400">/</span>
             <h1 className="text-xl font-bold text-gray-900">{task.title || 'Task'}</h1>
           </div>
@@ -304,6 +369,61 @@ export default function TaskDetailPage() {
         </div>
       )}
 
+      {/* ── Project Info (Layer 3) ───────────────────────────────────────────────── */}
+      {isLayerThree && rp && (
+        <div className="card p-4">
+          <h3 className="font-semibold text-gray-900 mb-3">Project Information</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-gray-500">PO Number</p>
+              <p className="text-sm font-medium text-gray-900">{rp.po_number || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Routed Date</p>
+              <p className="text-sm font-medium text-gray-900">{rp.routed_to_dept_at ? fmtDate(rp.routed_to_dept_at) : 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Expected Completion</p>
+              <p className="text-sm font-medium text-gray-900">{rp.expected_completion_date ? fmtDate(rp.expected_completion_date) : 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Completion Locked</p>
+              <p className="text-sm font-medium text-gray-900">
+                {rp.completion_date_locked ? (
+                  <span className="flex items-center gap-1">
+                    <LockClosedIcon className="w-3 h-3" /> Yes
+                  </span>
+                ) : 'No'}
+              </p>
+            </div>
+          </div>
+          {rp.render_files_url && (
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => openPreview(rp.render_files_url!, 'Render Files')}
+                className="text-sm text-brand-600 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <PaperClipIcon className="w-4 h-4" /> View Render Files
+              </button>
+            </div>
+          )}
+          {rp.drawing_url && (
+            <div className="mt-2">
+              <p className="text-xs text-gray-500">Drawing File</p>
+              <button
+                type="button"
+                onClick={() => openPreview(rp.drawing_url!, rp.drawing_name || 'Drawing File')}
+                className="text-sm text-brand-600 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <PaperClipIcon className="w-4 h-4" /> {rp.drawing_name || 'View Drawing'}
+              </button>
+            </div>
+          )}
+
+        </div>
+      )}
+
       {/* ── Subtasks ──────────────────────────────────────────────────────────── */}
       <div className="card">
         <div className="p-4 border-b border-gray-100">
@@ -331,20 +451,20 @@ export default function TaskDetailPage() {
                     <p className="text-sm text-gray-500 mt-1">{subtask.description}</p>
                   )}
                   {subtask.files && subtask.files.length > 0 && (
-                    <div className="mt-2 flex gap-2">
+                    <div className="mt-2 flex gap-2 flex-wrap">
                       {subtask.files.map((file) => (
-                        <a
+                        <button
                           key={file.id}
-                          href={file.s3_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-brand-600 hover:underline flex items-center gap-1"
+                          type="button"
+                          onClick={() => openPreview(file.s3_url, file.original_name)}
+                          className="text-xs text-brand-600 hover:underline flex items-center gap-1 cursor-pointer text-left"
                         >
-                          <PaperClipIcon className="w-3 h-3" /> {file.original_name}
-                        </a>
+                          <PaperClipIcon className="w-3 h-3 flex-shrink-0" /> <span className="truncate max-w-[150px]">{file.original_name}</span>
+                        </button>
                       ))}
                     </div>
                   )}
+
                 </div>
                 {subtask.status !== 'completed' && canAct && (
                   <label className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100 transition-colors">
@@ -354,7 +474,7 @@ export default function TaskDetailPage() {
                       type="file"
                       accept="image/*,.pdf"
                       className="hidden"
-                      onChange={(e) => e.target.files?.[0] && handleProofUpload(subtask.id, e.target.files[0])}
+                      onChange={(e) => e.target.files?.[0] && handleProofSelected(subtask.id, e.target.files[0])}
                     />
                   </label>
                 )}
@@ -367,6 +487,39 @@ export default function TaskDetailPage() {
       {/* ── Modals ───────────────────────────────────────────────────────────── */}
       {AddSubtaskModal}
       {IssueModal}
+
+      {proofConfirm && (
+        <ConfirmationModal
+          open={!!proofConfirm}
+          onClose={() => {
+            if (proofConfirm.previewUrl) URL.revokeObjectURL(proofConfirm.previewUrl)
+            setProofConfirm(null)
+          }}
+          onConfirm={handleConfirmProofUpload}
+          title="Submit Subtask Proof"
+          message="Are you sure you want to submit this proof? Once submitted, the subtask will be marked as completed automatically."
+          confirmText="Submit"
+          type="info"
+          loading={uploadingProof}
+        >
+          {proofConfirm.previewUrl ? (
+            <div className="mt-2 border rounded-xl overflow-hidden max-h-60 flex items-center justify-center bg-gray-50 p-2">
+              <img
+                src={proofConfirm.previewUrl}
+                alt="Proof Preview"
+                className="max-h-56 object-contain rounded-lg shadow-sm"
+              />
+            </div>
+          ) : (
+            <div className="mt-2 p-3 bg-gray-50 rounded-lg border flex items-center gap-2">
+              <PaperClipIcon className="w-5 h-5 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700 truncate">
+                {proofConfirm.file.name}
+              </span>
+            </div>
+          )}
+        </ConfirmationModal>
+      )}
     </div>
   )
 }
