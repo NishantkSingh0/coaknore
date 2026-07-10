@@ -201,7 +201,7 @@ export default function RoutingBuilder({
     setPublishing(routingId)
     try {
       await routingApi.publish(routingId)
-      toast.success('Routing published — tasks generated')
+      toast.success('Routing published, tasks generated')
       refetchRoutings()
       onPublish?.()
     } catch (err: unknown) {
@@ -546,7 +546,7 @@ function ActiveRoutingFlow({ routing }: { routing: Routing }) {
   return (
     <div id="active-production-flow" className="card">
       <div className="card-header">
-        <h3 className="font-semibold text-green-700">Active Production Flow  (v{routing.version}</h3>
+        <h3 className="font-semibold text-green-700">Active Production Flow  (v{routing.version})</h3>
       </div>
       <div className="card-body overflow-x-auto">
         <div className="flex items-start gap-4 min-w-max">

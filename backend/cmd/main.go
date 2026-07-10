@@ -74,6 +74,7 @@ func main() {
 	reportSvc := services.NewDailyReportService(db, auditSvc, notifSvc)
 	matSvc := services.NewMaterialService(db, auditSvc, notifSvc)
 	searchSvc := services.NewSearchService(db)
+	aiSvc := services.NewAIService(db)
 
 	// ── Handlers ────────────────────────────────────────────────────────────
 	authHandler := handlers.NewAuthHandler(authSvc, orgSvc, fileSvc)
@@ -88,6 +89,7 @@ func main() {
 	matHandler := handlers.NewMaterialHandler(matSvc, fileSvc)
 	notifHandler := handlers.NewNotificationHandler(notifSvc)
 	searchHandler := handlers.NewSearchHandler(searchSvc)
+	aiHandler := handlers.NewAIHandler(aiSvc)
 
 	// ── Router ──────────────────────────────────────────────────────────────
 	r := chi.NewRouter()
@@ -171,6 +173,9 @@ func main() {
 
 			// Dashboard stats
 			r.Get("/api/dashboard/stats", searchHandler.GetDashboardStats)
+
+			// AI Assistant
+			r.Post("/api/ai/chat", aiHandler.Chat)
 		})
 
 		// Projects — read (all layers)

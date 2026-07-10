@@ -1,0 +1,236 @@
+# AI Database Assistant - Implementation Guide
+
+## Overview
+The AI Database Assistant enables Administrators to retrieve operational information from the Project Management System using natural language. The assistant provides conversational access to project data while ensuring complete database safety through read-only access.
+
+## Architecture
+
+### Request Flow
+```
+Administrator → Frontend Chat Panel → Backend AI Service → LLM (Gemini) → Generated SQL → SQL Validation Layer → Read-Only PostgreSQL → Structured Result → LLM Summary → Frontend Response
+```
+
+### Key Components
+
+#### Frontend
+- **AI Assistant Panel** (`frontend/src/components/ai/AIAssistantPanel.tsx`)
+  - Floating chat interface similar to Queries panel
+  - Conversation history with timestamps
+  - User/AI message distinction
+  - Loading indicators and stop generation button
+  - Retry functionality on failure
+
+- **Sidebar Integration** (`frontend/src/components/layout/Sidebar.tsx`)
+  - AI Assistant menu item (admin-only)
+  - Sparkles icon for visual identification
+
+- **API Integration** (`frontend/src/services/api.ts`)
+  - `aiApi.chat()` endpoint for communication with backend
+
+#### Backend
+- **AI Service** (`backend/internal/services/ai_service.go`)
+  - Database schema extraction
+  - SQL generation via Gemini API
+  - SQL validation layer
+  - Query execution with error recovery
+  - Result summarization
+
+- **AI Handler** (`backend/internal/handlers/ai_handler.go`)
+  - HTTP endpoint `/api/ai/chat`
+  - Admin-only access protection
+
+- **Configuration** (`backend/internal/config/config.go`)
+  - `GEMINI_API_KEY` environment variable
+
+## Security Features
+
+### SQL Validation Layer
+The SQL validation layer ensures only safe SELECT queries reach the database:
+
+**Allowed:**
+- SELECT statements only
+- Single statement per request
+- Trailing semicolon (no multiple statements)
+
+**Rejected:**
+- INSERT, UPDATE, DELETE, DROP, ALTER, TRUNCATE, CREATE
+- EXECUTE, CALL, COPY, DO blocks
+- Transaction commands (BEGIN, COMMIT, ROLLBACK)
+- Comments (--, /* */)
+- Multiple statements
+
+### Database User
+**AI_READONLY** user with restricted permissions:
+- CONNECT on database
+- USAGE on public schema
+- SELECT on all tables
+- No INSERT, UPDATE, DELETE, TRUNCATE, CREATE, ALTER, DROP
+
+### Error Recovery
+- Maximum 3 retry attempts for SQL generation
+- Maximum 3 retry attempts for query execution
+- Generic error messages to users (no SQL errors exposed)
+- Automatic regeneration with error feedback to LLM
+
+## Setup Instructions
+
+### 1. Database Migration
+Run the migration to create the AI_READONLY user:
+```bash
+# The migration will be applied automatically on server restart
+# Or manually: psql -U pms_user -d pms_db -f backend/migrations/004_ai_readonly_user.sql
+```
+
+**Important:** Update the password in the migration file before running:
+```sql
+CREATE ROLE ai_readonly WITH LOGIN PASSWORD 'your_secure_password_here';
+```
+
+### 2. Environment Configuration
+Add to your `.env` file:
+```bash
+GEMINI_API_KEY=your_actual_gemini_api_key
+```
+
+### 3. Gemini API Key
+Obtain a Gemini API key from:
+https://makersuite.google.com/app/apikey
+
+## Usage
+
+### Access
+1. Log in as an Administrator (layer1 or super_admin)
+2. Click "AI Assistant" in the sidebar (Sparkles icon)
+3. The chat panel will open on the right side
+
+### Example Queries
+
+**Employee Monitoring:**
+- "What is Amit working on right now?"
+- "Which project is Rahul assigned to?"
+- "Who has not submitted today's report?"
+- "Which employees are currently idle?"
+- "Show employees currently on hold."
+
+**Projects:**
+- "Which projects are delayed?"
+- "Which projects are due this week?"
+- "Show completed projects."
+- "Which project has the highest number of issues?"
+- "Show revision history for Project X."
+
+**Tasks:**
+- "Show pending tasks."
+- "Which tasks are blocked?"
+- "Who owns Task 102?"
+- "List overdue tasks."
+
+**Daily Reports:**
+- "Show today's work updates."
+- "Summarize today's production."
+- "Which departments submitted reports today?"
+
+**Routing:**
+- "Show active routing for Project X."
+- "Which routing version is active?"
+- "Show routing timeline."
+
+**Materials:**
+- "Which materials are running low?"
+- "Show stock for Oak Wood."
+- "List recently consumed materials."
+
+**Issues:**
+- "Show unresolved issues."
+- "Which issue has been open the longest?"
+
+**Reworks:**
+- "Show today's reworks."
+- "Which project has the highest rework count?"
+
+**Notifications:**
+- "Show unread notifications."
+- "List pending approvals."
+
+**Departments:**
+- "Which department has the highest workload?"
+- "Which department completed the most tasks today?"
+
+**General:**
+- "What happened today?"
+- "Give me a production summary."
+- "Summarize this week's activities."
+
+## Technical Details
+
+### Database Schema Extraction
+The system automatically extracts:
+- All tables in the public schema
+- Column names, types, and nullability
+- Default values
+- Column descriptions (from PostgreSQL comments)
+- Foreign key relationships
+
+### LLM Integration
+- Uses Gemini Pro model
+- Temperature: 0.1 (for consistent SQL generation)
+- Max output tokens: 2048
+- System prompt enforces SELECT-only queries
+- Schema provided as JSON context
+
+### Response Generation
+- Professional business language
+- Concise summaries
+- Key information highlighted
+- Numbers included where relevant
+- Assumptions mentioned if data incomplete
+
+## Troubleshooting
+
+### "GEMINI_API_KEY not configured"
+- Ensure `GEMINI_API_KEY` is set in `.env`
+- Restart the backend server after adding the key
+
+### "Failed to process chat"
+- Check backend logs for specific error
+- Verify Gemini API key is valid
+- Ensure network connectivity to Google APIs
+
+### SQL generation fails repeatedly
+- The question may be too complex for the current schema
+- Try rephrasing the question
+- Check if the required data exists in the database
+
+### Query execution fails
+- Schema may have changed since last migration
+- Check backend logs for SQL errors
+- Verify AI_READONLY user has proper permissions
+
+## Files Modified/Created
+
+### Frontend
+- `frontend/src/components/layout/Sidebar.tsx` - Added AI Assistant menu
+- `frontend/src/components/layout/AppLayout.tsx` - Added AI Assistant panel
+- `frontend/src/components/ai/AIAssistantPanel.tsx` - New chat component
+- `frontend/src/services/api.ts` - Added aiApi
+
+### Backend
+- `backend/internal/services/ai_service.go` - New AI service
+- `backend/internal/handlers/ai_handler.go` - New AI handler
+- `backend/internal/config/config.go` - Added Gemini API key config
+- `backend/cmd/main.go` - Integrated AI service and handler
+- `backend/migrations/004_ai_readonly_user.sql` - New migration
+
+### Configuration
+- `.env.example` - Added GEMINI_API_KEY
+
+## Future Enhancements
+
+Potential improvements:
+- Conversation context/history for follow-up questions
+- Debug mode for administrators to view generated SQL
+- Query result caching for common questions
+- Support for data visualization (charts, graphs)
+- Export query results to CSV/Excel
+- Multi-language support
+- Custom prompt templates for specific query types

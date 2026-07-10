@@ -3,7 +3,8 @@ import {
   HomeIcon, FolderIcon, ClipboardDocumentListIcon,
   ExclamationCircleIcon, ArrowPathIcon, DocumentTextIcon,
   CubeIcon, BellIcon, UserGroupIcon, BuildingOfficeIcon,
-  ChatBubbleLeftRightIcon, Cog6ToothIcon, WrenchScrewdriverIcon
+  ChatBubbleLeftRightIcon, Cog6ToothIcon, WrenchScrewdriverIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 import clsx from 'clsx'
@@ -11,13 +12,14 @@ import { Avatar } from '../ui/Avatar'
 
 interface Props {
   onOpenQueries: () => void
+  onOpenAIAssistant: () => void
 }
 
 const navItem = (to: string, label: string, Icon: React.ComponentType<{ className?: string }>) => ({
   to, label, Icon,
 })
 
-export default function Sidebar({ onOpenQueries }: Props) {
+export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
   const { user, isAdmin, isLayerTwo, isLayerThree } = useAuth()
 
   const commonNav = [
@@ -103,6 +105,21 @@ export default function Sidebar({ onOpenQueries }: Props) {
             Queries
           </span>
         </button>
+
+        {/* AI Assistant Button - Admin Only */}
+        {isAdmin && (
+          <button
+            onClick={onOpenAIAssistant}
+            className="w-full sidebar-item-inactive"
+          >
+            <SparklesIcon className="w-5 h-5 flex-shrink-0" />
+            <span
+              className=" whitespace-nowrap opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-40 transition-all duration-300"
+            >
+              AI Assistant
+            </span>
+          </button>
+        )}
       </nav>
 
       {/* User info at bottom */}

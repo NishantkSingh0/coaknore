@@ -33,6 +33,10 @@ export default function ProjectFormPage() {
   const [loading, setLoading] = useState(false)
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null)
   const [pendingValues, setPendingValues] = useState<FormValues | null>(null)
+  
+  const defaultDeliveryDate = new Date()
+  defaultDeliveryDate.setDate(defaultDeliveryDate.getDate() + 28)
+  const defaultDeliveryDateString = defaultDeliveryDate.toISOString().split('T')[0]
 
   // Drawing file upload state
   const [drawingFile, setDrawingFile] = useState<File | null>(null)
@@ -42,7 +46,10 @@ export default function ProjectFormPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { quantity: 1 },
+    defaultValues: {
+      quantity: 1,
+      delivery_date: defaultDeliveryDateString,
+    },
   })
 
   useEffect(() => {

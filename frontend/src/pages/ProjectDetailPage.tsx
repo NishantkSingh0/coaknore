@@ -12,6 +12,7 @@ import TaskBoard from '../components/tasks/TaskBoard'
 import ProjectTimeline from '../components/project/ProjectTimeline'
 import ProjectRevisionList from '../components/project/ProjectRevisionList'
 import { usePreviewModal } from '../hooks/usePreviewModal'
+import { clsx } from 'clsx'
 
 
 type Tab = 'overview' | 'routing' | 'tasks' | 'timeline' | 'revisions'
@@ -63,7 +64,20 @@ export default function ProjectDetailPage() {
   ]
 
   const visibleTabs = tabs.filter((t) => !(isLayerThree && t.hideLayer3))
-
+  const specificationSections = [
+    {
+      title: 'Specifications',
+      content: project?.specifications,
+    },
+    {
+      title: 'Materials',
+      content: project?.material_details,
+    },
+    {
+      title: 'Upholstery',
+      content: project?.upholstery_details,
+    },
+  ].filter((section) => section.content)
   return (
     <div className="space-y-6">
       {/* ── Header ────────────────────────────────────────────────────────── */}
@@ -215,28 +229,39 @@ export default function ProjectDetailPage() {
               </div>
             </div>
 
-            {(project.specifications || project.material_details || project.upholstery_details) && (
+            {specificationSections.length > 0 && (
               <div className="card">
-                <div className="card-header"><h3 className="font-semibold">Specifications</h3></div>
-                <div className="card-body space-y-3 text-sm">
-                  {project.specifications && (
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Specifications</p>
-                      <p className="text-gray-700 whitespace-pre-wrap">{project.specifications}</p>
-                    </div>
-                  )}
-                  {project.material_details && (
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Materials</p>
-                      <p className="text-gray-700">{project.material_details}</p>
-                    </div>
-                  )}
-                  {project.upholstery_details && (
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Upholstery</p>
-                      <p className="text-gray-700">{project.upholstery_details}</p>
-                    </div>
-                  )}
+                <div className="card-header">
+                  <h3 className="font-semibold">Specifications</h3>
+                </div>
+
+                <div className="card-body">
+                  <div
+                    className={clsx(
+                      "grid gap-8",
+                      specificationSections.length === 1 && "grid-cols-1",
+                      specificationSections.length === 2 && "grid-cols-1 md:grid-cols-2",
+                      specificationSections.length >= 3 && "grid-cols-1 md:grid-cols-3"
+                    )}
+                  >
+                    {specificationSections.map(({ title, content }) => (
+                      <div key={title}>
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                          {title}
+                        </h4>
+
+                        <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                          {content!
+                            .split("-")
+                            .map((item) => item.trim())
+                            .filter(Boolean)
+                            .map((item, index) => (
+                              <li key={index}>{item}</li>
+                            ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

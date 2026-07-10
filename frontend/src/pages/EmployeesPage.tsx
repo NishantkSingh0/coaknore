@@ -223,14 +223,14 @@ export default function EmployeesPage() {
           <div>
             <label className="label">Layer / Role <span className="text-red-500">*</span></label>
             <select  value={form.layer} onChange={(e) => setForm((f) => ({ ...f, layer: e.target.value as LayerType, department_id: ""}))} className="input"> 
-              <option value="layer1">Admin (Layer 1)</option>
+              <option value="layer1">Admin</option>
               <option value="layer2">Staff Management (Layer 2)</option>
               <option value="layer3">Execution (Layer 3)</option>
             </select>
           </div>
           <div>
             <label className="label">Department</label>
-            <select value={form.department_id} onChange={(e) => setForm((f) => ({  ...f,  department_id: e.target.value, })) } className="input">
+            <select value={form.department_id} disabled={form.layer === 'layer1'} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, })) } className="input disabled:bg-gray-100 disabled:cursor-not-allowed">
               <option value="">Select Department</option>
               {filteredDepartments.map((d) => (
                 <option key={d.id} value={d.id}>

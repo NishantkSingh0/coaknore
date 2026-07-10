@@ -10,9 +10,9 @@ import { Avatar } from '../ui/Avatar'
 import type { TaskStatus, DepartmentTask } from '../../types'
 
 const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
-  { status: 'pending', label: 'Pending', color: 'bg-gray-50 border-gray-200' },
+  { status: 'pending', label: 'Pending', color: 'bg-gray-100 border-gray-300' },
   { status: 'issue_hold', label: 'Issue Hold', color: 'bg-red-50 border-red-200' },
-  { status: 'hold', label: 'On Hold', color: 'bg-yellow-50 border-yellow-200' },
+  { status: 'hold', label: 'On Hold', color: 'bg-yellow-50 border-yellow-300' },
   { status: 'in_progress', label: 'In Progress', color: 'bg-blue-50 border-blue-200' },
   { status: 'completed', label: 'Completed', color: 'bg-green-50 border-green-200' },
 ]
@@ -31,8 +31,22 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
     </div>
   }
 
-  const getByStatus = (status: TaskStatus) =>
-    (tasks || []).filter((t) => t.status === status)
+  // Preserve department order as they first appear in the tasks list.
+  // Each department gets a fixed row, regardless of which status column
+  // its task currently sits in.
+  const departmentOrder: string[] = []
+  const taskByDept = new Map<string, DepartmentTask>()
+  ;(tasks || []).forEach((t) => {
+    const key = t.department_name
+    if (!departmentOrder.includes(key)) {
+      departmentOrder.push(key)
+    }
+    // If a department somehow has multiple tasks, keep the first one
+    // for row placement (adjust here if multiple tasks per dept/row is needed).
+    if (!taskByDept.has(key)) {
+      taskByDept.set(key, t)
+    }
+  })
 
   return (
     <div className="space-y-4">
@@ -41,35 +55,47 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
         <span className="text-sm text-gray-500">{tasks?.length || 0} tasks total</span>
       </div>
 
-      {/* Kanban columns */}
-      <div className="grid grid-cols-5 gap-4 overflow-x-auto pb-2">
-        {COLUMNS.map((col) => {
-          const colTasks = getByStatus(col.status)
-          return (
-            <div key={col.status} className={`rounded-xl border p-3 min-h-48 ${col.color}`}>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-semibold text-gray-600">{col.label}</span>
-                <span className="text-xs bg-white/80 text-gray-500 rounded-full px-2 py-0.5">
-                  {colTasks.length}
-                </span>
-              </div>
-              <div className="space-y-2">
-                {colTasks.map((task) => (
-                  <TaskCard key={task.id} task={task} />
-                ))}
-                {colTasks.length === 0 && (
-                  <div className="text-center py-4 text-xs text-gray-400">Empty</div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* List view fallback for small screens */}
-      {tasks && tasks.length === 0 && (
+      {tasks && tasks.length === 0 ? (
         <div className="card p-8 text-center text-gray-400">
           <p className="text-sm">No tasks yet. Publish a routing to generate tasks.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto pb-2">
+          <div
+            className="grid gap-x-3 min-w-[900px]"
+            style={{ gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(0, 1fr))` }}
+          >
+            {/* Header row */}
+            {COLUMNS.map((col) => {
+              const count = departmentOrder.filter(
+                (dep) => taskByDept.get(dep)?.status === col.status
+              ).length
+              return (
+                <div
+                  key={col.status}
+                  className={`rounded-lg border p-2 mb-2 ${col.color} flex items-center justify-between`}
+                >
+                  <span className="text-xs font-semibold text-gray-600">{col.label}</span>
+                  <span className="text-xs bg-white/80 text-gray-500 rounded-full px-2 py-0.5">
+                    {count}
+                  </span>
+                </div>
+              )
+            })}
+
+            {/* One row per department, in stable order */}
+            {departmentOrder.map((dep) => {
+              const task = taskByDept.get(dep)!
+              return COLUMNS.map((col) => (
+                <div
+                  key={`${dep}-${col.status}`}
+                  className={`py-1 px-2 ${col.color.split(' ')[0]}`}
+                >
+                  {task.status === col.status && <TaskCard task={task} />}
+                </div>
+              ))
+            })}
+          </div>
         </div>
       )}
     </div>

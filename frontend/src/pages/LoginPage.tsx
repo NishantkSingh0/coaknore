@@ -75,7 +75,7 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <p className="hero-enter hero-enter-delay-5 mt-6 text-center text-xs text-gray-500 leading-relaxed">This system is intended exclusively for authorized personnel of Crafted Oak &amp; Ore Pvt. Ltd.</p>
+        <p className="hero-enter hero-enter-delay-5 mt-6 text-center text-xs text-gray-500 leading-relaxed">This application is strictly intended for authorized staff and personnel of this Organization only! </p>
       </div>
       
     </div>

@@ -131,7 +131,7 @@ export default function SettingsPage() {
                       disabled={uploading}
                       className="text-xs text-red-600 hover:text-red-800 font-medium cursor-pointer"
                     >
-                      Remove photo
+                      Remove avatar
                     </button>
                   </>
                 )}

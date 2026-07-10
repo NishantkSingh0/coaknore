@@ -78,7 +78,7 @@ export default function TaskDetailPage() {
     try {
       const ok = await execute(() => taskApi.uploadSubtaskProof(subtaskId, file))
       if (ok !== null) {
-        toast.success('Proof uploaded — subtask completed automatically')
+        toast.success('Proof uploaded, subtask completed automatically')
         refetch()
         setProofConfirm(null)
       } else {
@@ -92,7 +92,7 @@ export default function TaskDetailPage() {
 
   const handleProofUpload = async (subtaskId: string, file: File) => {
     const ok = await execute(() => taskApi.uploadSubtaskProof(subtaskId, file))
-    if (ok !== null) { toast.success('Proof uploaded — subtask completed automatically'); refetch() }
+    if (ok !== null) { toast.success('Proof uploaded, subtask completed automatically'); refetch() }
     else toast.error('Upload failed')
   }
 
@@ -101,7 +101,7 @@ export default function TaskDetailPage() {
     setSettingDate(true)
     try {
       await taskApi.setExpectedCompletion(id!, expectedDate)
-      toast.success('Expected completion date set — task is now In Progress'); refetch()
+      toast.success('Expected completion date set, task is now In Progress'); refetch()
     } catch (err: unknown) {
       toast.error((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to set date')
     } finally { setSettingDate(false) }
@@ -359,7 +359,7 @@ export default function TaskDetailPage() {
                 <button
                   onClick={handleSetExpectedCompletion}
                   disabled={settingDate || !expectedDate}
-                  className="btn-primary"
+                  className="btn-primary whitespace-nowrap"
                 >
                   {settingDate ? 'Setting...' : 'Set Date'}
                 </button>

@@ -383,7 +383,7 @@ func (s *RoutingService) generateTasksFromRouting(orgID, projectID, routingID, _
 			var taskID uuid.UUID
 			err := s.db.QueryRow(`
 				INSERT INTO department_tasks (project_id, routing_id, routing_step_id, department_id, status, routed_to_dept_at)
-				VALUES ($1, $2, $3, $4, 'pending', NOW())
+				VALUES ($1, $2, $3, $4, 'on_hold', NOW())
 				ON CONFLICT DO NOTHING
 				RETURNING id
 			`, projectID, routingID, step.ID, dept.ID).Scan(&taskID)
@@ -535,7 +535,6 @@ func (s *RoutingService) ListProjectRoutings(projectID uuid.UUID) ([]models.Rout
 }
 
 // ── EvaluateRoutingGate ───────────────────────────────────────────────────────
-
 func (s *RoutingService) EvaluateRoutingGate(routingID, completedStepID uuid.UUID) (bool, *models.RoutingStep, error) {
 	var stepOrder int
 	var depPolicy models.DependencyPolicy
@@ -622,7 +621,6 @@ func (s *RoutingService) EvaluateRoutingGate(routingID, completedStepID uuid.UUI
 }
 
 // ── ActivateNextStep ──────────────────────────────────────────────────────────
-
 func (s *RoutingService) ActivateNextStep(orgID, projectID, routingID uuid.UUID, nextStep *models.RoutingStep, _ uuid.UUID) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -633,11 +631,31 @@ func (s *RoutingService) ActivateNextStep(orgID, projectID, routingID uuid.UUID,
 	var pName string
 	s.db.QueryRow(`SELECT project_name FROM projects WHERE id = $1`, projectID).Scan(&pName)
 
+	var alreadyActivated bool
+
+	err = s.db.QueryRow(`
+		SELECT EXISTS (
+			SELECT 1
+			FROM department_tasks
+			WHERE project_id = $1
+			AND routing_step_id = $2
+		)
+	`, projectID, nextStep.ID).Scan(&alreadyActivated)
+
+	if err != nil {
+		return err
+	}
+
+	if alreadyActivated {
+		// Someone already routed this step.
+		return nil
+	}
+
 	for _, dept := range nextStep.Departments {
 		var taskID uuid.UUID
 		tx.QueryRow(`
 			INSERT INTO department_tasks (project_id, routing_id, routing_step_id, department_id, status, routed_to_dept_at)
-			VALUES ($1, $2, $3, $4, 'pending', NOW())
+			VALUES ($1, $2, $3, $4, 'on_hold', NOW())
 			RETURNING id
 		`, projectID, routingID, nextStep.ID, dept.ID).Scan(&taskID)
 

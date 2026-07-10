@@ -497,4 +497,18 @@ export const searchApi = {
   },
 }
 
+// ============================================================
+// AI ASSISTANT
+// ============================================================
+
+export const aiApi = {
+  chat: async (message: string, signal?: AbortSignal) => {
+    const res = await api.post<{ success: boolean; response: string; error?: string }>('/ai/chat', { message }, { signal })
+    if (!res.data.success) {
+      throw new Error(res.data.error || 'Failed to get response from AI assistant')
+    }
+    return { response: res.data.response }
+  },
+}
+
 export default api

@@ -34,15 +34,28 @@ type Config struct {
 	MaxUploadSizeMB    int64
 
 	PasswordResetExpiryHours int
+
+	GeminiAPIKey string
+
+	GroqAPIKey1 string
+	GroqAPIKey2 string
+	GroqAPIKey3 string
+	GroqAPIKey4 string
+	GroqAPIKey5 string
 }
 
 var App *Config
 
 func Load() {
-	if err := godotenv.Load("../.env"); err != nil {
-		if err := godotenv.Load(".env"); err != nil {
-			log.Println("No .env file found, reading from environment")
-		}
+	loadedEnv := false
+	if err := godotenv.Load("../.env"); err == nil {
+		loadedEnv = true
+	}
+	if err := godotenv.Overload(".env"); err == nil {
+		loadedEnv = true
+	}
+	if !loadedEnv {
+		log.Println("No .env file found, reading from environment")
 	}
 
 	jwtExpiry, _ := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", "24"))
@@ -74,6 +87,14 @@ func Load() {
 		MaxUploadSizeMB:    maxUpload,
 
 		PasswordResetExpiryHours: pwResetExpiry,
+
+		GeminiAPIKey: getEnv("GEMINI_API_KEY", ""),
+
+		GroqAPIKey1: getEnv("GROQ_API_KEY1", ""),
+		GroqAPIKey2: getEnv("GROQ_API_KEY2", ""),
+		GroqAPIKey3: getEnv("GROQ_API_KEY3", ""),
+		GroqAPIKey4: getEnv("GROQ_API_KEY4", ""),
+		GroqAPIKey5: getEnv("GROQ_API_KEY5", ""),
 	}
 
 	if App.JWTSecret == "" {

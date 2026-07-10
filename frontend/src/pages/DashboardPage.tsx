@@ -243,7 +243,7 @@ function AdminDashboard() {
           <StatCard label="Active"           value={stats.active_projects}    icon={ClipboardDocumentListIcon}   color="bg-green-50 text-green-600" to="/projects?status=in_progress" />
           <StatCard label="Delayed"          value={stats.delayed_projects}   icon={ExclamationTriangleIcon}     color="bg-orange-50 text-orange-600" to="/projects" subtitle="Past due date" />
           <StatCard label="Completed"        value={stats.completed_projects} icon={CheckCircleIcon}             color="bg-emerald-50 text-emerald-600" to="/projects?status=completed" />
-          <StatCard label="Open Issues"      value={stats.open_issues}        icon={ExclamationCircleIcon}       color="bg-red-50 text-red-600"     to="/issues" />
+          <StatCard label="Opened Issues"      value={stats.open_issues}        icon={ExclamationCircleIcon}       color="bg-red-50 text-red-600"     to="/issues" />
           <StatCard label="Pending Reworks"  value={stats.pending_reworks}    icon={ArrowPathIcon}               color="bg-purple-50 text-purple-600" to="/reworks?status=pending" />
           <StatCard label="Mat. Requests"    value={stats.pending_materials}  icon={CubeIcon}                    color="bg-yellow-50 text-yellow-600" to="/materials?status=pending" />
           <StatCard label="Employees"        value={stats.total_employees}    icon={UserGroupIcon}               color="bg-indigo-50 text-indigo-600" to="/employees" />
@@ -512,11 +512,15 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900"> {greeting}, {user?.first_name} 👋</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          {greeting}, {user?.first_name}{' '}
+          <span className="inline-block origin-[70%_70%] animate-wave">
+            👋
+          </span>
+        </h1>        
         {/* {(isAdmin || isLayerTwo) && ( */}
           <p className="mt-2 text-base italic text-brand-600 font-medium">`{quote}`</p>
         {/* )} */}
-
       </div>
 
       {isAdmin        && <AdminDashboard />}
