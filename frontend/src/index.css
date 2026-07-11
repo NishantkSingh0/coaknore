@@ -86,19 +86,19 @@
   .badge-orange { @apply badge bg-orange-100 text-orange-800; }
 
   .table-container {
-    @apply overflow-x-auto rounded-xl border border-gray-200;
+    @apply overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700;
   }
   .table {
-    @apply min-w-full divide-y divide-gray-200;
+    @apply min-w-full divide-y divide-gray-200 dark:divide-gray-700;
   }
   .table thead {
     @apply bg-gray-50;
   }
   .table th {
-    @apply px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider;
+    @apply px-4 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-100 uppercase tracking-wider;
   }
   .table tbody {
-    @apply bg-white divide-y divide-gray-100;
+    @apply bg-white dark:bg-gray-800 divide-y divide-gray-100;
   }
   .table td {
     @apply px-4 py-3 text-sm text-gray-700;
@@ -111,10 +111,10 @@
     @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150;
   }
   .sidebar-item-active {
-    @apply sidebar-item bg-brand-50 text-black font-semibold;
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 bg-brand-50 text-black font-semibold;
   }
   .sidebar-item-inactive {
-    @apply sidebar-item text-gray-600 hover:bg-gray-100 hover:text-gray-900;
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 text-gray-600 hover:bg-gray-100 hover:text-gray-900;
   }
 
   .page-header {
@@ -257,4 +257,125 @@ section.bg-slate-950 {
   background-image:
     radial-gradient(circle at top left, rgba(249, 115, 22, 0.12), transparent 24%),
     radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.1), transparent 18%);
+}
+
+/* Dark mode overrides scoped under .dark wrapper (applies to app layout children) */
+@layer components {
+  .dark body {
+    background-color: #0f172a;
+    background-image:
+      radial-gradient(circle at top left, rgba(251, 191, 36, 0.06), transparent 28%),
+      radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.08), transparent 18%);
+  }
+
+  .dark ::-webkit-scrollbar-track { @apply bg-gray-800; }
+  .dark ::-webkit-scrollbar-thumb { @apply bg-gray-600; }
+  .dark ::-webkit-scrollbar-thumb:hover { @apply bg-gray-500; }
+
+  .dark .btn-primary {
+    @apply bg-white text-black hover:bg-white/90;
+  }
+  .dark .btn-secondary {
+    @apply bg-gray-800 text-gray-200 border-gray-700 hover:bg-gray-700/80;
+  }
+  .dark .btn-danger {
+    @apply bg-red-500 text-white hover:bg-red-600;
+  }
+  .dark .btn-ghost {
+    @apply text-gray-300 hover:bg-gray-800;
+  }
+
+  .dark .card {
+    @apply bg-gray-800 border border-gray-700 text-gray-200 shadow-sm;
+  }
+  .dark .card-header {
+    @apply px-6 py-4 border-b border-gray-700;
+  }
+  .dark .card-body {
+    @apply px-6 py-4;
+  }
+
+  .dark .input {
+    @apply w-full px-3 py-2 rounded-lg border border-gray-600 text-sm
+           focus:outline-none focus:ring-2 focus:ring-white focus:border-white
+           placeholder-gray-400 bg-gray-700 text-gray-100;
+  }
+  .dark .input-error {
+    @apply border-red-500 focus:ring-red-500 focus:border-red-500;
+  }
+  .dark .label {
+    @apply block text-sm font-medium text-gray-200 mb-1;
+  }
+
+  .dark .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-200;
+  }
+  .dark .badge-blue   { @apply bg-blue-900/60 text-blue-200; }
+  .dark .badge-green  { @apply bg-green-900/60 text-green-200; }
+  .dark .badge-yellow { @apply bg-yellow-900/60 text-yellow-200; }
+  .dark .badge-red    { @apply bg-red-900/60 text-red-200; }
+  .dark .badge-gray   { @apply bg-gray-700 text-gray-200; }
+  .dark .badge-purple { @apply bg-purple-900/60 text-purple-200; }
+  .dark .badge-orange { @apply bg-orange-900/60 text-orange-200; }
+
+  .dark .table thead { @apply bg-gray-800; }
+  .dark .table tbody { @apply bg-gray-900 divide-y divide-gray-800; }
+  .dark .table td { @apply px-4 py-3 text-sm text-gray-200; }
+  .dark .table tr:hover td { @apply bg-gray-800; }
+
+  .dark .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 text-gray-300;
+  }
+  .dark .sidebar-item-active {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 bg-brand-900 text-white font-semibold;
+  }
+  .dark .sidebar-item-inactive {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 text-gray-300 hover:bg-gray-800 hover:text-white;
+  }
+
+  .dark .page-header { @apply flex items-center justify-between mb-6; }
+  .dark .page-title { @apply text-2xl font-bold text-white; }
+
+  .dark .modal-overlay {
+    @apply fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+  }
+  .dark .modal { @apply bg-gray-800 text-gray-200; }
+  .dark .modal-header { @apply border-b border-gray-700; }
+  .dark .modal-body { @apply px-6 py-4 overflow-y-auto flex-1 text-gray-200; }
+  .dark .modal-footer { @apply border-t border-gray-700; }
+
+  /* ReactFlow dark */
+  .dark .react-flow__controls {
+    @apply bg-gray-800 border border-gray-700;
+  }
+  .dark .react-flow__controls button {
+    @apply bg-gray-800 border-gray-700 text-gray-200 fill-gray-200;
+  }
+  .dark .react-flow__minimap {
+    @apply bg-gray-800;
+  }
+  .dark .react-flow__background {
+    background-color: #0f172a;
+  }
+
+  /* Gallery dark */
+  .dark .gallery-item {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  }
+  .dark .gallery-item:hover {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  }
+  .dark .gallery-item .overlay {
+    background: rgba(0, 0, 0, 0.55);
+  }
+
+  .dark header.scrolled {
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.4);
+  }
+
+  .dark section.bg-slate-950 {
+    background-image:
+      radial-gradient(circle at top left, rgba(249, 115, 22, 0.1), transparent 24%),
+      radial-gradient(circle at bottom right, rgba(56, 189, 248, 0.12), transparent 18%);
+  }
 }

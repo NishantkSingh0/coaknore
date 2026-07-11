@@ -20,7 +20,7 @@ CREATE TYPE project_status AS ENUM (
 );
 
 CREATE TYPE task_status AS ENUM (
-    'pending', 'in_progress', 'hold', 'issue_hold', 'completed'
+    'pending', 'in_progress', 'hold', 'issue_hold', 'completed', 'on_hold'
 );
 
 CREATE TYPE subtask_status AS ENUM ('pending', 'in_progress', 'completed');

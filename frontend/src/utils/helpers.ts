@@ -51,6 +51,7 @@ export const taskStatusLabel: Record<TaskStatus, string> = {
   hold: 'On Hold',
   issue_hold: 'Issue Hold',
   completed: 'Completed',
+  on_hold: 'On Hold',
 }
 
 export const taskStatusColor: Record<TaskStatus, string> = {
@@ -59,6 +60,7 @@ export const taskStatusColor: Record<TaskStatus, string> = {
   hold: 'badge-yellow',
   issue_hold: 'badge-red',
   completed: 'badge-green',
+  on_hold: 'badge-yellow',
 }
 
 export const issueStatusColor: Record<IssueStatus, string> = {

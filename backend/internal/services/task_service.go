@@ -238,11 +238,23 @@ func (s *TaskService) evaluateAndAdvanceRouting(orgID uuid.UUID, task *models.De
 	}
 
 	if nextStep == nil {
-		// All steps complete — project can be marked complete
+		// All steps complete — mark project as completed
+		s.db.Exec(`
+			UPDATE projects
+			SET status = 'completed', completed_at = NOW(), updated_at = NOW()
+			WHERE id = $1
+		`, task.ProjectID)
+
+		s.auditSvc.Log(AuditEntry{
+			OrgID: orgID, ProjectID: &task.ProjectID, ActorID: &actorID,
+			Action: models.AuditCompleted, EntityType: "project", EntityID: &task.ProjectID,
+			EntityName: task.ProjectName,
+		})
+
 		s.notifSvc.NotifyLayer(orgID, []models.LayerType{models.LayerOne, models.LayerSuperAdmin},
 			models.NotifTaskCompleted,
-			"Project Ready for Completion",
-			"All routing steps have been completed",
+			"Project Completed",
+			"All routing steps have been completed and project is now marked as completed",
 			&task.ProjectID, "project", &task.ProjectID)
 		return
 	}
@@ -465,7 +477,7 @@ func (s *TaskService) SetExpectedCompletionDate(orgID, taskID, actorID uuid.UUID
 	_, err = s.db.Exec(`
 		UPDATE department_tasks
 		SET expected_completion_date = $1, completion_date_locked = TRUE,
-		    status = CASE WHEN status = 'pending' THEN 'in_progress' ELSE status END,
+		    status = CASE WHEN status IN ('pending', 'on_hold') THEN 'in_progress' ELSE status END,
 		    started_at = CASE WHEN started_at IS NULL THEN NOW() ELSE started_at END,
 		    updated_at = NOW()
 		WHERE id = $2

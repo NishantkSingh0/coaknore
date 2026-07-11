@@ -84,10 +84,10 @@ export default function ReportsPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <span className="text-sm font-semibold text-gray-900">{report.project_name}</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{report.project_name}</span>
                     <span className="badge-blue">{report.dept_name}</span>
                   </div>
-                  <p className="text-sm text-gray-700 leading-relaxed">{report.description}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{report.description}</p>
                   <p className="text-xs text-gray-400 mt-2">
                     By {report.submitted_by_name} · {fmtDate(report.report_date)}
                   </p>

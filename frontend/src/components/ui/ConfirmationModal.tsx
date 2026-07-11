@@ -82,7 +82,7 @@ export default function ConfirmationModal({
               enter="ease-out duration-200" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
               leave="ease-in duration-150" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all border border-gray-200">
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all border border-gray-200 dark:border-gray-700">
                 <div className="flex items-start gap-4">
                   <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${config.bgColor}`}>
                     <IconComponent className={`h-6 w-6 ${config.iconColor}`} aria-hidden="true" />
@@ -90,13 +90,13 @@ export default function ConfirmationModal({
                   
                   <div className="flex-1 mt-0">
                     <div className="flex items-center justify-between">
-                      <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
+                      <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900 dark:text-white">
                         {title}
                       </Dialog.Title>
                       {!loading && (
                         <button
                           type="button"
-                          className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
+                          className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none dark:bg-transparent dark:text-gray-400 dark:hover:text-white"
                           onClick={onClose}
                         >
                           <XMarkIcon className="h-5 w-5" aria-hidden="true" />
@@ -105,7 +105,7 @@ export default function ConfirmationModal({
                     </div>
                     
                     <div className="mt-2">
-                      <div className="text-sm text-gray-500 leading-relaxed">
+                      <div className="text-sm text-gray-500 dark:text-gray-300 leading-relaxed">
                         {message}
                       </div>
                     </div>
@@ -138,7 +138,7 @@ export default function ConfirmationModal({
                   <button
                     type="button"
                     disabled={loading}
-                    className="inline-flex justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50"
+                    className="inline-flex justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
                     onClick={onClose}
                   >
                     {cancelText}

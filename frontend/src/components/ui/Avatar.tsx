@@ -90,7 +90,7 @@ export const Avatar: React.FC<AvatarProps> = ({
 
   return (
     <div
-      className={`${sizeClasses} rounded-full bg-brand-100 text-brand-700 flex items-center justify-center flex-shrink-0 select-none ${className}`}
+      className={`${sizeClasses} rounded-full bg-brand-100 dark:bg-gray-700 text-brand-700 dark:text-white flex items-center justify-center flex-shrink-0 select-none ${className}`}
     >
       <span className={`${textClasses} leading-none`}>
         {initials || '?'}

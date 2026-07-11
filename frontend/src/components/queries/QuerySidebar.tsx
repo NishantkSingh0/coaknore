@@ -44,6 +44,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
   const [recipientSearching, setRecipientSearching] = useState(false)
   const [recipientSearched, setRecipientSearched] = useState(false)
   const [selectedRecipient, setSelectedRecipient] = useState<Employee | null>(null)
+  const [allRecipients, setAllRecipients] = useState<Employee[]>([])
   const [projectSearch, setProjectSearch] = useState('')
   const [projectResults, setProjectResults] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
@@ -211,12 +212,28 @@ export default function QuerySidebar({ open, onClose }: Props) {
     }
   }
 
-  // ── Recipient search with debounce ───────────────────────────────────────
+  // ── Load all eligible recipients when new view opens ─────────────────────
   useEffect(() => {
-    if (recipientSearch.length < 2) {
-      setRecipientResults([])
-      setRecipientSearched(false)
-      setRecipientSearching(false)
+    if (view === 'new' && allRecipients.length === 0) {
+      const loadAllRecipients = async () => {
+        try {
+          const results = await orgApi.searchEmployees('')
+          setAllRecipients(results || [])
+          setRecipientResults(results || [])
+        } catch {
+          setAllRecipients([])
+          setRecipientResults([])
+        }
+      }
+      loadAllRecipients()
+    }
+  }, [view, allRecipients.length])
+
+  // ── Recipient search/filter with debounce ───────────────────────────────
+  useEffect(() => {
+    if (recipientSearch.length === 0) {
+      setRecipientResults(allRecipients)
+      setRecipientSearched(true)
       return
     }
     setRecipientSearching(true)
@@ -233,7 +250,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
       }
     }, 300)
     return () => clearTimeout(timer)
-  }, [recipientSearch])
+  }, [recipientSearch, allRecipients])
 
   // ── Project search with debounce ─────────────────────────────────────────
   useEffect(() => {
@@ -277,6 +294,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
       setRecipientResults([])
       setProjectResults([])
       setRecipientSearched(false)
+      setAllRecipients([])
       // Jump directly into the new chat
       const full = await queryApi.get(created.id)
       setActiveQuery(full)
@@ -320,7 +338,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
         className={clsx(
           // Floating card: gaps on top / right / bottom instead of a full-bleed panel
           'fixed top-4 bottom-4 right-4 w-96 max-w-[calc(100vw-2rem)]',
-          'bg-white rounded-2xl ring-1 ring-gray-200/80 shadow-2xl',
+          'bg-white dark:bg-gray-900 rounded-2xl ring-1 ring-gray-200/80 dark:ring-gray-700/80 shadow-2xl text-gray-900 dark:text-gray-100',
           'z-40 flex flex-col overflow-hidden',
           // Slide in from / out to the right
           'transition-transform duration-300 ease-out motion-reduce:transition-none',
@@ -329,7 +347,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
       >
 
         {/* ─── Header ─────────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
           {view === 'chat' && activeQuery ? (
             <div className="flex items-center gap-2 min-w-0">
               <button
@@ -340,8 +358,8 @@ export default function QuerySidebar({ open, onClose }: Props) {
                 <ArrowLeftIcon className="w-4 h-4" />
               </button>
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-900 truncate">{activeQuery.subject}</p>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{activeQuery.subject}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-300 truncate">
                   {activeQuery.sender_id === user?.id
                     ? activeQuery.recipient_name
                     : activeQuery.sender_name}
@@ -368,9 +386,9 @@ export default function QuerySidebar({ open, onClose }: Props) {
 
           <div className="flex items-center gap-1 flex-shrink-0">
             {view === 'list' && (
-              <button
+                <button
                 onClick={() => setView('new')}
-                className="p-1.5 text-black hover:bg-brand-50 rounded-lg"
+                className="p-1.5 text-black dark:text-white hover:bg-brand-50 rounded-lg"
                 title="New Query"
               >
                 <PlusIcon className="w-5 h-5" />
@@ -497,9 +515,9 @@ export default function QuerySidebar({ open, onClose }: Props) {
                       {msg.message && (
                         <div className={clsx(
                           'px-3 py-2 rounded-2xl text-sm leading-relaxed',
-                          isMe
-                            ? 'bg-black text-white rounded-br-md'
-                            : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                            isMe
+                              ? 'bg-black text-white rounded-br-md'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-200 rounded-bl-md'
                         )}>
                           {msg.message}
                         </div>
@@ -510,11 +528,11 @@ export default function QuerySidebar({ open, onClose }: Props) {
                           type="button"
                           onClick={() => openPreview(f.s3_url, f.original_name)}
                           className={clsx(
-                            'flex items-center gap-2 px-3 py-2 rounded-xl text-xs border cursor-pointer text-left',
-                            isMe
-                              ? 'bg-brand-50 border-brand-200 text-black'
-                              : 'bg-white border-gray-200 text-gray-700'
-                          )}
+                              'flex items-center gap-2 px-3 py-2 rounded-xl text-xs border cursor-pointer text-left',
+                              isMe
+                                ? 'bg-brand-50 border-brand-200 text-black'
+                                : 'bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 border-gray-200 text-gray-700'
+                            )}
                         >
                           <PaperClipIcon className="w-4 h-4 flex-shrink-0" />
                           <span className="truncate max-w-[160px]">{f.original_name}</span>
@@ -620,12 +638,12 @@ export default function QuerySidebar({ open, onClose }: Props) {
                     type="text"
                     value={recipientSearch}
                     onChange={(e) => setRecipientSearch(e.target.value)}
-                    placeholder="Type name or email..."
+                    placeholder="Search by name or email..."
                     className="input w-full"
                     autoComplete="off"
                   />
                   {/* Dropdown */}
-                  {recipientSearch.length >= 2 && (
+                  {recipientSearched && (
                     <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
                       {recipientSearching ? (
                         <p className="px-3 py-2 text-xs text-gray-500">Searching...</p>
@@ -656,7 +674,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
                         </div>
                       ) : recipientSearched ? (
                         <p className="px-3 py-2 text-xs text-gray-500">
-                          No users found. Only adjacent-layer members can receive queries.
+                          No users found matching your search.
                         </p>
                       ) : null}
                     </div>

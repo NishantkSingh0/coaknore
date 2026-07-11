@@ -33,7 +33,7 @@ export default function ProjectTimeline({ projectId }: { projectId: string }) {
         </div>
       )}
       <div className="relative">
-        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
+        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 dark:bg-gray-700" />
         <div className="space-y-3">
           {data?.data?.map((log) => (
             <div key={log.id} className="relative pl-10">
@@ -44,14 +44,14 @@ export default function ProjectTimeline({ projectId }: { projectId: string }) {
                 actionColors[log.action]?.includes('brand') ? 'bg-brand-500' :
                 'bg-gray-400'
               }`} />
-              <div className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-sm text-gray-900 dark:text-gray-100">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${actionColors[log.action] || 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${actionColors[log.action] || 'bg-gray-100 text-gray-600'} dark:bg-gray-700 dark:text-gray-200`}> 
                         {log.action.replace(/_/g, ' ')}
                       </span>
-                      <span className="text-sm font-medium text-gray-700 truncate">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
                         {log.entity_type} {log.entity_name ? `— ${log.entity_name}` : ''}
                       </span>
                     </div>
@@ -59,7 +59,7 @@ export default function ProjectTimeline({ projectId }: { projectId: string }) {
                       <p className="text-xs text-gray-500 mt-1">by {log.actor_name}</p>
                     )}
                   </div>
-                  <span className="text-xs text-gray-400 flex-shrink-0">
+                  <span className="text-xs text-gray-400 dark:text-gray-300 flex-shrink-0">
                     {fmtDateTime(log.created_at)}
                   </span>
                 </div>

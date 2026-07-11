@@ -169,7 +169,7 @@ export default function Contact() {
               <h2 className="mt-4 text-3xl font-bold text-[#131042]">Visit our studio</h2>
               <p className="mt-2 text-slate-500 leading-7">
                 B5, Sector Ecotech-VI, Greater Noida,<br />
-                Gautam Buddha Nagar, UP — 201310
+                Gautam Buddha Nagar, UP - 201312
               </p>
             </div>
             <a

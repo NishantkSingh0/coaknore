@@ -220,8 +220,8 @@ function StatCard({
         <Icon className="w-6 h-6" />
       </div>
       <div>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-        <p className="text-sm text-gray-500">{label}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-300">{label}</p>
         {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
       </div>
     </Link>
@@ -253,18 +253,18 @@ function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
           <div className="card-header flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Recent Issues</h2>
-            <Link to="/issues" className="text-xs text-brand-600 hover:underline">View all</Link>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-200">Recent Issues</h2>
+            <Link to="/issues" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-600">
             {recentIssues?.data?.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">No issues</p>
+              <p className="px-6 py-8 text-center text-sm text-gray-400 dark:text-gray-300">No issues</p>
             ) : recentIssues?.data?.map((issue) => (
               <Link key={issue.id} to={`/issues/${issue.id}`}
-                className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50">
+                className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{issue.title}</p>
-                  <p className="text-xs text-gray-500">{issue.department_name} · {fmtRelative(issue.created_at)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{issue.department_name} · {fmtRelative(issue.created_at)}</p>
                 </div>
                 <IssueBadge status={issue.status} />
               </Link>
@@ -274,8 +274,8 @@ function AdminDashboard() {
 
         <div className="card">
           <div className="card-header flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Recent Reports</h2>
-            <Link to="/reports" className="text-xs text-brand-600 hover:underline">View all</Link>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-200">Recent Reports</h2>
+            <Link to="/reports" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
           <div className="divide-y divide-gray-100">
             {recentReports?.data?.length === 0 ? (
@@ -333,7 +333,7 @@ function Layer2Dashboard() {
         <div className="card">
           <div className="card-header flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Issues to Review</h2>
-            <Link to="/issues?status=open" className="text-xs text-brand-600 hover:underline">View all</Link>
+            <Link to="/issues?status=open" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
           <div className="divide-y divide-gray-100">
             {pendingIssues?.data?.length === 0 ? (
@@ -355,7 +355,7 @@ function Layer2Dashboard() {
         <div className="card">
           <div className="card-header flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Reworks to Approve</h2>
-            <Link to="/reworks?status=pending" className="text-xs text-brand-600 hover:underline">View all</Link>
+            <Link to="/reworks?status=pending" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
           <div className="divide-y divide-gray-100">
             {pendingReworks?.data?.length === 0 ? (
@@ -379,7 +379,7 @@ function Layer2Dashboard() {
         <div className="card">
           <div className="card-header flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Material Requests</h2>
-            <Link to="/materials?status=pending" className="text-xs text-brand-600 hover:underline">View all</Link>
+            <Link to="/materials?status=pending" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
           <div className="divide-y divide-gray-100">
             {pendingMaterials?.data?.length === 0 ? (
@@ -400,7 +400,7 @@ function Layer2Dashboard() {
         <div className="card">
           <div className="card-header flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Latest Reports</h2>
-            <Link to="/reports" className="text-xs text-brand-600 hover:underline">View all</Link>
+            <Link to="/reports" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
           <div className="divide-y divide-gray-100">
             {recentReports?.data?.length === 0 ? (
@@ -439,7 +439,7 @@ function Layer3Dashboard() {
         <div className="card">
           <div className="card-header flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">My Tasks</h2>
-            <Link to="/tasks" className="text-xs text-brand-600 hover:underline">View all</Link>
+            <Link to="/tasks" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
           <div className="divide-y divide-gray-100">
             {myTasksData?.data?.length === 0 ? (
@@ -481,7 +481,7 @@ function Layer3Dashboard() {
         <div className="card">
           <div className="card-header flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">My Issues</h2>
-            <Link to="/issues" className="text-xs text-brand-600 hover:underline">View all</Link>
+            <Link to="/issues" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
           <div className="divide-y divide-gray-100">
             {issuesData?.data?.length === 0 ? (
@@ -512,14 +512,14 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
           {greeting}, {user?.first_name}{' '}
           <span className="inline-block origin-[70%_70%] animate-wave">
             👋
           </span>
         </h1>        
         {/* {(isAdmin || isLayerTwo) && ( */}
-          <p className="mt-2 text-base italic text-brand-600 font-medium">`{quote}`</p>
+          <p className="mt-2 text-base italic text-brand-600 dark:text-brand-300 font-medium">`{quote}`</p>
         {/* )} */}
       </div>
 

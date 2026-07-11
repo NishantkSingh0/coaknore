@@ -342,10 +342,10 @@ func (s *RoutingService) PublishRouting(orgID, routingID, publishedBy uuid.UUID)
 		routing.PublishedAt = &rPubAt.Time
 	}
 
-	// Nudge project status forward.
+	// Set project status to on_hold (routing is set but not started yet)
 	tx.Exec(`
 		UPDATE projects
-		SET status = 'in_progress', updated_at = NOW()
+		SET status = 'on_hold', updated_at = NOW()
 		WHERE id = $1 AND status IN ('created', 'routing')
 	`, projectID)
 
@@ -375,27 +375,32 @@ func (s *RoutingService) generateTasksFromRouting(orgID, projectID, routingID, _
 		return
 	}
 
+	if len(steps) == 0 {
+		return
+	}
+
 	var pName string
 	s.db.QueryRow(`SELECT project_name FROM projects WHERE id = $1`, projectID).Scan(&pName)
 
-	for _, step := range steps {
-		for _, dept := range step.Departments {
-			var taskID uuid.UUID
-			err := s.db.QueryRow(`
-				INSERT INTO department_tasks (project_id, routing_id, routing_step_id, department_id, status, routed_to_dept_at)
-				VALUES ($1, $2, $3, $4, 'on_hold', NOW())
-				ON CONFLICT DO NOTHING
-				RETURNING id
-			`, projectID, routingID, step.ID, dept.ID).Scan(&taskID)
-			if err != nil {
-				continue
-			}
-			go s.notifSvc.NotifyDepartment(orgID, dept.ID, models.NotifTaskAssigned,
-				"New Task Assigned",
-				fmt.Sprintf("You have a new task for project: %s", pName),
-				&projectID, "task", &taskID,
-			)
+	// Only create tasks for the first step (step_order = 1)
+	// Subsequent steps will be activated when previous steps complete
+	firstStep := steps[0]
+	for _, dept := range firstStep.Departments {
+		var taskID uuid.UUID
+		err := s.db.QueryRow(`
+			INSERT INTO department_tasks (project_id, routing_id, routing_step_id, department_id, status, routed_to_dept_at)
+			VALUES ($1, $2, $3, $4, 'on_hold', NOW())
+			ON CONFLICT DO NOTHING
+			RETURNING id
+		`, projectID, routingID, firstStep.ID, dept.ID).Scan(&taskID)
+		if err != nil {
+			continue
 		}
+		go s.notifSvc.NotifyDepartment(orgID, dept.ID, models.NotifTaskAssigned,
+			"New Task Assigned",
+			fmt.Sprintf("You have a new task for project: %s", pName),
+			&projectID, "task", &taskID,
+		)
 	}
 }
 
@@ -545,8 +550,10 @@ func (s *RoutingService) EvaluateRoutingGate(routingID, completedStepID uuid.UUI
 		return false, nil, err
 	}
 
+	// Check if all tasks in this step are completed
+	// Also need to check if all subtasks are completed for each task
 	rows, err := s.db.Query(`
-		SELECT dt.status FROM department_tasks dt
+		SELECT dt.id, dt.status FROM department_tasks dt
 		WHERE dt.routing_step_id = $1 AND dt.routing_id = $2
 	`, completedStepID, routingID)
 	if err != nil {
@@ -554,10 +561,13 @@ func (s *RoutingService) EvaluateRoutingGate(routingID, completedStepID uuid.UUI
 	}
 	defer rows.Close()
 
+	var taskIDs []uuid.UUID
 	var statuses []string
 	for rows.Next() {
+		var taskID uuid.UUID
 		var st string
-		rows.Scan(&st)
+		rows.Scan(&taskID, &st)
+		taskIDs = append(taskIDs, taskID)
 		statuses = append(statuses, st)
 	}
 
@@ -565,17 +575,40 @@ func (s *RoutingService) EvaluateRoutingGate(routingID, completedStepID uuid.UUI
 	switch depPolicy {
 	case models.RequireAll:
 		canProceed = true
-		for _, st := range statuses {
+		for i, st := range statuses {
+			// Task must be completed
 			if st != "completed" {
 				canProceed = false
 				break
 			}
+			// All required subtasks must be completed
+			var totalRequired, completedRequired int
+			s.db.QueryRow(`SELECT COUNT(*) FROM subtasks WHERE task_id = $1 AND is_required = TRUE`, taskIDs[i]).Scan(&totalRequired)
+			if totalRequired > 0 {
+				s.db.QueryRow(`SELECT COUNT(*) FROM subtasks WHERE task_id = $1 AND is_required = TRUE AND status = 'completed'`, taskIDs[i]).Scan(&completedRequired)
+				if completedRequired < totalRequired {
+					canProceed = false
+					break
+				}
+			}
 		}
 	case models.RequireAny:
-		for _, st := range statuses {
+		for i, st := range statuses {
 			if st == "completed" {
-				canProceed = true
-				break
+				// Check if all required subtasks are completed for this task
+				var totalRequired, completedRequired int
+				s.db.QueryRow(`SELECT COUNT(*) FROM subtasks WHERE task_id = $1 AND is_required = TRUE`, taskIDs[i]).Scan(&totalRequired)
+				if totalRequired > 0 {
+					s.db.QueryRow(`SELECT COUNT(*) FROM subtasks WHERE task_id = $1 AND is_required = TRUE AND status = 'completed'`, taskIDs[i]).Scan(&completedRequired)
+					if completedRequired >= totalRequired {
+						canProceed = true
+						break
+					}
+				} else {
+					// No required subtasks, task completion is enough
+					canProceed = true
+					break
+				}
 			}
 		}
 	}
@@ -631,23 +664,25 @@ func (s *RoutingService) ActivateNextStep(orgID, projectID, routingID uuid.UUID,
 	var pName string
 	s.db.QueryRow(`SELECT project_name FROM projects WHERE id = $1`, projectID).Scan(&pName)
 
+	// Check if this step has already been activated (to prevent re-routing)
 	var alreadyActivated bool
-
-	err = s.db.QueryRow(`
+	err = tx.QueryRow(`
 		SELECT EXISTS (
 			SELECT 1
 			FROM department_tasks
 			WHERE project_id = $1
 			AND routing_step_id = $2
+			AND routing_id = $3
 		)
-	`, projectID, nextStep.ID).Scan(&alreadyActivated)
+	`, projectID, nextStep.ID, routingID).Scan(&alreadyActivated)
 
 	if err != nil {
 		return err
 	}
 
 	if alreadyActivated {
-		// Someone already routed this step.
+		// Step already activated - skip to prevent re-routing
+		tx.Rollback()
 		return nil
 	}
 

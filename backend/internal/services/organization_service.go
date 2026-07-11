@@ -379,18 +379,21 @@ func (s *OrganizationService) GetEmployee(id uuid.UUID) (*models.Employee, error
 
 // SearchEmployeesByEmail searches employees for the query panel recipient search
 func (s *OrganizationService) SearchEmployeesByEmail(orgID uuid.UUID, query string, callerLayer models.LayerType, callerDeptID *uuid.UUID) ([]models.Employee, error) {
-	// Adjacent layer only:
-	// layer3 can message layer2
-	// layer2 can message layer1 and layer3
-	// layer1 can message layer2
+	// Adjacent or same layer:
+	// layer3 can message layer3 and layer2
+	// layer2 can message layer2, layer1, super_admin, and layer3
+	// layer1 can message layer1 and layer2
+	// super_admin can message super_admin and layer2
 	var allowedLayers []string
 	switch callerLayer {
 	case models.LayerThree:
-		allowedLayers = []string{"layer2"}
+		allowedLayers = []string{"layer3", "layer2"}
 	case models.LayerTwo:
-		allowedLayers = []string{"layer1", "super_admin", "layer3"}
-	case models.LayerOne, models.LayerSuperAdmin:
-		allowedLayers = []string{"layer2"}
+		allowedLayers = []string{"layer2", "layer1", "super_admin", "layer3"}
+	case models.LayerOne:
+		allowedLayers = []string{"layer1", "layer2"}
+	case models.LayerSuperAdmin:
+		allowedLayers = []string{"super_admin", "layer2"}
 	}
 
 	if len(allowedLayers) == 0 {

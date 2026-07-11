@@ -52,6 +52,13 @@ const StyledWrapper = styled.div`
     fill: black;
   }
 
+  .dark .button {
+    background-color: #111827;
+  }
+  .dark .button .bell path {
+    fill: #e5e7eb;
+  }
+
   .button:hover {
     background-color: white;
   }

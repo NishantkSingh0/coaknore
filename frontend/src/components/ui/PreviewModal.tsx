@@ -64,10 +64,10 @@ export default function PreviewModal() {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+              <Dialog.Panel className="w-full max-w-5xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] text-gray-900 dark:text-gray-100">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50 flex-shrink-0">
-                  <Dialog.Title as="h3" className="text-sm font-semibold text-gray-900 truncate pr-4" title={fileName || ''}>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+                  <Dialog.Title as="h3" className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate pr-4" title={fileName || ''}>
                     {fileName || 'File Preview'}
                   </Dialog.Title>
                   
@@ -75,10 +75,10 @@ export default function PreviewModal() {
                     <button
                       onClick={handleDownload}
                       disabled={downloading}
-                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-semibold text-gray-700 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Download file"
                     >
-                      <ArrowDownTrayIcon className="w-4 h-4 text-gray-500" />
+                      <ArrowDownTrayIcon className="w-4 h-4 text-gray-500 dark:text-gray-200" />
                       <span>{downloading ? 'Downloading...' : 'Download'}</span>
                     </button>
 
@@ -93,13 +93,13 @@ export default function PreviewModal() {
                 </div>
 
                 {/* Body / Content */}
-                <div className="flex-1 overflow-auto bg-gray-100/50 p-6 flex items-center justify-center min-h-[50vh]">
+                <div className="flex-1 overflow-auto bg-gray-100/50 dark:bg-gray-800/40 p-6 flex items-center justify-center min-h-[50vh]">
                   {fileType === 'image' && (
                     <div className="relative max-w-full max-h-[75vh] flex items-center justify-center">
                       <img
                         src={url}
                         alt={fileName || 'Preview'}
-                        className="max-h-[75vh] max-w-full object-contain rounded-lg shadow-lg bg-white"
+                        className="max-h-[75vh] max-w-full object-contain rounded-lg shadow-lg bg-white dark:bg-gray-800"
                       />
                     </div>
                   )}
@@ -116,7 +116,7 @@ export default function PreviewModal() {
                   )}
 
                   {fileType === 'pdf' && (
-                    <div className="w-full h-[75vh] rounded-lg overflow-hidden border border-gray-200 shadow-md bg-white">
+                    <div className="w-full h-[75vh] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shadow-md bg-white dark:bg-gray-800">
                       <iframe
                         src={`${url}#toolbar=0`}
                         className="w-full h-full border-0"
@@ -126,15 +126,15 @@ export default function PreviewModal() {
                   )}
 
                   {fileType === 'other' && (
-                    <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-md space-y-5">
+                    <div className="w-full max-w-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-md space-y-5">
                       <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center">
                         <DocumentIcon className="w-8 h-8 text-brand-600" />
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900 text-base text-center break-all max-w-[280px] mx-auto" title={fileName || ""}>
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 text-base text-center break-all max-w-[280px] mx-auto" title={fileName || ""}>
                           {fileName}
                         </p>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
                           This file type cannot be previewed directly. Please download it and open it with a supported application.                        
                         </p>
                       </div>

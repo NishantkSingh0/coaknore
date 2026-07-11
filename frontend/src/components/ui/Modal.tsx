@@ -40,7 +40,7 @@ export default function Modal({ open, onClose, title, children, size = 'md', foo
             >
               <Dialog.Panel className={`modal w-full ${sizeMap[size]}`}>
                 <div className="modal-header">
-                  <Dialog.Title as="h3" className="text-base font-semibold text-gray-900">
+                  <Dialog.Title as="h3" className="text-base font-semibold text-gray-900 dark:text-white">
                     {title}
                   </Dialog.Title>
                   <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100">

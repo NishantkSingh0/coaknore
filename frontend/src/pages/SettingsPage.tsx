@@ -4,6 +4,7 @@ import { authApi } from '../services/api'
 import toast from 'react-hot-toast'
 import { ArrowRightOnRectangleIcon, CameraIcon } from '@heroicons/react/24/outline'
 import { Avatar } from '../components/ui/Avatar'
+import DayNightBtn from '../components/layout/day_night_btn'
 
 
 export default function SettingsPage() {
@@ -79,22 +80,21 @@ export default function SettingsPage() {
       <div className="card">
         <div className="card-header flex items-center justify-between">
           <h2 className="font-semibold">My Profile</h2>
-          <button
-            onClick={logout}
-            className="group flex items-center w-10 hover:w-28 h-10 overflow-hidden rounded-lg border border-gray-200 bg-white hover:bg-red-50 transition-all duration-300"
-          >
-            <ArrowRightOnRectangleIcon
-              className="w-5 h-5 flex-shrink-0 text-black ml-2 group-hover:text-red-600 transition-colors duration-300"
-            />
-
-            <span className="ml-2 whitespace-nowrap text-sm font-medium text-red-600 opacity-0 max-w-0 group-hover:max-w-20 group-hover:opacity-100 transition-all duration-300 overflow-hidden">
-              Logout
-            </span>
-          </button>
+          <div className="flex items-center gap-3">
+            <DayNightBtn />
+            <button
+              onClick={logout}
+              className="flex items-center w-10 h-10 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-500 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-700 transition-all duration-300"
+            >
+              <ArrowRightOnRectangleIcon
+                className="w-5 h-5 flex-shrink-0 text-black dark:text-gray-100 ml-2 transition-colors duration-300"
+              />
+            </button>
+          </div>
         </div>
         <div className="card-body space-y-3 text-sm">
           <div className="flex items-center gap-4">
-            <div className="relative group w-16 h-16 rounded-full overflow-hidden border border-gray-200">
+            <div className="relative group w-16 h-16 rounded-full overflow-hidden border border-gray-500">
               <Avatar src={user?.avatar_url} firstName={user?.first_name} lastName={user?.last_name} size="lg" />
               <label
                 htmlFor="avatar-upload"
@@ -117,8 +117,8 @@ export default function SettingsPage() {
               )}
             </div>
             <div>
-              <p className="text-lg font-bold text-gray-900">{user?.first_name} {user?.last_name}</p>
-              <p className="text-gray-500">{user?.email}</p>
+              <p className="text-lg font-bold dark:text-gray-200 text-gray-900">{user?.first_name} {user?.last_name}</p>
+              <p className="text-gray-500 dark:text-gray-400">{user?.email}</p>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-xs text-gray-400 capitalize">
                   {user?.department_name ? ` · ${user.department_name}` : 'Admin'}
@@ -143,7 +143,7 @@ export default function SettingsPage() {
 
       {/* Change Password */}
       <div className="card">
-        <div className="card-header"><h2 className="font-semibold">Change Password</h2></div>
+        <div className="card-header"><h2 className="font-semibold">Change Password</h2> <h5 className='text-xs'>Contact Admin If you Forget your Password</h5> </div>
         <div className="card-body">
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
@@ -154,7 +154,7 @@ export default function SettingsPage() {
             <div>
               <label className="label">New Password</label>
               <input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
-                className="input" placeholder="Min 8 characters" required />
+                className="input" required />
             </div>
             <div>
               <label className="label">Confirm New Password</label>

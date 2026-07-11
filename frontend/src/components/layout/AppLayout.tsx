@@ -5,13 +5,15 @@ import QuerySidebar from '../queries/QuerySidebar'
 import AIAssistantPanel from '../ai/AIAssistantPanel'
 import PreviewModal from '../ui/PreviewModal'
 import { useState } from 'react'
+import { DarkModeProvider } from '../../context/DarkModeContext'
 
 export default function AppLayout() {
   const [querySidebarOpen, setQuerySidebarOpen] = useState(false)
   const [aiAssistantOpen, setAIAssistantOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <DarkModeProvider>
+      <div className="flex h-screen bg-gray-50 dark:bg-black overflow-hidden">
       {/* Left Sidebar */}
       <Sidebar onOpenQueries={() => setQuerySidebarOpen(true)} onOpenAIAssistant={() => setAIAssistantOpen(true)} />
 
@@ -32,6 +34,7 @@ export default function AppLayout() {
       {/* Global File Preview Modal */}
       <PreviewModal />
     </div>
+    </DarkModeProvider>
   )
 }
 

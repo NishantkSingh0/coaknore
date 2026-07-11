@@ -250,7 +250,7 @@ export default function RoutingBuilder({
       <div className="space-y-3">
         {steps.map((step, idx) => (
           <div key={step.id} className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="bg-gray-50 px-4 py-3 flex items-center gap-3">
+            <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 flex items-center gap-3">
               <div className="w-7 h-7 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
                 {step.stepOrder}
               </div>
@@ -294,9 +294,9 @@ export default function RoutingBuilder({
                   return (
                     <button key={dept.id} onClick={() => toggleDept(step.id, dept.id)}
                       className={clsx(
-                        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border',
-                        selected ? 'bg-black text-white border-black' : 'bg-white text-gray-700 border-gray-200 hover:border-black'
-                      )}>
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border',
+                          selected ? 'bg-black text-white border-black' : 'bg-white dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 text-gray-700 border-gray-200 hover:border-black'
+                        )}>
                       {selected && <CheckIcon className="w-3 h-3" />}
                       {dept.name}
                     </button>
@@ -507,7 +507,7 @@ function RoutingVersionRow({
               {routing.status}
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-gray-500 dark:text-gray-300 mt-0.5">
             By {routing.created_by_name} · {fmtDateTime(routing.created_at)}
             {routing.published_at && ` · Published ${fmtDateTime(routing.published_at)}`}
           </p>
@@ -546,7 +546,7 @@ function ActiveRoutingFlow({ routing }: { routing: Routing }) {
   return (
     <div id="active-production-flow" className="card">
       <div className="card-header">
-        <h3 className="font-semibold text-green-700">Active Production Flow  (v{routing.version})</h3>
+        <h3 className="font-semibold text-green-700 dark:text-green-500">Active Production Flow  (v{routing.version})</h3>
       </div>
       <div className="card-body overflow-x-auto">
         <div className="flex items-start gap-4 min-w-max">
@@ -556,7 +556,7 @@ function ActiveRoutingFlow({ routing }: { routing: Routing }) {
                 <div className="w-8 h-8 rounded-full bg-black text-white text-sm font-bold flex items-center justify-center mb-2">
                   {step.step_order}
                 </div>
-                <div className="bg-white border border-brand-200 rounded-xl p-3 min-w-32 text-center shadow-sm">
+                <div className="bg-white dark:bg-gray-800/10 border border-brand-200 dark:border-brand-600 rounded-xl p-3 min-w-32 text-center shadow-sm">
                   {step.name && <p className="text-xs font-medium text-gray-700 mb-2">{step.name}</p>}
                   <div className="flex flex-wrap gap-1 justify-center">
                     {step.departments?.map((d) => (

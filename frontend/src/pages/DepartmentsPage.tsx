@@ -49,7 +49,7 @@ export default function DepartmentsPage() {
             <BuildingOfficeIcon className={clsx('w-5 h-5', dept.layer === 'layer2' ? 'text-purple-600' : 'text-blue-600')} />
           </div>
           <div>
-            <p className="font-semibold text-gray-900 text-sm">{dept.name}</p>
+            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{dept.name}</p>
             {dept.description && <p className="text-xs text-gray-500 mt-0.5">{dept.description}</p>}
             <p className="text-xs text-gray-400 mt-1">
               {dept.employee_count || 0} employee{(dept.employee_count || 0) !== 1 ? 's' : ''}
@@ -90,7 +90,7 @@ export default function DepartmentsPage() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <span className="w-6 h-6 bg-purple-100 text-purple-700 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-              <h2 className="text-base font-semibold text-gray-900">Production Management Departments</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Production Management Departments</h2>
               <span className="badge-gray">{layer2Depts.length}</span>
             </div>
             {layer2Depts.length === 0 ? (
@@ -106,7 +106,7 @@ export default function DepartmentsPage() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <span className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-              <h2 className="text-base font-semibold text-gray-900">Execution Departments</h2>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Execution Departments</h2>
               <span className="badge-gray">{layer3Depts.length}</span>
             </div>
             {layer3Depts.length === 0 ? (

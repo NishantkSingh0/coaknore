@@ -69,7 +69,7 @@ export default function IssuesPage() {
               {data?.data?.map((issue) => (
                 <tr key={issue.id}>
                   <td>
-                    <Link to={`/issues/${issue.id}`} className="font-medium text-brand-700 hover:underline">
+                    <Link to={`/issues/${issue.id}`} className="font-medium text-brand-700 dark:text-brand-400 hover:underline">
                       {issue.title}
                     </Link>
                   </td>

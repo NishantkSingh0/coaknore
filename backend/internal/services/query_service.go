@@ -48,7 +48,7 @@ func (s *QueryService) CreateQuery(orgID, senderID uuid.UUID, req CreateQueryReq
 	s.db.QueryRow(`SELECT layer FROM employees WHERE id = $1`, recipientID).Scan(&recipientLayer)
 
 	if !isAdjacentLayer(senderLayer, recipientLayer) {
-		return nil, errors.New("communication only allowed between adjacent organizational layers")
+		return nil, errors.New("communication only allowed between adjacent or same organizational layers")
 	}
 
 	tx, err := s.db.Begin()
@@ -390,10 +390,10 @@ func (s *QueryService) ListQueries(employeeID uuid.UUID, projectID *uuid.UUID, s
 
 func isAdjacentLayer(a, b models.LayerType) bool {
 	adj := map[models.LayerType][]models.LayerType{
-		models.LayerThree: {models.LayerTwo},
-		models.LayerTwo:   {models.LayerOne, models.LayerSuperAdmin, models.LayerThree},
-		models.LayerOne:   {models.LayerTwo},
-		models.LayerSuperAdmin: {models.LayerTwo},
+		models.LayerThree:     {models.LayerThree, models.LayerTwo},
+		models.LayerTwo:       {models.LayerTwo, models.LayerOne, models.LayerSuperAdmin, models.LayerThree},
+		models.LayerOne:       {models.LayerOne, models.LayerTwo},
+		models.LayerSuperAdmin: {models.LayerSuperAdmin, models.LayerTwo},
 	}
 	for _, l := range adj[a] {
 		if l == b {

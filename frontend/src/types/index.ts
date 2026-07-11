@@ -5,7 +5,7 @@
 export type LayerType = 'super_admin' | 'layer1' | 'layer2' | 'layer3'
 export type DepartmentLayer = 'layer2' | 'layer3'
 export type ProjectStatus = 'created' | 'routing' | 'in_progress' | 'completed' | 'archived' | 'on_hold'
-export type TaskStatus = 'pending' | 'in_progress' | 'hold' | 'issue_hold' | 'completed'
+export type TaskStatus = 'pending' | 'in_progress' | 'hold' | 'issue_hold' | 'completed' | 'on_hold'
 export type SubtaskStatus = 'pending' | 'in_progress' | 'completed'
 export type RoutingStatus = 'draft' | 'active' | 'superseded' | 'archived'
 export type DependencyPolicy = 'require_all' | 'require_any'

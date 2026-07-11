@@ -27,14 +27,14 @@ export default function TopBar() {
   }
 
   return (
-    <header className="h-[55px] bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
+    <header className="h-[55px] bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 flex-shrink-0">
       <div />
 
       <div className="flex items-center gap-4">
         {/* Notification icon */}
         <Link
           to="/notifications"
-          className="relative p-2 text-gray-400 hover:text-gray-700 rounded-lg transition-colors"
+          className="relative p-2 text-gray-400 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white rounded-lg transition-colors"
         >
           <BellButton isNotification={unreadCount > 0} unreadCount={unreadCount}/>
           {/* {unreadCount > 0 && (

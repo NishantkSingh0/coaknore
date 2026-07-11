@@ -55,8 +55,8 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
   const roleNav = isAdmin ? adminNav : isLayerTwo ? layer2Nav : layer3Nav
 
   return (
-    <aside className="group w-[70px] hover:w-64 bg-white border-r border-gray-200 flex flex-col h-full flex-shrink-0 transition-all duration-300 overflow-hidden">
-      <div className="h-[55px] flex items-center px-2 mx-3 border-b-2 border-gray-200">
+    <aside className="group w-[70px] hover:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col h-full flex-shrink-0 transition-all duration-300 overflow-hidden">
+      <div className="h-[55px] flex items-center px-2 mx-3 border-b-2 border-gray-200 dark:border-gray-800">
         <div className="group/logo flex items-center gap-2">
           <img
             src="/invertedLogo.png"
@@ -64,10 +64,10 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
             className="w-8 h-8 transition-transform duration-[1500ms] ease-in-out group-hover/logo:rotate-[360deg]"
           />
           <div className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 whitespace-nowrap">
-            <p className="text-sm font-bold text-gray-900 pb-1 leading-none">
+            <p className="text-sm font-bold text-gray-900 dark:text-white pb-1 leading-none">
               Crafted Oak & Ore
             </p>
-            <p className="text-xs text-gray-400 leading-none text-center">
+            <p className="text-xs text-gray-400 dark:text-gray-300 leading-none text-center">
               Luxury Goods Atelier
             </p>
           </div>
@@ -84,7 +84,7 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
               clsx(isActive ? 'sidebar-item-active' : 'sidebar-item-inactive')
             }
           >
-            <Icon className="w-5 h-5 flex-shrink-0" />
+            <Icon className="w-5 h-5 flex-shrink-0 text-gray-600 dark:text-gray-300" />
             <span
               className="whitespace-nowrap opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-40 transition-all duration-300"
             >
@@ -98,7 +98,7 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
           onClick={onOpenQueries}
           className="w-full sidebar-item-inactive"
         >
-          <ChatBubbleLeftRightIcon className="w-5 h-5 flex-shrink-0" />
+          <ChatBubbleLeftRightIcon className="w-5 h-5 flex-shrink-0 text-gray-600 dark:text-gray-300" />
           <span
             className=" whitespace-nowrap opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-40 transition-all duration-300"
           >
@@ -112,7 +112,7 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
             onClick={onOpenAIAssistant}
             className="w-full sidebar-item-inactive"
           >
-            <SparklesIcon className="w-5 h-5 flex-shrink-0" />
+            <SparklesIcon className="w-5 h-5 flex-shrink-0 text-gray-600 dark:text-gray-300" />
             <span
               className=" whitespace-nowrap opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-40 transition-all duration-300"
             >
@@ -125,17 +125,17 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
       {/* User info at bottom */}
       <NavLink
         to="/settings"
-        className="block mx-2 px-2 py-3 border-t-2 border-gray-200 hover:bg-gray-50 transition-colors"
+        className="block mx-2 px-2 py-3 border-t-2 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
       >
         <div className="flex items-center gap-3">
           <Avatar src={user?.avatar_url} firstName={user?.first_name} lastName={user?.last_name} size="sm" />
 
           <div className="min-w-0 opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-40 transition-all duration-300">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
               {user?.first_name} {user?.last_name}
             </p>
 
-            <p className="text-xs text-gray-400 truncate capitalize">
+            <p className="text-xs text-gray-400 dark:text-gray-300 truncate capitalize">
               {user?.department_name || "Admin"}
             </p>
           </div>

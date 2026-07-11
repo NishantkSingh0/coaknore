@@ -53,12 +53,12 @@ export default function IssueDetailPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <Link to="/issues" className="text-sm text-brand-600 hover:underline">← Issues</Link>
+            <Link to="/issues" className="text-sm text-brand-600 dark:text-brand-400 hover:underline">← Issues</Link>
             <IssueBadge status={issue.status} />
             <span className="badge-gray text-xs">{issueTypeLabel[issue.type]}</span>
           </div>
-          <h1 className="text-xl font-bold text-gray-900">{issue.title}</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">{issue.title}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
             {issue.department_name} · Raised by {issue.raised_by_name} · {fmtDateTime(issue.created_at)}
           </p>
         </div>
@@ -80,19 +80,19 @@ export default function IssueDetailPage() {
       <div className="card">
         <div className="card-header"><h3 className="font-semibold">Description</h3></div>
         <div className="card-body">
-          <p className="text-sm text-gray-700 whitespace-pre-wrap">{issue.description}</p>
+          <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{issue.description}</p>
         </div>
       </div>
 
       {/* Review info */}
       {issue.reviewed_by && (
         <div className="card border-l-4 border-l-blue-500">
-          <div className="card-body">
-            <p className="text-xs font-semibold text-gray-500 mb-1">
+            <div className="card-body">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 mb-1">
               {issue.status === 'approved' ? '✅ Approved' : '❌ Rejected'} by {issue.reviewed_by_name}
             </p>
             {issue.review_notes && <p className="text-sm text-gray-700">{issue.review_notes}</p>}
-            <p className="text-xs text-gray-400 mt-1">{fmtDateTime(issue.reviewed_at)}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{fmtDateTime(issue.reviewed_at)}</p>
           </div>
         </div>
       )}
@@ -100,10 +100,10 @@ export default function IssueDetailPage() {
       {/* Resolution info */}
       {issue.resolved_by && (
         <div className="card border-l-4 border-l-green-500">
-          <div className="card-body">
-            <p className="text-xs font-semibold text-gray-500 mb-1">✅ Resolved by {issue.resolved_by_name}</p>
-            {issue.resolution_notes && <p className="text-sm text-gray-700">{issue.resolution_notes}</p>}
-            <p className="text-xs text-gray-400 mt-1">{fmtDateTime(issue.resolved_at)}</p>
+            <div className="card-body">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 mb-1">✅ Resolved by {issue.resolved_by_name}</p>
+            {issue.resolution_notes && <p className="text-sm text-gray-700 dark:text-gray-200">{issue.resolution_notes}</p>}
+            <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{fmtDateTime(issue.resolved_at)}</p>
           </div>
         </div>
       )}
@@ -113,9 +113,9 @@ export default function IssueDetailPage() {
         <div className="card">
           <div className="card-header"><h3 className="font-semibold">Attachments</h3></div>
           <div className="card-body flex flex-wrap gap-2">
-            {issue.files.map((f) => (
+              {issue.files.map((f) => (
               <button key={f.id} type="button" onClick={() => openPreview(f.s3_url, f.original_name)}
-                className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-brand-300 cursor-pointer text-left">
+                className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-200 hover:border-brand-300 cursor-pointer text-left">
                 📎 {f.original_name}
               </button>
             ))}

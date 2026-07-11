@@ -90,9 +90,9 @@ export default function ProjectDetailPage() {
             <ProjectBadge status={project.status} />
             {!isLayerThree && <span className="badge-gray">Rev {project.current_revision}</span>}
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 truncate">{project.project_name}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">{project.project_name}</h1>
           {!isLayerThree && (
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
               {project.client_name}
               {project.delivery_date && ` · Delivery: ${fmtDate(project.delivery_date)}`}
             </p>
@@ -111,8 +111,8 @@ export default function ProjectDetailPage() {
 
       {/* ── Drawing preview — always visible at top ───────────────────────── */}
       {project.drawing_file?.s3_url && (
-        <div 
-          className="relative group rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-50 cursor-pointer"
+          <div 
+          className="relative group rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-50 dark:bg-gray-800 cursor-pointer"
           onClick={() => openPreview(project.drawing_file!.s3_url, project.drawing_file!.original_name)}
         >
           <img
@@ -124,7 +124,7 @@ export default function ProjectDetailPage() {
             <PlusIcon className="w-10 h-10 text-white" />
           </div>
           {project.drawing_file.original_name && (
-            <p className="relative z-10 px-4 py-2 text-xs text-gray-500 border-t border-gray-100 bg-white">
+            <p className="relative z-10 px-4 py-2 text-xs text-gray-500 dark:text-gray-300 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
               {project.drawing_file.original_name}
             </p>
           )}
@@ -180,8 +180,8 @@ export default function ProjectDetailPage() {
               onClick={() => { setActiveTab(tab.key) }}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === tab.key
-                  ? 'border-black text-black font-semibold'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-black text-black dark:text-white font-semibold'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
               {tab.label}
@@ -222,8 +222,8 @@ export default function ProjectDetailPage() {
                   ['Last Updated', fmtDateTime(project.updated_at)],
                 ].map(([label, value]) => (
                   <div key={label as string}>
-                    <p className="text-xs text-gray-500">{label}</p>
-                    <p className="font-medium text-gray-900">{value as string}</p>
+                    <p className="text-sm font-semibold text-gray-500 dark:text-gray-200">{label}</p>
+                    <p className="text-xs text-gray-900 dark:text-gray-300">{value as string}</p>
                   </div>
                 ))}
               </div>

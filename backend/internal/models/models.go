@@ -46,6 +46,7 @@ const (
 	TaskHold       TaskStatus = "hold"
 	TaskIssueHold  TaskStatus = "issue_hold"
 	TaskCompleted  TaskStatus = "completed"
+	TaskOnHold     TaskStatus = "on_hold"
 )
 
 type SubtaskStatus string

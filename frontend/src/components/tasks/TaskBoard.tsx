@@ -1,20 +1,20 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ClockIcon, UserCircleIcon, PlusIcon } from '@heroicons/react/24/outline'
-import { taskApi } from '../../services/api'
+import { taskApi, routingApi } from '../../services/api'
 import { useAsync } from '../../hooks/useAsync'
 import { useAuth } from '../../context/AuthContext'
 import { fmtDate } from '../../utils/helpers'
 import { TaskBadge } from '../ui/StatusBadge'
 import { Avatar } from '../ui/Avatar'
-import type { TaskStatus, DepartmentTask } from '../../types'
+import type { TaskStatus, DepartmentTask, Routing } from '../../types'
 
 const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
-  { status: 'pending', label: 'Pending', color: 'bg-gray-100 border-gray-300' },
-  { status: 'issue_hold', label: 'Issue Hold', color: 'bg-red-50 border-red-200' },
-  { status: 'hold', label: 'On Hold', color: 'bg-yellow-50 border-yellow-300' },
-  { status: 'in_progress', label: 'In Progress', color: 'bg-blue-50 border-blue-200' },
-  { status: 'completed', label: 'Completed', color: 'bg-green-50 border-green-200' },
+  { status: 'pending', label: 'Pending', color: 'bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-700'},
+  { status: 'on_hold', label: 'On Hold', color: 'bg-yellow-50 border-yellow-300 dark:bg-yellow-800/20 dark:border-yellow-700'},
+  { status: 'issue_hold', label: 'Issue Hold', color: 'bg-red-50 border-red-200 dark:bg-red-800/20 dark:border-red-700'},
+  { status: 'in_progress', label: 'In Progress', color: 'bg-blue-50 border-blue-200 dark:bg-blue-800/20 dark:border-blue-700'},
+  { status: 'completed', label: 'Completed', color: 'bg-green-50 border-green-200 dark:bg-green-800/20 dark:border-green-700'}
 ]
 
 export default function TaskBoard({ projectId }: { projectId: string }) {
@@ -25,19 +25,48 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
     [projectId]
   )
 
+  const { data: routings } = useAsync(
+    () => routingApi.listForProject(projectId),
+    [projectId]
+  )
+
   if (loading) {
     return <div className="flex justify-center py-12">
       <div className="w-7 h-7 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
     </div>
   }
 
-  // Preserve department order as they first appear in the tasks list.
+  // Get active routing to determine all departments in the workflow
+  const activeRouting = routings?.find(r => r.status === 'active')
+  
+  // Collect all departments from routing steps
+  const routingDepartments = new Map<string, { id: string; name: string }>()
+  if (activeRouting) {
+    activeRouting.steps.forEach(step => {
+      step.departments.forEach(dept => {
+        if (!routingDepartments.has(dept.name)) {
+          routingDepartments.set(dept.name, { id: dept.id, name: dept.name })
+        }
+      })
+    })
+  }
+
+  // Preserve department order as they first appear in the routing, then tasks.
   // Each department gets a fixed row, regardless of which status column
   // its task currently sits in.
   const departmentOrder: string[] = []
   const taskByDept = new Map<string, DepartmentTask>()
+  
+  // First add departments from routing
+  routingDepartments.forEach((dept, name) => {
+    if (!departmentOrder.includes(name)) {
+      departmentOrder.push(name)
+    }
+  })
+  
+  // Then add departments from existing tasks (in case routing is not set yet)
   ;(tasks || []).forEach((t) => {
-    const key = t.department_name
+    const key = t.department_name || 'Unknown'
     if (!departmentOrder.includes(key)) {
       departmentOrder.push(key)
     }
@@ -75,8 +104,10 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
                   key={col.status}
                   className={`rounded-lg border p-2 mb-2 ${col.color} flex items-center justify-between`}
                 >
-                  <span className="text-xs font-semibold text-gray-600">{col.label}</span>
-                  <span className="text-xs bg-white/80 text-gray-500 rounded-full px-2 py-0.5">
+                  <span className="text-xs font-semibold text-gray-600 dark:text-gray-200">
+                    {col.label}
+                  </span>
+                  <span className="text-xs bg-white/80 dark:bg-gray-700/70 text-gray-500 dark:text-gray-200 rounded-full px-2 py-0.5">
                     {count}
                   </span>
                 </div>
@@ -85,13 +116,19 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
 
             {/* One row per department, in stable order */}
             {departmentOrder.map((dep) => {
-              const task = taskByDept.get(dep)!
+              const task = taskByDept.get(dep)
               return COLUMNS.map((col) => (
                 <div
                   key={`${dep}-${col.status}`}
-                  className={`py-1 px-2 ${col.color.split(' ')[0]}`}
+                  className={`py-1 px-2 ${col.color.split(' ')[0]} dark:bg-gray-900`}
                 >
-                  {task.status === col.status && <TaskCard task={task} />}
+                  {task && task.status === col.status && <TaskCard task={task} />}
+                  {!task && col.status === 'pending' && (
+                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-gray-900 dark:text-gray-100">
+                      <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">{dep}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-300">Pending assignment</p>
+                    </div>
+                  )}
                 </div>
               ))
             })}
@@ -109,7 +146,7 @@ function TaskCard({ task }: { task: DepartmentTask }) {
   return (
     <Link
       to={`/tasks/${task.id}`}
-      className="block bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow cursor-pointer"
+      className="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 hover:shadow-md transition-shadow cursor-pointer text-gray-900 dark:text-gray-100"
     >
       <p className="text-xs font-semibold text-gray-800 mb-1">
         {task.department_name}

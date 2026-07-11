@@ -251,7 +251,7 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
         style={{ height: `${panelHeight}px` }}
         className={clsx(
           'fixed bottom-8 right-4 w-96 max-w-[calc(100vw-2rem)]',
-          'bg-white rounded-2xl ring-1 ring-gray-200/80 shadow-2xl',
+          'bg-white dark:bg-gray-900 rounded-2xl ring-1 ring-gray-200/80 dark:ring-gray-700/80 shadow-2xl text-gray-900 dark:text-gray-100',
           'z-50 flex flex-col overflow-hidden',
           'transition-[transform] duration-300 ease-out motion-reduce:transition-none',
           isVisible ? 'translate-x-0' : 'translate-x-[calc(100%+1rem)]'
@@ -261,17 +261,17 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
         <div
           onMouseDown={handleMouseDown}
           onTouchStart={handleTouchStart}
-          className="group flex items-center justify-center h-3 cursor-ns-resize flex-shrink-0 bg-gradient-to-r from-purple-50 to-blue-50 hover:bg-purple-100"
+          className="group flex items-center justify-center h-3 cursor-ns-resize flex-shrink-0 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 hover:bg-purple-100 dark:hover:bg-gray-700"
           title="Drag to resize"
         >
-          <div className="w-10 h-1 rounded-full bg-gray-300 group-hover:bg-purple-400" />
+          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 group-hover:bg-purple-400" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-blue-50 flex-shrink-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 flex-shrink-0">
           <div className="flex items-center gap-2">
             <SparklesIcon className="w-5 h-5 text-purple-600" />
-            <span className="text-sm font-semibold text-gray-900">AI Assistant</span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">AI Assistant</span>
           </div>
           <div className="flex items-center gap-1">
             <button
@@ -285,7 +285,7 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gray-50">
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gray-50 dark:bg-gray-900">
           {messages.map((msg) => (
             <div key={msg.id} className={clsx('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
               <div className={clsx('max-w-[85%] flex flex-col gap-1', msg.role === 'user' ? 'items-end' : 'items-start')}>
@@ -304,7 +304,7 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
                   'px-4 py-3 rounded-2xl text-sm leading-relaxed',
                   msg.role === 'user'
                     ? 'bg-purple-600 text-white rounded-br-md whitespace-pre-wrap'
-                    : 'bg-white text-gray-900 rounded-bl-md border border-gray-200 shadow-sm'
+                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 rounded-bl-md border border-gray-200 dark:border-gray-700 shadow-sm'
                 )}>
                   {msg.role === 'assistant' ? (
                     <div className="markdown-body prose prose-sm max-w-none prose-p:my-2 prose-headings:my-2 prose-ul:my-2 prose-ol:my-2 prose-pre:my-2 prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-code:before:content-none prose-code:after:content-none prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-table:my-2 prose-th:border prose-th:border-gray-300 prose-th:px-2 prose-th:py-1 prose-td:border prose-td:border-gray-300 prose-td:px-2 prose-td:py-1 prose-a:text-purple-600">
@@ -331,8 +331,8 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
           ))}
 
           {loading && (
-            <div className="flex justify-start">
-              <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+              <div className="flex justify-start">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
                 <div className="flex items-center gap-2">
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

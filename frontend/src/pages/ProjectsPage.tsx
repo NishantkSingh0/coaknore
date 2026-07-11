@@ -103,7 +103,7 @@ export default function ProjectsPage() {
               {data?.data?.map((project) => (
                 <tr
                   key={project.id}
-                  className="cursor-pointer hover:bg-gray-50 transition-colors"
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   onClick={() => navigate(`/projects/${project.id}`)}
                 >                  
                   <td className="font-medium text-brand-700">
