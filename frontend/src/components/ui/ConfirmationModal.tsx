@@ -6,6 +6,7 @@ import {
   CheckCircleIcon,
   XMarkIcon 
 } from '@heroicons/react/24/outline'
+import { useDarkMode } from '../../context/DarkModeContext'
 
 interface ConfirmationModalProps {
   open: boolean
@@ -32,6 +33,7 @@ export default function ConfirmationModal({
   loading = false,
   children
 }: ConfirmationModalProps) {
+  const { isDark } = useDarkMode()
   
   // Icon configuration based on modal type
   const iconConfig = {
@@ -82,6 +84,7 @@ export default function ConfirmationModal({
               enter="ease-out duration-200" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
               leave="ease-in duration-150" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
             >
+              <div className={isDark ? 'dark' : ''}>
               <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all border border-gray-200 dark:border-gray-700">
                 <div className="flex items-start gap-4">
                   <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${config.bgColor}`}>
@@ -145,6 +148,7 @@ export default function ConfirmationModal({
                   </button>
                 </div>
               </Dialog.Panel>
+              </div>
             </Transition.Child>
           </div>
         </div>

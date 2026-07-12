@@ -222,7 +222,7 @@ function StatCard({
       <div>
         <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
         <p className="text-sm text-gray-500 dark:text-gray-300">{label}</p>
-        {subtitle && <p className="text-xs text-gray-400">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-gray-400 dark:text-gray-500">{subtitle}</p>}
       </div>
     </Link>
   )
@@ -239,14 +239,14 @@ function AdminDashboard() {
     <div className="space-y-6">
       {stats && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Total Projects"   value={stats.total_projects}     icon={FolderIcon}                  color="bg-blue-50 text-blue-600"   to="/projects" />
-          <StatCard label="Active"           value={stats.active_projects}    icon={ClipboardDocumentListIcon}   color="bg-green-50 text-green-600" to="/projects?status=in_progress" />
-          <StatCard label="Delayed"          value={stats.delayed_projects}   icon={ExclamationTriangleIcon}     color="bg-orange-50 text-orange-600" to="/projects" subtitle="Past due date" />
-          <StatCard label="Completed"        value={stats.completed_projects} icon={CheckCircleIcon}             color="bg-emerald-50 text-emerald-600" to="/projects?status=completed" />
-          <StatCard label="Opened Issues"      value={stats.open_issues}        icon={ExclamationCircleIcon}       color="bg-red-50 text-red-600"     to="/issues" />
-          <StatCard label="Pending Reworks"  value={stats.pending_reworks}    icon={ArrowPathIcon}               color="bg-purple-50 text-purple-600" to="/reworks?status=pending" />
-          <StatCard label="Mat. Requests"    value={stats.pending_materials}  icon={CubeIcon}                    color="bg-yellow-50 text-yellow-600" to="/materials?status=pending" />
-          <StatCard label="Employees"        value={stats.total_employees}    icon={UserGroupIcon}               color="bg-indigo-50 text-indigo-600" to="/employees" />
+          <StatCard label="Total Projects"   value={stats.total_projects}     icon={FolderIcon}                  color="bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"   to="/projects" />
+          <StatCard label="Active"           value={stats.active_projects}    icon={ClipboardDocumentListIcon}   color="bg-green-50 text-green-600 dark:bg-green-500/20 dark:text-green-400" to="/projects?status=in_progress" />
+          <StatCard label="Delayed"          value={stats.delayed_projects}   icon={ExclamationTriangleIcon}     color="bg-orange-50 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400" to="/projects" subtitle="Past due date" />
+          <StatCard label="Completed"        value={stats.completed_projects} icon={CheckCircleIcon}             color="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" to="/projects?status=completed" />
+          <StatCard label="Opened Issues"      value={stats.open_issues}        icon={ExclamationCircleIcon}       color="bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400"     to="/issues" />
+          <StatCard label="Pending Reworks"  value={stats.pending_reworks}    icon={ArrowPathIcon}               color="bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400" to="/reworks?status=pending" />
+          <StatCard label="Mat. Requests"    value={stats.pending_materials}  icon={CubeIcon}                    color="bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400" to="/materials?status=pending" />
+          <StatCard label="Employees"        value={stats.total_employees}    icon={UserGroupIcon}               color="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" to="/employees" />
         </div>
       )}
 
@@ -263,7 +263,7 @@ function AdminDashboard() {
               <Link key={issue.id} to={`/issues/${issue.id}`}
                 className="flex items-center gap-3 px-6 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{issue.title}</p>
+                  <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{issue.title}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{issue.department_name} · {fmtRelative(issue.created_at)}</p>
                 </div>
                 <IssueBadge status={issue.status} />
@@ -277,16 +277,16 @@ function AdminDashboard() {
             <h2 className="font-semibold text-gray-900 dark:text-gray-200">Recent Reports</h2>
             <Link to="/reports" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-600">
             {recentReports?.data?.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">No reports</p>
+              <p className="px-6 py-8 text-center text-sm text-gray-400 dark:text-gray-300">No reports</p>
             ) : recentReports?.data?.map((r) => (
               <div key={r.id} className="flex items-start justify-between gap-2 px-6 py-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{r.project_name}</p>
-                  <p className="text-xs text-gray-500 truncate">{r.dept_name} · {r.submitted_by_name}</p>
+                  <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{r.project_name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{r.dept_name} · {r.submitted_by_name}</p>
                 </div>
-                <span className="text-xs text-gray-400 flex-shrink-0">{fmtDate(r.report_date)}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{fmtDate(r.report_date)}</span>
               </div>
             ))}
           </div>
@@ -313,13 +313,13 @@ function Layer2Dashboard() {
     <div className="space-y-6">
       {/* Approval queue summary */}
       {approvalCount > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-          <QueueListIcon className="w-6 h-6 text-amber-600 flex-shrink-0" />
+        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-4 flex items-center gap-3">
+          <QueueListIcon className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-amber-900">
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">
               {approvalCount} item{approvalCount !== 1 ? 's' : ''} awaiting your review
             </p>
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-amber-700 dark:text-amber-400/80">
               {pendingIssues?.data?.length || 0} issues ·{' '}
               {pendingReworks?.data?.length || 0} reworks ·{' '}
               {pendingMaterials?.data?.length || 0} material requests
@@ -332,18 +332,18 @@ function Layer2Dashboard() {
         {/* Issues awaiting approval */}
         <div className="card">
           <div className="card-header flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Issues to Review</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-white">Issues to Review</h2>
             <Link to="/issues?status=open" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-600">
             {pendingIssues?.data?.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">No issues pending review</p>
+              <p className="px-6 py-8 text-center text-sm text-gray-400 dark:text-gray-300">No issues pending review</p>
             ) : pendingIssues?.data?.map((issue) => (
               <Link key={issue.id} to={`/issues/${issue.id}`}
-                className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50">
+                className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{issue.title}</p>
-                  <p className="text-xs text-gray-500">{issue.department_name} · {fmtRelative(issue.created_at)}</p>
+                  <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{issue.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{issue.department_name} · {fmtRelative(issue.created_at)}</p>
                 </div>
                 <IssueBadge status={issue.status} />
               </Link>
@@ -354,20 +354,20 @@ function Layer2Dashboard() {
         {/* Reworks awaiting approval */}
         <div className="card">
           <div className="card-header flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Reworks to Approve</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-white">Reworks to Approve</h2>
             <Link to="/reworks?status=pending" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-600">
             {pendingReworks?.data?.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">No pending reworks</p>
+              <p className="px-6 py-8 text-center text-sm text-gray-400 dark:text-gray-300">No pending reworks</p>
             ) : pendingReworks?.data?.map((rework) => (
               <div key={rework.id} className="flex items-start gap-3 px-5 py-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{rework.reason}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{rework.reason}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {rework.requesting_dept_name} → {rework.target_dept_name}
                   </p>
-                  <p className="text-xs text-gray-400">{fmtRelative(rework.created_at)}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">{fmtRelative(rework.created_at)}</p>
                 </div>
                 <ReworkBadge status={rework.status} />
               </div>
@@ -378,19 +378,19 @@ function Layer2Dashboard() {
         {/* Material requests */}
         <div className="card">
           <div className="card-header flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Material Requests</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-white">Material Requests</h2>
             <Link to="/materials?status=pending" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-600">
             {pendingMaterials?.data?.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">No pending requests</p>
+              <p className="px-6 py-8 text-center text-sm text-gray-400 dark:text-gray-300">No pending requests</p>
             ) : pendingMaterials?.data?.map((m) => (
               <div key={m.id} className="flex items-start gap-3 px-5 py-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{m.title}</p>
-                  <p className="text-xs text-gray-500">{m.dept_name} · {fmtRelative(m.created_at)}</p>
+                  <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{m.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{m.dept_name} · {fmtRelative(m.created_at)}</p>
                 </div>
-                <span className="badge-yellow">pending</span>
+                <span className="badge-yellow dark:bg-yellow-500/20 dark:text-yellow-400">pending</span>
               </div>
             ))}
           </div>
@@ -399,20 +399,20 @@ function Layer2Dashboard() {
         {/* Live Production Feed */}
         <div className="card">
           <div className="card-header flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Latest Reports</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-white">Latest Reports</h2>
             <Link to="/reports" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-600">
             {recentReports?.data?.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">No reports yet</p>
+              <p className="px-6 py-8 text-center text-sm text-gray-400 dark:text-gray-300">No reports yet</p>
             ) : recentReports?.data?.map((r) => (
               <div key={r.id} className="px-5 py-3">
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-sm font-medium truncate">{r.project_name}</span>
-                  <span className="text-xs text-gray-400 flex-shrink-0">{fmtDate(r.report_date)}</span>
+                  <span className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{r.project_name}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">{fmtDate(r.report_date)}</span>
                 </div>
-                <p className="text-xs text-gray-600 line-clamp-2">{r.description}</p>
-                <p className="text-xs text-gray-400 mt-1">{r.dept_name} · {r.submitted_by_name}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">{r.description}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{r.dept_name} · {r.submitted_by_name}</p>
               </div>
             ))}
           </div>
@@ -438,34 +438,34 @@ function Layer3Dashboard() {
         {/* My active tasks */}
         <div className="card">
           <div className="card-header flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">My Tasks</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-white">My Tasks</h2>
             <Link to="/tasks" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-600">
             {myTasksData?.data?.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">No tasks assigned</p>
+              <p className="px-6 py-8 text-center text-sm text-gray-400 dark:text-gray-300">No tasks assigned</p>
             ) : myTasksData?.data?.map((task) => {
               const completedSubs = task.subtasks?.filter((s) => s.status === 'completed').length || 0
               const totalSubs = task.subtasks?.length || 0
               return (
                 <Link key={task.id} to={`/tasks/${task.id}`}
-                  className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50">
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{task.title || task.department_name}</p>
+                    <p className="text-sm font-medium truncate dark:text-white">{task.title || task.department_name}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={clsx('text-xs px-2 py-0.5 rounded-full font-medium',
                         taskStatusColor[task.status])}>
                         {taskStatusLabel[task.status]}
                       </span>
                       {task.due_date && (
-                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                        <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
                           <ClockIcon className="w-3 h-3" />
                           {fmtDate(task.due_date)}
                         </span>
                       )}
                     </div>
                     {totalSubs > 0 && (
-                      <div className="mt-1.5 w-full bg-gray-100 rounded-full h-1">
+                      <div className="mt-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1">
                         <div className="bg-brand-500 rounded-full h-1 transition-all"
                           style={{ width: `${(completedSubs / totalSubs) * 100}%` }} />
                       </div>
@@ -480,18 +480,18 @@ function Layer3Dashboard() {
         {/* My department issues */}
         <div className="card">
           <div className="card-header flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">My Issues</h2>
+            <h2 className="font-semibold text-gray-900 dark:text-white">My Issues</h2>
             <Link to="/issues" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-600">
             {issuesData?.data?.length === 0 ? (
-              <p className="px-6 py-8 text-center text-sm text-gray-400">No issues raised</p>
+              <p className="px-6 py-8 text-center text-sm text-gray-400 dark:text-gray-300">No issues raised</p>
             ) : issuesData?.data?.map((issue) => (
               <Link key={issue.id} to={`/issues/${issue.id}`}
-                className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50">
+                className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{issue.title}</p>
-                  <p className="text-xs text-gray-500">{fmtRelative(issue.created_at)}</p>
+                  <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{issue.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{fmtRelative(issue.created_at)}</p>
                 </div>
                 <IssueBadge status={issue.status} />
               </Link>

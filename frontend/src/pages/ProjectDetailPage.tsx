@@ -145,7 +145,7 @@ export default function ProjectDetailPage() {
               className="card p-4 hover:bg-brand-50 transition-colors text-left cursor-pointer"
             >
               <p className="text-xs text-gray-500 mb-0.5">Render Files</p>
-              <p className="text-sm font-medium text-brand-600 flex items-center gap-1">
+              <p className="text-sm font-medium text-brand-600 dark:text-brand-400 flex items-center gap-1">
                 View Renders <ChevronRightIcon className="w-4 h-4" />
               </p>
             </button>
@@ -246,11 +246,11 @@ export default function ProjectDetailPage() {
                   >
                     {specificationSections.map(({ title, content }) => (
                       <div key={title}>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-300 mb-3">
                           {title}
                         </h4>
 
-                        <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                        <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700 dark:text-gray-400">
                           {content!
                             .split("-")
                             .map((item) => item.trim())
@@ -281,7 +281,7 @@ export default function ProjectDetailPage() {
                     key={label as string}
                     type="button"
                     onClick={() => openPreview(url as string, label as string)}
-                    className="flex items-center justify-between text-sm text-brand-700 hover:underline py-1 w-full text-left cursor-pointer"
+                    className="flex items-center justify-between text-sm text-brand-700 dark:text-brand-400 hover:underline py-1 w-full text-left cursor-pointer"
                   >
                     <span>{label as string}</span>
                     <ChevronRightIcon className="w-4 h-4" />
@@ -299,7 +299,7 @@ export default function ProjectDetailPage() {
               <div className="card-header flex items-center justify-between">
                 <h3 className="font-semibold">Routing</h3>
                 {(isAdmin || isLayerTwo) && (
-                  <button onClick={() => setActiveTab('routing')} className="text-xs text-brand-600 hover:underline">
+                  <button onClick={() => setActiveTab('routing')} className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
                     View all
                   </button>
                 )}
@@ -311,7 +311,7 @@ export default function ProjectDetailPage() {
                   <div className="space-y-2">
                     {routings.slice(0, 3).map((r) => (
                       <div key={r.id} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-700">v{r.version} {r.name}</span>
+                        <span className="text-gray-700 dark:text-gray-300">v{r.version} {r.name}</span>
                         <span className={`badge-${r.status === 'active' ? 'green' : 'gray'}`}>{r.status}</span>
                       </div>
                     ))}

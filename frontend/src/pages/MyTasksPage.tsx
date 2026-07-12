@@ -69,7 +69,7 @@ export default function MyTasksPage() {
                         {priorityLabel[task.priority]}
                       </span>
                     </div>
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
                       {task.title || task.department_name}
                     </p>
                     <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">

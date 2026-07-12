@@ -242,7 +242,7 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
       <div
         onClick={onClose}
         className={clsx(
-          "fixed inset-0 z-40 transition-opacity duration-300",
+          "fixed inset-0 z-40 bg-black/30 transition-opacity duration-300",
           isVisible ? "opacity-100" : "opacity-0"
         )}
       />
@@ -264,19 +264,19 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
           className="group flex items-center justify-center h-3 cursor-ns-resize flex-shrink-0 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 hover:bg-purple-100 dark:hover:bg-gray-700"
           title="Drag to resize"
         >
-          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 group-hover:bg-purple-400" />
+          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 group-hover:bg-purple-400 dark:group-hover:bg-purple-500" />
         </div>
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-gray-800 dark:to-gray-700 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <SparklesIcon className="w-5 h-5 text-purple-600" />
+            <SparklesIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">AI Assistant</span>
           </div>
           <div className="flex items-center gap-1">
             <button
               onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-100 rounded-lg"
               aria-label="Close"
             >
               <XMarkIcon className="w-5 h-5" />
@@ -290,7 +290,7 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
             <div key={msg.id} className={clsx('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
               <div className={clsx('max-w-[85%] flex flex-col gap-1', msg.role === 'user' ? 'items-end' : 'items-start')}>
                 <div className={clsx(
-                  'flex items-center gap-2 text-xs text-gray-500 px-1',
+                  'flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 px-1',
                   msg.role === 'user' ? 'justify-end' : 'justify-start'
                 )}>
                   <span className="font-medium">
@@ -303,11 +303,11 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
                 <div className={clsx(
                   'px-4 py-3 rounded-2xl text-sm leading-relaxed',
                   msg.role === 'user'
-                    ? 'bg-purple-600 text-white rounded-br-md whitespace-pre-wrap'
+                    ? 'bg-purple-600 dark:bg-purple-700 text-white rounded-br-md whitespace-pre-wrap'
                     : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 rounded-bl-md border border-gray-200 dark:border-gray-700 shadow-sm'
                 )}>
                   {msg.role === 'assistant' ? (
-                    <div className="markdown-body prose prose-sm max-w-none prose-p:my-2 prose-headings:my-2 prose-ul:my-2 prose-ol:my-2 prose-pre:my-2 prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-code:before:content-none prose-code:after:content-none prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-table:my-2 prose-th:border prose-th:border-gray-300 prose-th:px-2 prose-th:py-1 prose-td:border prose-td:border-gray-300 prose-td:px-2 prose-td:py-1 prose-a:text-purple-600">
+                    <div className="markdown-body prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-headings:my-2 prose-ul:my-2 prose-ol:my-2 prose-pre:my-2 prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-code:before:content-none prose-code:after:content-none prose-code:bg-gray-100 dark:prose-code:bg-gray-700 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-table:my-2 prose-th:border prose-th:border-gray-300 dark:prose-th:border-gray-600 prose-th:px-2 prose-th:py-1 prose-td:border prose-td:border-gray-300 dark:prose-td:border-gray-600 prose-td:px-2 prose-td:py-1 prose-a:text-purple-600 dark:prose-a:text-purple-400">
                       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
                         {msg.content}
                       </ReactMarkdown>
@@ -320,7 +320,7 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
                 {msg.error && (
                   <button
                     onClick={retryLastMessage}
-                    className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700 mt-1"
+                    className="flex items-center gap-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 mt-1"
                   >
                     <ArrowPathIcon className="w-3 h-3" />
                     Retry
@@ -335,11 +335,11 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
               <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
                 <div className="flex items-center gap-2">
                   <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                  <span className="text-xs text-gray-500">Thinking...</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Thinking...</span>
                 </div>
               </div>
             </div>
@@ -349,7 +349,7 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
         </div>
 
         {/* Input */}
-        <div className="px-4 py-3 border-t border-gray-200 bg-white flex-shrink-0">
+        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
           <div className="flex items-end gap-2">
             <textarea
               value={input}
@@ -358,7 +358,7 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
               placeholder="Ask about projects, tasks, employees..."
               rows={1}
               disabled={loading}
-              className="input flex-1 py-2 resize-none"
+              className="input flex-1 py-2 resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
               style={{ minHeight: '38px', maxHeight: '120px' }}
               onInput={(e) => {
                 const t = e.currentTarget
@@ -369,7 +369,7 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
             {loading ? (
               <button
                 onClick={stopGeneration}
-                className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 flex-shrink-0"
+                className="p-2 bg-red-500 dark:bg-red-600 text-white rounded-lg hover:bg-red-600 dark:hover:bg-red-500 flex-shrink-0"
                 title="Stop generation"
               >
                 <StopIcon className="w-5 h-5" />
@@ -378,7 +378,7 @@ export default function AIAssistantPanel({ open, onClose }: Props) {
               <button
                 onClick={sendMessage}
                 disabled={!input.trim()}
-                className="p-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                className="p-2 bg-purple-600 dark:bg-purple-700 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                 title="Send"
               >
                 <PaperAirplaneIcon className="w-5 h-5" />

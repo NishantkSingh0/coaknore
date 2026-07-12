@@ -138,7 +138,7 @@ export default function TaskDetailPage() {
       <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
     </div>
   )
-  if (!task) return <div className="text-center py-16 text-gray-400">Task not found</div>
+  if (!task) return <div className="text-center py-16 text-gray-400 dark:text-gray-500">Task not found</div>
 
   const completedCount = task.subtasks?.filter((s) => s.status === 'completed').length ?? 0
   const totalCount = task.subtasks?.length ?? 0
@@ -158,21 +158,21 @@ export default function TaskDetailPage() {
       </>}>
       <div className="space-y-4">
         <div>
-          <label className="label">Title <span className="text-red-500">*</span></label>
+          <label className="label dark:text-gray-300">Title <span className="text-red-500 dark:text-red-400">*</span></label>
           <input value={newSubtask.title} onChange={(e) => setNewSubtask((s) => ({ ...s, title: e.target.value }))}
-            className="input" placeholder="Subtask title" />
+            className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" placeholder="Subtask title" />
         </div>
         <div>
-          <label className="label">Description</label>
+          <label className="label dark:text-gray-300">Description</label>
           <textarea value={newSubtask.description}
             onChange={(e) => setNewSubtask((s) => ({ ...s, description: e.target.value }))}
-            className="input resize-none" rows={3} />
+            className="input resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" rows={3} />
         </div>
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={newSubtask.is_required}
             onChange={(e) => setNewSubtask((s) => ({ ...s, is_required: e.target.checked }))}
-            className="w-4 h-4 text-brand-600 rounded" />
-          <span className="text-sm text-gray-700">Required for task completion</span>
+            className="w-4 h-4 text-brand-600 rounded dark:bg-gray-800 dark:border-gray-600" />
+          <span className="text-sm text-gray-700 dark:text-gray-300">Required for task completion</span>
         </label>
       </div>
     </Modal>
@@ -188,71 +188,71 @@ export default function TaskDetailPage() {
       </>}>
       <div className="space-y-4">
         <div>
-          <label className="label">Issue Type</label>
+          <label className="label dark:text-gray-300">Issue Type</label>
           <select value={issueForm.type}
             onChange={(e) => setIssueForm((f) => ({ ...f, type: e.target.value as IssueType }))}
-            className="input">
+            className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100">
             {Object.entries(issueTypeLabel).map(([val, lbl]) => <option key={val} value={val}>{lbl}</option>)}
           </select>
         </div>
         <div>
-          <label className="label">Title <span className="text-red-500">*</span></label>
+          <label className="label dark:text-gray-300">Title <span className="text-red-500 dark:text-red-400">*</span></label>
           <input value={issueForm.title}
-            onChange={(e) => setIssueForm((f) => ({ ...f, title: e.target.value }))} className="input" />
+            onChange={(e) => setIssueForm((f) => ({ ...f, title: e.target.value }))} className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" />
         </div>
         <div>
-          <label className="label">Description <span className="text-red-500">*</span></label>
+          <label className="label dark:text-gray-300">Description <span className="text-red-500 dark:text-red-400">*</span></label>
           <textarea value={issueForm.description}
             onChange={(e) => setIssueForm((f) => ({ ...f, description: e.target.value }))}
-            rows={3} className="input resize-none" />
+            rows={3} className="input resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" />
         </div>
         {issueForm.type === 'material_missing' && (
-          <div className="space-y-3 p-4 bg-orange-50 border border-orange-200 rounded-xl">
-            <p className="text-sm font-semibold text-orange-800">Material Requisition Details</p>
+          <div className="space-y-3 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl">
+            <p className="text-sm font-semibold text-orange-800 dark:text-orange-300">Material Requisition Details</p>
             <div>
-              <label className="label">Department</label>
-              <input value={task.department_name || ''} disabled className="input bg-gray-100 cursor-not-allowed" />
+              <label className="label dark:text-gray-300">Department</label>
+              <input value={task.department_name || ''} disabled className="input bg-gray-100 dark:bg-gray-700 dark:border-gray-700 dark:text-gray-300 cursor-not-allowed" />
             </div>
             <div>
-              <label className="label">Material Description <span className="text-red-500">*</span></label>
+              <label className="label dark:text-gray-300">Material Description <span className="text-red-500 dark:text-red-400">*</span></label>
               <textarea value={issueForm.material_description}
                 onChange={(e) => setIssueForm((f) => ({ ...f, material_description: e.target.value }))}
-                rows={2} className="input resize-none" placeholder="Describe the required material..." />
+                rows={2} className="input resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" placeholder="Describe the required material..." />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label">Required Quantity</label>
+                <label className="label dark:text-gray-300">Required Quantity</label>
                 <input type="number" step="0.01" min="0" value={issueForm.required_quantity}
                   onChange={(e) => setIssueForm((f) => ({ ...f, required_quantity: e.target.value }))}
-                  className="input" placeholder="e.g. 10" />
+                  className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" placeholder="e.g. 10" />
               </div>
               <div>
-                <label className="label">Unit</label>
+                <label className="label dark:text-gray-300">Unit</label>
                 <input value={issueForm.material_unit}
                   onChange={(e) => setIssueForm((f) => ({ ...f, material_unit: e.target.value }))}
-                  className="input" placeholder="pcs, kg, m..." />
+                  className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" placeholder="pcs, kg, m..." />
               </div>
             </div>
             <div>
-              <label className="label">Remarks <span className="text-gray-400">(optional)</span></label>
+              <label className="label dark:text-gray-300">Remarks <span className="text-gray-400 dark:text-gray-500">(optional)</span></label>
               <input value={issueForm.material_remarks}
                 onChange={(e) => setIssueForm((f) => ({ ...f, material_remarks: e.target.value }))}
-                className="input" placeholder="Any additional notes..." />
+                className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" placeholder="Any additional notes..." />
             </div>
           </div>
         )}
         <div>
-          <label className="label">Image Evidence <span className="text-gray-400">(optional)</span></label>
+          <label className="label dark:text-gray-300">Image Evidence <span className="text-gray-400 dark:text-gray-500">(optional)</span></label>
           {issueImage ? (
-            <div className="flex items-center gap-2 p-2 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
               <img src={URL.createObjectURL(issueImage)} alt="preview" className="w-12 h-12 object-cover rounded" />
-              <span className="text-sm text-gray-700 flex-1 truncate">{issueImage.name}</span>
-              <button onClick={() => setIssueImage(null)} className="text-red-500 text-xs">Remove</button>
+              <span className="text-sm text-gray-700 dark:text-gray-300 flex-1 truncate">{issueImage.name}</span>
+              <button onClick={() => setIssueImage(null)} className="text-red-500 dark:text-red-400 text-xs">Remove</button>
             </div>
           ) : (
-            <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors">
-              <PhotoIcon className="w-5 h-5 text-gray-400" />
-              <span className="text-sm text-gray-500">Click to attach image</span>
+            <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-gray-800 transition-colors">
+              <PhotoIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              <span className="text-sm text-gray-500 dark:text-gray-400">Click to attach image</span>
               <input ref={issueFileRef} type="file" accept="image/*,.pdf" className="hidden"
                 onChange={(e) => e.target.files?.[0] && setIssueImage(e.target.files[0])} />
             </label>
@@ -269,11 +269,11 @@ export default function TaskDetailPage() {
         <div className="card p-4">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="font-semibold text-gray-900">{task.project_name}</h3>
+              <h3 className="font-semibold text-gray-900 dark:text-gray-100">{task.project_name}</h3>
             </div>
           </div>
           <div 
-            className="relative group bg-gray-50 rounded-lg overflow-hidden cursor-pointer"
+            className="relative group bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden cursor-pointer"
             onClick={() => openPreview(rp.drawing_url!, rp.drawing_name || 'Project Drawing')}
           >
             <img
@@ -297,16 +297,16 @@ export default function TaskDetailPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             {isLayerThree ? (
-              <span className="text-sm text-gray-500">{task.project_name}</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">{task.project_name}</span>
             ) : (
-              <Link to={`/projects/${task.project_id}`} className="text-sm text-gray-500 hover:text-gray-700">
+              <Link to={`/projects/${task.project_id}`} className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                 {task.project_name}
               </Link>
             )}
-            <span className="text-gray-400">/</span>
-            <h1 className="text-xl font-bold text-gray-900">{task.title || 'Task'}</h1>
+            <span className="text-gray-400 dark:text-gray-600">/</span>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{task.title || 'Task'}</h1>
           </div>
-          <div className="flex items-center gap-3 text-sm text-gray-500">
+          <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
             <span>{task.department_name}</span>
             <TaskBadge status={task.status} />
           </div>
@@ -326,10 +326,10 @@ export default function TaskDetailPage() {
       {/* ── Progress ──────────────────────────────────────────────────────────── */}
       <div className="card p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">Subtask Progress</span>
-          <span className="text-sm text-gray-500">{completedCount}/{totalCount} completed</span>
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Subtask Progress</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">{completedCount}/{totalCount} completed</span>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div className="bg-brand-500 h-2 rounded-full transition-all" style={{ width: `${progress}%` }} />
         </div>
       </div>
@@ -339,13 +339,13 @@ export default function TaskDetailPage() {
         <div className="card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-700">Expected Completion Date</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Expected Completion Date</p>
               {task.expected_completion_date && (
-                <p className="text-sm text-gray-500 mt-1">{fmtDate(task.expected_completion_date)}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmtDate(task.expected_completion_date)}</p>
               )}
             </div>
             {task.completion_date_locked ? (
-              <span className="text-xs text-gray-400 flex items-center gap-1">
+              <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
                 <LockClosedIcon className="w-3 h-3" /> Locked
               </span>
             ) : (
@@ -354,7 +354,7 @@ export default function TaskDetailPage() {
                   type="date"
                   value={expectedDate}
                   onChange={(e) => setExpectedDate(e.target.value)}
-                  className="input"
+                  className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:[color-scheme:dark]"
                 />
                 <button
                   onClick={handleSetExpectedCompletion}
@@ -372,23 +372,23 @@ export default function TaskDetailPage() {
       {/* ── Project Info (Layer 3) ───────────────────────────────────────────────── */}
       {isLayerThree && rp && (
         <div className="card p-4">
-          <h3 className="font-semibold text-gray-900 mb-3">Project Information</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Project Information</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-xs text-gray-500">PO Number</p>
-              <p className="text-sm font-medium text-gray-900">{rp.po_number || 'N/A'}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">PO Number</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{rp.po_number || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Routed Date</p>
-              <p className="text-sm font-medium text-gray-900">{rp.routed_to_dept_at ? fmtDate(rp.routed_to_dept_at) : 'N/A'}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Routed Date</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{rp.routed_to_dept_at ? fmtDate(rp.routed_to_dept_at) : 'N/A'}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Expected Completion</p>
-              <p className="text-sm font-medium text-gray-900">{rp.expected_completion_date ? fmtDate(rp.expected_completion_date) : 'N/A'}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Expected Completion</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{rp.expected_completion_date ? fmtDate(rp.expected_completion_date) : 'N/A'}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Completion Locked</p>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Completion Locked</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {rp.completion_date_locked ? (
                   <span className="flex items-center gap-1">
                     <LockClosedIcon className="w-3 h-3" /> Yes
@@ -398,11 +398,11 @@ export default function TaskDetailPage() {
             </div>
           </div>
           {rp.render_files_url && (
-            <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
               <button
                 type="button"
                 onClick={() => openPreview(rp.render_files_url!, 'Render Files')}
-                className="text-sm text-brand-600 hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-sm text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <PaperClipIcon className="w-4 h-4" /> View Render Files
               </button>
@@ -410,11 +410,11 @@ export default function TaskDetailPage() {
           )}
           {rp.drawing_url && (
             <div className="mt-2">
-              <p className="text-xs text-gray-500">Drawing File</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Drawing File</p>
               <button
                 type="button"
                 onClick={() => openPreview(rp.drawing_url!, rp.drawing_name || 'Drawing File')}
-                className="text-sm text-brand-600 hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-sm text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <PaperClipIcon className="w-4 h-4" /> {rp.drawing_name || 'View Drawing'}
               </button>
@@ -426,29 +426,32 @@ export default function TaskDetailPage() {
 
       {/* ── Subtasks ──────────────────────────────────────────────────────────── */}
       <div className="card">
-        <div className="p-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Subtasks</h2>
+        <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+          <h2 className="font-semibold text-gray-900 dark:text-gray-100">Subtasks</h2>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {task.subtasks?.length === 0 ? (
-            <div className="p-8 text-center text-gray-400">No subtasks yet</div>
+            <div className="p-8 text-center text-gray-400 dark:text-gray-500">No subtasks yet</div>
           ) : (
             task.subtasks?.map((subtask) => (
               <div key={subtask.id} className="p-4 flex items-start gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     {subtask.status === 'completed' ? (
-                      <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                      <CheckCircleIcon className="w-5 h-5 text-green-500 dark:text-green-400" />
                     ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                      <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                     )}
-                    <span className={`font-medium ${subtask.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                    <span className={clsx(
+                      'font-medium',
+                      subtask.status === 'completed' ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-gray-100'
+                    )}>
                       {subtask.title}
                     </span>
-                    {subtask.is_required && <span className="text-xs text-red-500">*</span>}
+                    {subtask.is_required && <span className="text-xs text-red-500 dark:text-red-400">*</span>}
                   </div>
                   {subtask.description && (
-                    <p className="text-sm text-gray-500 mt-1">{subtask.description}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{subtask.description}</p>
                   )}
                   {subtask.files && subtask.files.length > 0 && (
                     <div className="mt-2 flex gap-2 flex-wrap">
@@ -457,7 +460,7 @@ export default function TaskDetailPage() {
                           key={file.id}
                           type="button"
                           onClick={() => openPreview(file.s3_url, file.original_name)}
-                          className="text-xs text-brand-600 hover:underline flex items-center gap-1 cursor-pointer text-left"
+                          className="text-xs text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer text-left"
                         >
                           <PaperClipIcon className="w-3 h-3 flex-shrink-0" /> <span className="truncate max-w-[150px]">{file.original_name}</span>
                         </button>
@@ -467,7 +470,7 @@ export default function TaskDetailPage() {
 
                 </div>
                 {subtask.status !== 'completed' && canAct && (
-                  <label className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100 transition-colors">
+                  <label className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors">
                     <PhotoIcon className="w-4 h-4" />
                     <span className="text-sm">Upload Proof</span>
                     <input
@@ -503,7 +506,7 @@ export default function TaskDetailPage() {
           loading={uploadingProof}
         >
           {proofConfirm.previewUrl ? (
-            <div className="mt-2 border rounded-xl overflow-hidden max-h-60 flex items-center justify-center bg-gray-50 p-2">
+            <div className="mt-2 border dark:border-gray-700 rounded-xl overflow-hidden max-h-60 flex items-center justify-center bg-gray-50 dark:bg-gray-800 p-2">
               <img
                 src={proofConfirm.previewUrl}
                 alt="Proof Preview"
@@ -511,9 +514,9 @@ export default function TaskDetailPage() {
               />
             </div>
           ) : (
-            <div className="mt-2 p-3 bg-gray-50 rounded-lg border flex items-center gap-2">
-              <PaperClipIcon className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-medium text-gray-700 truncate">
+            <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700 flex items-center gap-2">
+              <PaperClipIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
                 {proofConfirm.file.name}
               </span>
             </div>

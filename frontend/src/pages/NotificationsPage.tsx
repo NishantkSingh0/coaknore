@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BellIcon, CheckIcon } from '@heroicons/react/24/outline'
+import { BellIcon } from '@heroicons/react/24/outline'
+import { CheckIcon } from '@heroicons/react/24/solid'
 import { notifApi } from '../services/api'
 import { useAsync } from '../hooks/useAsync'
 import { fmtRelative } from '../utils/helpers'
@@ -60,7 +61,7 @@ export default function NotificationsPage() {
       <div className="page-header">
         <h1 className="page-title">Notifications</h1>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-brand-400  cursor-pointer">
             <input
               type="checkbox"
               checked={unreadOnly}
@@ -80,7 +81,7 @@ export default function NotificationsPage() {
           <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="card divide-y divide-gray-100">
+        <div className="card divide-y divide-gray-300 dark:divide-gray-400">
           {data?.data?.length === 0 && (
             <div className="p-12 text-center">
               <BellIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -92,30 +93,50 @@ export default function NotificationsPage() {
               key={notif.id}
               className={clsx(
                 'flex items-start gap-3 px-5 py-4 transition-colors',
-                !notif.is_read ? 'bg-brand-50/50' : ''
+                !notif.is_read
+                  ? 'bg-brand-50/50 dark:bg-gray-800'
+                  : 'dark:bg-gray-900'
               )}
             >
               <span className="text-xl flex-shrink-0 mt-0.5">
                 {NOTIF_ICON[notif.type] || '🔔'}
               </span>
+
               <div className="flex-1 min-w-0">
-                <p className={clsx('text-sm', !notif.is_read ? 'font-semibold text-gray-900' : 'text-gray-700')}>
+                <p
+                  className={clsx(
+                    'text-sm',
+                    !notif.is_read
+                      ? 'font-semibold text-gray-900 dark:text-white'
+                      : 'text-gray-700 dark:text-gray-300'
+                  )}
+                >
                   {notif.title}
                 </p>
+
                 {notif.body && (
-                  <p className="text-xs text-gray-500 mt-0.5">{notif.body}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {notif.body}
+                  </p>
                 )}
+
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-gray-400">{fmtRelative(notif.created_at)}</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    {fmtRelative(notif.created_at)}
+                  </span>
+
                   {notif.project_name && (
-                    <span className="text-xs text-brand-600">· {notif.project_name}</span>
+                    <span className="text-xs text-brand-600 dark:text-brand-400">
+                      · {notif.project_name}
+                    </span>
                   )}
                 </div>
               </div>
+
               {!notif.is_read && (
                 <button
                   onClick={() => markRead(notif.id)}
-                  className="p-1 text-gray-400 hover:text-brand-600 flex-shrink-0"
+                  className="p-1 text-gray-400 dark:text-white hover:text-brand-600 dark:hover:text-brand-100 flex-shrink-0"
                   title="Mark as read"
                 >
                   <CheckIcon className="w-4 h-4" />

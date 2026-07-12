@@ -37,11 +37,10 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: center;
     background-color: white;
-    box-shadow: none;
+    border: none;
     border-radius: 50%;
     cursor: pointer;
-    transition-duration: .3s;
-    border: none;
+    transition: background-color 0.3s ease, transform 0.3s ease;
   }
 
   .bell {
@@ -49,18 +48,24 @@ const StyledWrapper = styled.div`
   }
 
   .bell path {
-    fill: black;
+    fill: #000;
   }
 
-  .dark .button {
+  /* Dark Mode */
+  .dark & .button {
     background-color: #111827;
   }
-  .dark .button .bell path {
+
+  .dark & .bell path {
     fill: #e5e7eb;
   }
 
+  .dark & .button:hover {
+    background-color: #1f2937;
+  }
+
   .button:hover {
-    background-color: white;
+    background-color: #f3f4f6;
   }
 
   .button:hover .bell {

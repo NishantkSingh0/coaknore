@@ -7,9 +7,11 @@ import {
   DocumentIcon 
 } from '@heroicons/react/24/outline'
 import { usePreviewModal } from '../../hooks/usePreviewModal'
+import { useDarkMode } from '../../context/DarkModeContext'
 
 export default function PreviewModal() {
   const { isOpen, url, fileName, fileType, closePreview } = usePreviewModal()
+  const { isDark } = useDarkMode()
   const [downloading, setDownloading] = useState(false)
 
   if (!isOpen || !url) return null
@@ -64,6 +66,7 @@ export default function PreviewModal() {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
+              <div className={isDark ? 'dark' : ''}>
               <Dialog.Panel className="w-full max-w-5xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] text-gray-900 dark:text-gray-100">
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
@@ -142,6 +145,7 @@ export default function PreviewModal() {
                   )}
                 </div>
               </Dialog.Panel>
+              </div>
             </Transition.Child>
           </div>
         </div>

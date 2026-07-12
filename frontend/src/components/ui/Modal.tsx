@@ -1,6 +1,7 @@
 import { Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
+import { useDarkMode } from '../../context/DarkModeContext'
 
 interface Props {
   open: boolean
@@ -20,6 +21,7 @@ const sizeMap = {
 }
 
 export default function Modal({ open, onClose, title, children, size = 'md', footer }: Props) {
+  const { isDark } = useDarkMode()
   return (
     <Transition appear show={open} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -38,18 +40,23 @@ export default function Modal({ open, onClose, title, children, size = 'md', foo
               enter="ease-out duration-200" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100"
               leave="ease-in duration-150" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className={`modal w-full ${sizeMap[size]}`}>
-                <div className="modal-header">
-                  <Dialog.Title as="h3" className="text-base font-semibold text-gray-900 dark:text-white">
-                    {title}
-                  </Dialog.Title>
-                  <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100">
-                    <XMarkIcon className="w-5 h-5" />
-                  </button>
-                </div>
-                <div className="modal-body">{children}</div>
-                {footer && <div className="modal-footer">{footer}</div>}
-              </Dialog.Panel>
+              <div className={isDark ? 'dark' : ''}>
+                <Dialog.Panel className={`modal w-full ${sizeMap[size]}`}>
+                  <div className="modal-header">
+                    <Dialog.Title as="h3" className="text-base font-semibold text-gray-900 dark:text-white">
+                      {title}
+                    </Dialog.Title>
+                    <button
+                      onClick={onClose}
+                      className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <XMarkIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="modal-body">{children}</div>
+                  {footer && <div className="modal-footer">{footer}</div>}
+                </Dialog.Panel>
+              </div>
             </Transition.Child>
           </div>
         </div>

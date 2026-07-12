@@ -9,12 +9,12 @@ import { TaskBadge } from '../ui/StatusBadge'
 import { Avatar } from '../ui/Avatar'
 import type { TaskStatus, DepartmentTask, Routing } from '../../types'
 
-const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
-  { status: 'pending', label: 'Pending', color: 'bg-gray-100 border-gray-300 dark:bg-gray-800 dark:border-gray-700'},
-  { status: 'on_hold', label: 'On Hold', color: 'bg-yellow-50 border-yellow-300 dark:bg-yellow-800/20 dark:border-yellow-700'},
-  { status: 'issue_hold', label: 'Issue Hold', color: 'bg-red-50 border-red-200 dark:bg-red-800/20 dark:border-red-700'},
-  { status: 'in_progress', label: 'In Progress', color: 'bg-blue-50 border-blue-200 dark:bg-blue-800/20 dark:border-blue-700'},
-  { status: 'completed', label: 'Completed', color: 'bg-green-50 border-green-200 dark:bg-green-800/20 dark:border-green-700'}
+const COLUMNS: { status: TaskStatus; label: string; color: string; bg: string }[] = [
+  { status: 'pending', label: 'Pending', color: 'bg-gray-100 border-gray-300 dark:bg-gray-400/20 dark:border-gray-600', bg: 'bg-gray-50 dark:bg-gray-700/50' },
+  { status: 'on_hold', label: 'On Hold', color: 'bg-yellow-50 border-yellow-300 dark:bg-yellow-500/20 dark:border-yellow-500/40', bg: 'bg-yellow-50/60 dark:bg-yellow-900/30' },
+  { status: 'issue_hold', label: 'Issue Hold', color: 'bg-red-50 border-red-200 dark:bg-red-500/20 dark:border-red-500/40', bg: 'bg-red-50/60 dark:bg-red-900/30' },
+  { status: 'in_progress', label: 'In Progress', color: 'bg-blue-50 border-blue-200 dark:bg-blue-500/20 dark:border-blue-500/40', bg: 'bg-blue-50/60 dark:bg-blue-900/30' },
+  { status: 'completed', label: 'Completed', color: 'bg-green-50 border-green-200 dark:bg-green-500/20 dark:border-green-500/40', bg: 'bg-green-50/60 dark:bg-green-900/30' },
 ]
 
 export default function TaskBoard({ projectId }: { projectId: string }) {
@@ -80,12 +80,12 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900">Task Board</h3>
-        <span className="text-sm text-gray-500">{tasks?.length || 0} tasks total</span>
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100">Task Board</h3>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{tasks?.length || 0} tasks total</span>
       </div>
 
       {tasks && tasks.length === 0 ? (
-        <div className="card p-8 text-center text-gray-400">
+        <div className="card p-8 text-center text-gray-400 dark:text-gray-500">
           <p className="text-sm">No tasks yet. Publish a routing to generate tasks.</p>
         </div>
       ) : (
@@ -120,13 +120,13 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
               return COLUMNS.map((col) => (
                 <div
                   key={`${dep}-${col.status}`}
-                  className={`py-1 px-2 ${col.color.split(' ')[0]} dark:bg-gray-900`}
+                  className={`py-1 px-2 ${col.bg}`}
                 >
                   {task && task.status === col.status && <TaskCard task={task} />}
                   {!task && col.status === 'pending' && (
                     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-gray-900 dark:text-gray-100">
                       <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">{dep}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-300">Pending assignment</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-400">Pending assignment</p>
                     </div>
                   )}
                 </div>
@@ -148,24 +148,24 @@ function TaskCard({ task }: { task: DepartmentTask }) {
       to={`/tasks/${task.id}`}
       className="block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 hover:shadow-md transition-shadow cursor-pointer text-gray-900 dark:text-gray-100"
     >
-      <p className="text-xs font-semibold text-gray-800 mb-1">
+      <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 mb-1">
         {task.department_name}
       </p>
       {task.title && (
-        <p className="text-xs text-gray-500 mb-2 truncate">{task.title}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 truncate">{task.title}</p>
       )}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {task.assigned_employees && task.assigned_employees.length > 0 && (
             <div className="flex -space-x-1">
               {task.assigned_employees.slice(0, 3).map((e) => (
-                <Avatar key={e.id} src={e.avatar_url} firstName={e.first_name} lastName={e.last_name} size="xs" className="border border-white" />
+                <Avatar key={e.id} src={e.avatar_url} firstName={e.first_name} lastName={e.last_name} size="xs" className="border border-white dark:border-gray-800" />
               ))}
             </div>
           )}
         </div>
         {task.due_date && (
-          <span className="text-xs text-gray-400 flex items-center gap-1">
+          <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
             <ClockIcon className="w-3 h-3" />
             {fmtDate(task.due_date)}
           </span>
@@ -173,11 +173,11 @@ function TaskCard({ task }: { task: DepartmentTask }) {
       </div>
       {totalSubtasks > 0 && (
         <div className="mt-2">
-          <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+          <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 mb-1">
             <span>Progress</span>
             <span>{completedSubtasks}/{totalSubtasks}</span>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-1">
+          <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1">
             <div
               className="bg-brand-500 rounded-full h-1 transition-all"
               style={{ width: `${totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0}%` }}
