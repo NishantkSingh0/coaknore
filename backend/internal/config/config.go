@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -116,6 +117,18 @@ func (c *Config) DBConnectionString() string {
 func (c *Config) DBConnectionURL() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
 		c.DBUser, c.DBPassword, c.DBHost, c.DBPort, c.DBName, c.DBSSLMode)
+}
+
+func (c *Config) CORSAllowedOriginsSlice() []string {
+	if c.CORSAllowedOrigins == "" {
+		return nil
+	}
+
+	origins := strings.Split(c.CORSAllowedOrigins, ",")
+	for i, origin := range origins {
+		origins[i] = strings.TrimSpace(origin)
+	}
+	return origins
 }
 
 func getEnv(key, fallback string) string {
