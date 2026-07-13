@@ -295,33 +295,34 @@ func main() {
 		}
 	}()
 
-	// ── Server ───────────────────────────────────────────────────────────────
 // ── Server ───────────────────────────────────────────────────────────────
-
-// Render provides the PORT environment variable.
-// Use it if available, otherwise fall back to the configured port for local development.
-port := os.Getenv("PORT")
-if port == "" {
-	port = cfg.AppPort
-	if port == "" {
-		port = "8080"
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
-}
 
-srv := &http.Server{
-	Addr: ":" + port,
-	Handler:      r,
-	ReadTimeout:  15 * time.Second,
-	WriteTimeout: 60 * time.Second,
-	IdleTimeout:  120 * time.Second,
-}
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
 
-done := make(chan os.Signal, 1)
-signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		log.Printf("Server listening on :%s", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
 
-go func() {
-	log.Printf("Server listening on :%s", port)
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("Server error: %v", err)
+	<-done
+	log.Print("Server stopping...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Server shutdown failed: %v", err)
 	}
-}()
+
+	log.Print("Server stopped")
+}
