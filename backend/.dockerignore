@@ -1,0 +1,16 @@
+.env
+.env.*
+.gocache/
+tmp/
+vendor/
+
+app
+main
+pms-backend
+seed
+*.exe
+*.test
+*.out
+
+.DS_Store
+*.log

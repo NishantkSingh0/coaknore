@@ -4,23 +4,21 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/pms/backend/internal/config"
 	_ "github.com/lib/pq"
+	"github.com/pms/backend/internal/config"
 )
 
 var DB *sql.DB
 
 func Connect() *sql.DB {
 	cfg := config.App
-	connStr := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBSSLMode,
-	)
+	connStr := buildConnectionString(cfg)
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -36,6 +34,30 @@ func Connect() *sql.DB {
 	log.Println("Database connected successfully")
 	DB = db
 	return db
+}
+
+func buildConnectionString(cfg *config.Config) string {
+	if cfg.DatabaseURL != "" {
+		return withURLConnectTimeout(cfg.DatabaseURL, "10")
+	}
+
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s connect_timeout=10",
+		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBSSLMode,
+	)
+}
+
+func withURLConnectTimeout(connURL string, seconds string) string {
+	u, err := url.Parse(connURL)
+	if err != nil {
+		return connURL
+	}
+	q := u.Query()
+	if q.Get("connect_timeout") == "" {
+		q.Set("connect_timeout", seconds)
+	}
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // RunMigrations applies any pending *.sql files from migrationsPath in

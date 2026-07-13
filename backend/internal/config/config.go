@@ -15,12 +15,13 @@ type Config struct {
 	AppPort     string
 	FrontendURL string
 
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBSSLMode  string
+	DBHost      string
+	DBPort      string
+	DBUser      string
+	DBPassword  string
+	DBName      string
+	DBSSLMode   string
+	DatabaseURL string
 
 	JWTSecret      string
 	JWTExpiryHours int
@@ -69,12 +70,13 @@ func Load() {
 		FrontendURL:        getEnv("FRONTEND_URL", "http://localhost:5173"),
 		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", getEnv("FRONTEND_URL", "http://localhost:5173")),
 
-		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnv("DB_PORT", "5432"),
-		DBUser:     getEnv("DB_USER", "pms_user"),
-		DBPassword: getEnv("DB_PASSWORD", ""),
-		DBName:     getEnv("DB_NAME", "pms_db"),
-		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
+		DBHost:      getEnv("DB_HOST", "localhost"),
+		DBPort:      getEnv("DB_PORT", "5432"),
+		DBUser:      getEnv("DB_USER", "pms_user"),
+		DBPassword:  getEnv("DB_PASSWORD", ""),
+		DBName:      getEnv("DB_NAME", "pms_db"),
+		DBSSLMode:   getEnv("DB_SSLMODE", "disable"),
+		DatabaseURL: getEnv("DATABASE_URL", ""),
 
 		JWTSecret:      getEnv("JWT_SECRET", ""),
 		JWTExpiryHours: jwtExpiry,
@@ -85,8 +87,7 @@ func Load() {
 		AWSS3Bucket:        getEnv("AWS_S3_BUCKET", ""),
 		AWSS3Endpoint:      getEnv("AWS_S3_ENDPOINT", ""),
 
-		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
-		MaxUploadSizeMB:    maxUpload,
+		MaxUploadSizeMB: maxUpload,
 
 		PasswordResetExpiryHours: pwResetExpiry,
 
@@ -125,9 +126,13 @@ func (c *Config) CORSAllowedOriginsSlice() []string {
 		return nil
 	}
 
-	origins := strings.Split(c.CORSAllowedOrigins, ",")
-	for i, origin := range origins {
-		origins[i] = strings.TrimSpace(origin)
+	rawOrigins := strings.Split(c.CORSAllowedOrigins, ",")
+	origins := make([]string, 0, len(rawOrigins))
+	for _, origin := range rawOrigins {
+		origin = strings.TrimRight(strings.TrimSpace(origin), "/")
+		if origin != "" {
+			origins = append(origins, origin)
+		}
 	}
 	return origins
 }

@@ -8,6 +8,10 @@
 *.out
 /backend/tmp/
 /backend/vendor/
+/backend/app
+/backend/main
+/backend/pms-backend
+/backend/seed
 go.work
 
 # Frontend (React/Node)
