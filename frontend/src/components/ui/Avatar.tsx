@@ -35,8 +35,8 @@ const getProxyUrl = (url: string | null | undefined): string => {
   }
 
   if (key) {
-    const apiBase = (import.meta as any).env.VITE_API_URL || 'http://localhost:8080/api'
-    const cleanApiBase = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase
+    const rawApiBase = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api'
+    const cleanApiBase = rawApiBase.endsWith('/') ? rawApiBase.slice(0, -1) : rawApiBase
     return `${cleanApiBase}/public/avatar?key=${encodeURIComponent(key)}`
   }
 

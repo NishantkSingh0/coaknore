@@ -8,10 +8,11 @@ import type {
   LayerType, MaterialItem
 } from '../types'
 
-const BASE_URL = '/api'
+const RAW_BASE_URL = import.meta.env.VITE_API_URL ?? '/api'
+export const API_BASE_URL = RAW_BASE_URL.endsWith('/') ? RAW_BASE_URL.slice(0, -1) : RAW_BASE_URL
 
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
   timeout: 30000,
 })
 
