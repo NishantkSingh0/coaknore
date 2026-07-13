@@ -107,7 +107,7 @@ func main() {
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.Timeout(60 * time.Second))
 	r.Use(cors.Handler(cors.Options{
-			AllowedOrigins:   cfg.CORSAllowedOriginsSlice(),
+		AllowedOrigins:   cfg.CORSAllowedOriginsSlice(),
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
@@ -292,7 +292,7 @@ func main() {
 		}
 	}()
 
-// ── Server ───────────────────────────────────────────────────────────────
+	// ── Server ───────────────────────────────────────────────────────────────
 	srv := &http.Server{
 		Addr:         ":" + port,
 		Handler:      r,

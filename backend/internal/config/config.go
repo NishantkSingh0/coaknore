@@ -22,8 +22,8 @@ type Config struct {
 	DBName     string
 	DBSSLMode  string
 
-	JWTSecret       string
-	JWTExpiryHours  int
+	JWTSecret      string
+	JWTExpiryHours int
 
 	AWSRegion          string
 	AWSAccessKeyID     string
@@ -64,9 +64,10 @@ func Load() {
 	pwResetExpiry, _ := strconv.Atoi(getEnv("PASSWORD_RESET_EXPIRY_HOURS", "2"))
 
 	App = &Config{
-		AppEnv:      getEnv("APP_ENV", "development"),
-		AppPort:     getEnv("APP_PORT", "8080"),
-		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:5173"),
+		AppEnv:             getEnv("APP_ENV", "development"),
+		AppPort:            getEnv("APP_PORT", "8080"),
+		FrontendURL:        getEnv("FRONTEND_URL", "http://localhost:5173"),
+		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", getEnv("FRONTEND_URL", "http://localhost:5173")),
 
 		DBHost:     getEnv("DB_HOST", "localhost"),
 		DBPort:     getEnv("DB_PORT", "5432"),
