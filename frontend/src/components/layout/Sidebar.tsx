@@ -1,8 +1,8 @@
 import { NavLink } from 'react-router-dom'
 import {
   HomeIcon, FolderIcon, ClipboardDocumentListIcon,
-  ExclamationCircleIcon, ArrowPathIcon, DocumentTextIcon,
-  CubeIcon, BellIcon, UserGroupIcon, BuildingOfficeIcon,
+  ExclamationCircleIcon, DocumentTextIcon,
+  BellIcon, UserGroupIcon, BuildingOfficeIcon,
   ChatBubbleLeftRightIcon, Cog6ToothIcon, WrenchScrewdriverIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline'
@@ -29,17 +29,13 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
   const layer3Nav = [
     navItem('/tasks', 'My Tasks', ClipboardDocumentListIcon),
     navItem('/issues', 'Issues', ExclamationCircleIcon),
-    navItem('/reworks', 'Reworks', ArrowPathIcon),
     navItem('/reports', 'Daily Reports', DocumentTextIcon),
-    navItem('/materials', 'Materials', CubeIcon),
   ]
 
   const layer2Nav = [
     navItem('/projects', 'Projects', FolderIcon),
     navItem('/issues', 'Issues', ExclamationCircleIcon),
-    navItem('/reworks', 'Reworks', ArrowPathIcon),
     navItem('/reports', 'Reports', DocumentTextIcon),
-    navItem('/materials', 'Materials', CubeIcon),
   ]
 
   const adminNav = [
@@ -47,9 +43,7 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
     navItem('/employees', 'Employees', UserGroupIcon),
     navItem('/sdepartments', 'Departments', BuildingOfficeIcon),
     navItem('/issues', 'Issues', ExclamationCircleIcon),
-    navItem('/reworks', 'Reworks', ArrowPathIcon),
     navItem('/reports', 'Reports', DocumentTextIcon),
-    navItem('/materials', 'Materials', CubeIcon),
   ]
 
   const roleNav = isAdmin ? adminNav : isLayerTwo ? layer2Nav : layer3Nav

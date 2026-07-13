@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/pms/backend/internal/models"
 )
 
@@ -43,7 +44,7 @@ func (s *NotificationService) NotifyLayer(orgID uuid.UUID, layers []models.Layer
 
 	rows, err := s.db.Query(`
 		SELECT id FROM employees WHERE organization_id = $1 AND layer = ANY($2) AND is_active = TRUE
-	`, orgID, layerStrs)
+	`, orgID, pq.Array(layerStrs))
 	if err != nil {
 		return
 	}

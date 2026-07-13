@@ -20,12 +20,13 @@ func NewIssueService(db *sql.DB, audit *AuditService, notif *NotificationService
 }
 
 type CreateIssueRequest struct {
-	TaskID              string           `json:"task_id"`
-	Type                models.IssueType `json:"type"`
-	Title               string           `json:"title"`
-	Description         string           `json:"description"`
-	AssignedToDeptID    string           `json:"assigned_to_dept_id"`
+	TaskID           string           `json:"task_id"`
+	Type             models.IssueType `json:"type"`
+	Title            string           `json:"title"`
+	Description      string           `json:"description"`
+	AssignedToDeptID string           `json:"assigned_to_dept_id"`
 	// Material Missing specific fields
+	MaterialName        string  `json:"material_name"`
 	MaterialDescription string  `json:"material_description"`
 	RequiredQuantity    float64 `json:"required_quantity"`
 	MaterialUnit        string  `json:"material_unit"`
@@ -67,21 +68,21 @@ func (s *IssueService) RaiseIssue(orgID, projectID, deptID, raisedBy uuid.UUID, 
 	err := s.db.QueryRow(`
 		INSERT INTO issues (project_id, task_id, department_id, raised_by, type, title, description,
 		                    assigned_to_dept, status,
-		                    material_description, required_quantity, material_unit, material_remarks)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'open',$9,$10,$11,$12)
+		                    material_name, material_description, required_quantity, material_unit, material_remarks)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'open',$9,$10,$11,$12,$13)
 		RETURNING id, project_id, task_id, department_id, raised_by, type, title, description,
 		          status, assigned_to_dept,
-		          COALESCE(material_description,''), COALESCE(required_quantity,0),
+		          COALESCE(material_name,''), COALESCE(material_description,''), COALESCE(required_quantity,0),
 		          COALESCE(material_unit,''), COALESCE(material_remarks,''),
 		          created_at, updated_at
 	`, projectID, taskID, deptID, raisedBy, req.Type, req.Title, req.Description, assignedDeptID,
-		nullStr(req.MaterialDescription), nullFloat64(req.RequiredQuantity),
+		nullStr(req.MaterialName), nullStr(req.MaterialDescription), nullFloat64(req.RequiredQuantity),
 		nullStr(req.MaterialUnit), nullStr(req.MaterialRemarks),
 	).Scan(
 		&issue.ID, &issue.ProjectID, &issueTaskID, &issue.DepartmentID, &issue.RaisedBy,
 		&issue.Type, &issue.Title, &issue.Description,
 		&issue.Status, &issueAssignedDept,
-		&issue.MaterialDescription, &issue.RequiredQuantity,
+		&issue.MaterialName, &issue.MaterialDescription, &issue.RequiredQuantity,
 		&issue.MaterialUnit, &issue.MaterialRemarks,
 		&issue.CreatedAt, &issue.UpdatedAt,
 	)
@@ -104,8 +105,8 @@ func (s *IssueService) RaiseIssue(orgID, projectID, deptID, raisedBy uuid.UUID, 
 		Action: models.AuditCreated, EntityType: "issue", EntityID: &issue.ID, EntityName: issue.Title,
 	})
 
-	// Notify layer2
-	go s.notifSvc.NotifyLayer(orgID, []models.LayerType{models.LayerTwo}, models.NotifIssueRaised,
+	// Notify both upper levels when any issue is raised.
+	go s.notifSvc.NotifyLayer(orgID, upperIssueLayers(), models.NotifIssueRaised,
 		"Issue Raised",
 		fmt.Sprintf("New issue: %s (%s)", issue.Title, issue.Type),
 		&projectID, "issue", &issue.ID)
@@ -155,8 +156,9 @@ func (s *IssueService) ReviewIssue(orgID, issueID, reviewerID uuid.UUID, approve
 	var raisedBy uuid.UUID
 	s.db.QueryRow(`SELECT raised_by FROM issues WHERE id = $1`, issueID).Scan(&raisedBy)
 
-	var issueTitle string
+	var issueTitle, reviewerName string
 	s.db.QueryRow(`SELECT title FROM issues WHERE id = $1`, issueID).Scan(&issueTitle)
+	s.db.QueryRow(`SELECT CONCAT(first_name,' ',last_name) FROM employees WHERE id = $1`, reviewerID).Scan(&reviewerName)
 
 	action := "Approved"
 	if !approve {
@@ -164,7 +166,11 @@ func (s *IssueService) ReviewIssue(orgID, issueID, reviewerID uuid.UUID, approve
 	}
 	go s.notifSvc.Send(orgID, raisedBy, notifType,
 		fmt.Sprintf("Issue %s", action),
-		fmt.Sprintf("Your issue '%s' has been %s", issueTitle, action),
+		fmt.Sprintf("Your issue '%s' has been %s by %s", issueTitle, action, reviewerName),
+		&projectID, "issue", &issueID)
+	go s.notifSvc.NotifyLayer(orgID, upperIssueLayers(), notifType,
+		fmt.Sprintf("Issue %s", action),
+		fmt.Sprintf("Issue '%s' was %s by %s", issueTitle, action, reviewerName),
 		&projectID, "issue", &issueID)
 
 	s.auditSvc.Log(AuditEntry{
@@ -214,12 +220,13 @@ func (s *IssueService) ResolveIssue(orgID, issueID, resolvedBy uuid.UUID, resolu
 	// Close the issue
 	s.db.Exec(`UPDATE issues SET status = 'closed', updated_at = NOW() WHERE id = $1`, issueID)
 
-	var issueTitle string
+	var issueTitle, resolverName string
 	s.db.QueryRow(`SELECT title FROM issues WHERE id = $1`, issueID).Scan(&issueTitle)
+	s.db.QueryRow(`SELECT CONCAT(first_name,' ',last_name) FROM employees WHERE id = $1`, resolvedBy).Scan(&resolverName)
 
-	go s.notifSvc.NotifyLayer(orgID, []models.LayerType{models.LayerTwo}, models.NotifIssueClosed,
+	go s.notifSvc.NotifyLayer(orgID, upperIssueLayers(), models.NotifIssueClosed,
 		"Issue Resolved & Closed",
-		fmt.Sprintf("Issue '%s' has been resolved", issueTitle),
+		fmt.Sprintf("Issue '%s' has been resolved by %s", issueTitle, resolverName),
 		&projectID, "issue", &issueID)
 
 	s.auditSvc.Log(AuditEntry{
@@ -234,10 +241,10 @@ func (s *IssueService) GetIssue(id uuid.UUID) (*models.Issue, error) {
 	issue := &models.Issue{}
 	var (
 		taskID, assignedDept, reviewedBy, resolvedBy sql.NullString
-		reviewedAt, resolvedAt                        sql.NullTime
-		reviewNotes, resolutionNotes                  sql.NullString
-		deptName, raisedByName, reviewedByName        sql.NullString
-		resolvedByName                                sql.NullString
+		reviewedAt, resolvedAt                       sql.NullTime
+		reviewNotes, resolutionNotes                 sql.NullString
+		deptName, assignedDeptName, raisedByName     sql.NullString
+		reviewedByName, resolvedByName               sql.NullString
 	)
 
 	err := s.db.QueryRow(`
@@ -245,11 +252,15 @@ func (s *IssueService) GetIssue(id uuid.UUID) (*models.Issue, error) {
 		       i.status, i.assigned_to_dept, i.reviewed_by, i.review_notes, i.reviewed_at,
 		       i.resolved_by, i.resolved_at, i.resolution_notes, i.created_at, i.updated_at,
 		       COALESCE(d.name,'') as dept_name,
+		       COALESCE(ad.name,'') as assigned_dept_name,
 		       COALESCE(CONCAT(re.first_name,' ',re.last_name),'') as raised_by_name,
 		       COALESCE(CONCAT(rv.first_name,' ',rv.last_name),'') as reviewed_by_name,
-		       COALESCE(CONCAT(rs.first_name,' ',rs.last_name),'') as resolved_by_name
+		       COALESCE(CONCAT(rs.first_name,' ',rs.last_name),'') as resolved_by_name,
+		       COALESCE(i.material_name,''), COALESCE(i.material_description,''),
+		       COALESCE(i.required_quantity,0), COALESCE(i.material_unit,''), COALESCE(i.material_remarks,'')
 		FROM issues i
 		LEFT JOIN departments d ON d.id = i.department_id
+		LEFT JOIN departments ad ON ad.id = i.assigned_to_dept
 		LEFT JOIN employees re ON re.id = i.raised_by
 		LEFT JOIN employees rv ON rv.id = i.reviewed_by
 		LEFT JOIN employees rs ON rs.id = i.resolved_by
@@ -259,7 +270,9 @@ func (s *IssueService) GetIssue(id uuid.UUID) (*models.Issue, error) {
 		&issue.Type, &issue.Title, &issue.Description,
 		&issue.Status, &assignedDept, &reviewedBy, &reviewNotes, &reviewedAt,
 		&resolvedBy, &resolvedAt, &resolutionNotes, &issue.CreatedAt, &issue.UpdatedAt,
-		&deptName, &raisedByName, &reviewedByName, &resolvedByName,
+		&deptName, &assignedDeptName, &raisedByName, &reviewedByName, &resolvedByName,
+		&issue.MaterialName, &issue.MaterialDescription, &issue.RequiredQuantity,
+		&issue.MaterialUnit, &issue.MaterialRemarks,
 	)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("issue not found")
@@ -298,6 +311,9 @@ func (s *IssueService) GetIssue(id uuid.UUID) (*models.Issue, error) {
 	}
 	if deptName.Valid {
 		issue.DepartmentName = deptName.String
+	}
+	if assignedDeptName.Valid {
+		issue.AssignedToDept = assignedDeptName.String
 	}
 	if raisedByName.Valid {
 		issue.RaisedByName = raisedByName.String
@@ -380,4 +396,8 @@ func (s *IssueService) ListIssues(orgID uuid.UUID, projectID *uuid.UUID, deptID 
 		issues = append(issues, i)
 	}
 	return issues, total, nil
+}
+
+func upperIssueLayers() []models.LayerType {
+	return []models.LayerType{models.LayerOne, models.LayerSuperAdmin, models.LayerTwo}
 }

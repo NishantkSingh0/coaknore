@@ -28,8 +28,15 @@ func main() {
 	// Load config
 	config.Load()
 	cfg := config.App
-	log.Printf("Starting PMS backend [%s] on port %s", cfg.AppEnv, cfg.AppPort)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = cfg.AppPort
+		if port == "" {
+			port = "8080"
+		}
+	}
 
+	log.Printf("Starting PMS backend [%s] on port %s", cfg.AppEnv, port)
 	// Connect to DB
 	db := database.Connect()
 	defer db.Close()
@@ -68,11 +75,11 @@ func main() {
 	routingSvc := services.NewRoutingService(db, auditSvc, notifSvc)
 	taskSvc := services.NewTaskService(db, auditSvc, notifSvc, routingSvc)
 	routingSvc.SetTaskService(taskSvc)
-	issueSvc := services.NewIssueService(db, auditSvc, notifSvc)
+	matSvc := services.NewMaterialService(db, auditSvc, notifSvc)
 	reworkSvc := services.NewReworkService(db, auditSvc, notifSvc, routingSvc)
+	issueSvc := services.NewIssueService(db, auditSvc, notifSvc)
 	querySvc := services.NewQueryService(db, auditSvc, notifSvc)
 	reportSvc := services.NewDailyReportService(db, auditSvc, notifSvc)
-	matSvc := services.NewMaterialService(db, auditSvc, notifSvc)
 	searchSvc := services.NewSearchService(db)
 	aiSvc := services.NewAIService(db)
 
@@ -289,28 +296,32 @@ func main() {
 	}()
 
 	// ── Server ───────────────────────────────────────────────────────────────
-	srv := &http.Server{
-		Addr:         ":" + cfg.AppPort,
-		Handler:      r,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 60 * time.Second,
-		IdleTimeout:  120 * time.Second,
+// ── Server ───────────────────────────────────────────────────────────────
+
+// Render provides the PORT environment variable.
+// Use it if available, otherwise fall back to the configured port for local development.
+port := os.Getenv("PORT")
+if port == "" {
+	port = cfg.AppPort
+	if port == "" {
+		port = "8080"
 	}
-
-	done := make(chan os.Signal, 1)
-	signal.Notify(done, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		log.Printf("Server listening on :%s", cfg.AppPort)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server error: %v", err)
-		}
-	}()
-
-	<-done
-	log.Println("Shutting down server gracefully…")
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	srv.Shutdown(ctx)
-	log.Println("Server stopped")
 }
+
+srv := &http.Server{
+	Addr: ":" + port,
+	Handler:      r,
+	ReadTimeout:  15 * time.Second,
+	WriteTimeout: 60 * time.Second,
+	IdleTimeout:  120 * time.Second,
+}
+
+done := make(chan os.Signal, 1)
+signal.Notify(done, os.Interrupt, syscall.SIGTERM)
+
+go func() {
+	log.Printf("Server listening on :%s", port)
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("Server error: %v", err)
+	}
+}()

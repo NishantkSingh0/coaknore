@@ -94,6 +94,27 @@ type SQLValidationResult struct {
 	Error string `json:"error,omitempty"`
 }
 
+type chatIntent string
+
+const (
+	intentGreeting     chatIntent = "greeting"
+	intentHelp         chatIntent = "help"
+	intentDataQuestion chatIntent = "data_question"
+	intentSmallTalk    chatIntent = "small_talk"
+)
+
+type entityMatch struct {
+	ID         string
+	Name       string
+	Descriptor string
+	Score      float64
+}
+
+type resultColumn struct {
+	Key   string
+	Label string
+}
+
 const (
 	maxRetries = 3
 
@@ -625,6 +646,59 @@ func (s *AIService) ExecuteQuery(ctx context.Context, sql string) ([]map[string]
 	return results, nil
 }
 
+// ExecuteQueryWithArgs executes a validated read-only query with bind parameters.
+func (s *AIService) ExecuteQueryWithArgs(ctx context.Context, sql string, args ...interface{}) ([]map[string]interface{}, error) {
+	validation := s.ValidateSQL(sql)
+	if !validation.Valid {
+		return nil, fmt.Errorf("SQL validation failed: %s", validation.Error)
+	}
+
+	rows, err := s.db.QueryContext(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get columns: %w", err)
+	}
+
+	var results []map[string]interface{}
+	for rows.Next() {
+		values := make([]interface{}, len(columns))
+		valuePtrs := make([]interface{}, len(columns))
+		for i := range columns {
+			valuePtrs[i] = &values[i]
+		}
+
+		if err := rows.Scan(valuePtrs...); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		row := make(map[string]interface{})
+		for i, col := range columns {
+			val := values[i]
+			if val == nil {
+				row[col] = nil
+				continue
+			}
+			if bytesVal, ok := val.([]byte); ok {
+				row[col] = string(bytesVal)
+				continue
+			}
+			row[col] = val
+		}
+		results = append(results, row)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read rows: %w", err)
+	}
+
+	return results, nil
+}
+
 // SummarizeResults uses LLM to summarize query results
 func (s *AIService) SummarizeResults(ctx context.Context, question string, sql string, results []map[string]interface{}) (string, error) {
 	resultsJSON, err := json.MarshalIndent(results, "", "  ")
@@ -660,9 +734,1006 @@ Summary:`, question, sql, string(resultsJSON))
 	return response, nil
 }
 
+func classifyChatIntent(message string) chatIntent {
+	normalized := normalizeMessage(message)
+	if normalized == "" {
+		return intentSmallTalk
+	}
+
+	greetings := map[string]bool{
+		"hi": true, "hii": true, "hello": true, "hey": true, "heyy": true,
+		"good morning": true, "good afternoon": true, "good evening": true,
+		"namaste": true,
+	}
+	if greetings[normalized] {
+		return intentGreeting
+	}
+
+	words := strings.Fields(normalized)
+	if len(words) <= 3 {
+		for _, word := range words {
+			if word == "help" || word == "commands" || word == "examples" {
+				return intentHelp
+			}
+		}
+		if !looksLikeDataQuestion(normalized) {
+			return intentSmallTalk
+		}
+	}
+
+	return intentDataQuestion
+}
+
+func looksLikeDataQuestion(message string) bool {
+	keywords := []string{
+		"employee", "employees", "project", "projects", "task", "tasks",
+		"report", "reports", "routing", "material", "materials", "issue",
+		"issues", "rework", "notification", "notifications", "department",
+		"departments", "production", "approval", "approvals", "summary",
+		"working", "assigned", "delayed", "pending", "overdue", "idle",
+	}
+	for _, keyword := range keywords {
+		if strings.Contains(message, keyword) {
+			return true
+		}
+	}
+	return false
+}
+
+func normalizeMessage(message string) string {
+	message = strings.ToLower(strings.TrimSpace(message))
+	replacer := strings.NewReplacer(
+		"`", " ", "'", " ", "\"", " ", ".", " ", ",", " ", "?", " ",
+		"!", " ", ":", " ", ";", " ", "(", " ", ")", " ",
+	)
+	return strings.Join(strings.Fields(replacer.Replace(message)), " ")
+}
+
+func cleanEntityName(value string) string {
+	value = strings.TrimSpace(value)
+	value = strings.Trim(value, "`'\".,?!:;")
+	value = regexp.MustCompile(`(?i)\b(today|right now|currently|now|please|pls|project|employee)\b`).ReplaceAllString(value, " ")
+	value = strings.Join(strings.Fields(value), " ")
+	if len(value) > 3 && strings.HasSuffix(strings.ToLower(value), "s") {
+		value = strings.TrimSuffix(value, "s")
+	}
+	return value
+}
+
+func handledResponse(response string, err error) (string, bool, error) {
+	return response, true, err
+}
+
+func extractByRegex(message string, patterns ...string) string {
+	for _, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		matches := re.FindStringSubmatch(message)
+		if len(matches) > 1 {
+			return cleanEntityName(matches[1])
+		}
+	}
+	return ""
+}
+
+func (s *AIService) processBusinessQuery(ctx context.Context, message string) (string, bool, error) {
+	normalized := normalizeMessage(message)
+
+	if strings.Contains(normalized, "last work") {
+		name := extractByRegex(message, `(?i)(?:what is|what's|whats|show|get|tell me)?\s*(.+?)\s+(?:last work|latest work)`)
+		if name != "" {
+			response, err := s.answerEmployeeLastWork(ctx, name)
+			return response, true, err
+		}
+	}
+
+	if strings.Contains(normalized, "working on") {
+		name := extractByRegex(message, `(?i)(?:what is|what's|whats|what)\s+(.+?)\s+working on`, `(?i)is\s+(.+?)\s+working on`)
+		if name != "" {
+			response, err := s.answerEmployeeCurrentWork(ctx, name)
+			return response, true, err
+		}
+	}
+
+	if strings.Contains(normalized, "assigned to") && strings.Contains(normalized, "project") {
+		name := extractByRegex(message, `(?i)project\s+is\s+(.+?)\s+assigned to`, `(?i)which project is\s+(.+?)\s+assigned to`)
+		if name != "" {
+			response, err := s.answerEmployeeCurrentWork(ctx, name)
+			return response, true, err
+		}
+	}
+
+	switch {
+	case strings.Contains(normalized, "not submitted") && strings.Contains(normalized, "today") && strings.Contains(normalized, "report"):
+		return handledResponse(s.answerStandardQuery(ctx, "Employees Missing Today's Report", "Everyone below is active but has no daily report for today.", []resultColumn{{"employee", "Employee"}, {"department", "Department"}, {"email", "Email"}}, `
+			SELECT CONCAT(e.first_name, ' ', e.last_name) AS employee,
+			       COALESCE(d.name, '-') AS department,
+			       e.email
+			FROM employees e
+			LEFT JOIN departments d ON d.id = e.department_id
+			LEFT JOIN daily_reports dr ON dr.submitted_by = e.id AND dr.report_date = CURRENT_DATE
+			WHERE e.is_active = TRUE AND dr.id IS NULL
+			ORDER BY employee
+		`, "Everyone has submitted today's report."))
+	case strings.Contains(normalized, "currently idle") || strings.Contains(normalized, "idle employees"):
+		return handledResponse(s.answerStandardQuery(ctx, "Currently Idle Employees", "These active employees do not have an in-progress assigned task right now.", []resultColumn{{"employee", "Employee"}, {"department", "Department"}, {"email", "Email"}}, `
+			SELECT CONCAT(e.first_name, ' ', e.last_name) AS employee,
+			       COALESCE(d.name, '-') AS department,
+			       e.email
+			FROM employees e
+			LEFT JOIN departments d ON d.id = e.department_id
+			WHERE e.is_active = TRUE
+			  AND NOT EXISTS (
+			    SELECT 1
+			    FROM task_employee_assignments tea
+			    JOIN department_tasks t ON t.id = tea.task_id
+			    WHERE tea.employee_id = e.id AND t.status = 'in_progress'
+			  )
+			ORDER BY employee
+		`, "No idle employees found."))
+	case strings.Contains(normalized, "on hold"):
+		return handledResponse(s.answerStandardQuery(ctx, "Employees Or Work Currently On Hold", "These tasks/projects are marked as hold or on-hold.", []resultColumn{{"project_name", "Project"}, {"task", "Task"}, {"employee", "Employee"}, {"department", "Department"}, {"status", "Status"}}, `
+			SELECT p.project_name,
+			       COALESCE(t.title, 'Department task') AS task,
+			       COALESCE(CONCAT(e.first_name, ' ', e.last_name), '-') AS employee,
+			       COALESCE(d.name, '-') AS department,
+			       t.status::text AS status
+			FROM department_tasks t
+			JOIN projects p ON p.id = t.project_id
+			LEFT JOIN departments d ON d.id = t.department_id
+			LEFT JOIN task_employee_assignments tea ON tea.task_id = t.id
+			LEFT JOIN employees e ON e.id = tea.employee_id
+			WHERE t.status IN ('hold', 'issue_hold', 'on_hold')
+			ORDER BY t.updated_at DESC
+			LIMIT 50
+		`, "No tasks are currently on hold."))
+	case strings.Contains(normalized, "projects") && strings.Contains(normalized, "delayed"):
+		return handledResponse(s.answerStandardQuery(ctx, "Delayed Projects", "These projects have passed their delivery date and are not completed or archived.", []resultColumn{{"project_name", "Project"}, {"client_name", "Client"}, {"status", "Status"}, {"delivery_date", "Delivery Date"}}, `
+			SELECT project_name, client_name, status::text AS status, delivery_date
+			FROM projects
+			WHERE delivery_date < CURRENT_DATE AND status NOT IN ('completed', 'archived')
+			ORDER BY delivery_date ASC
+			LIMIT 50
+		`, "No delayed projects found."))
+	case strings.Contains(normalized, "projects") && strings.Contains(normalized, "due this week"):
+		return handledResponse(s.answerStandardQuery(ctx, "Projects Due This Week", "These projects have a delivery date within the current week.", []resultColumn{{"project_name", "Project"}, {"client_name", "Client"}, {"status", "Status"}, {"delivery_date", "Delivery Date"}}, `
+			SELECT project_name, client_name, status::text AS status, delivery_date
+			FROM projects
+			WHERE delivery_date >= CURRENT_DATE
+			  AND delivery_date < CURRENT_DATE + INTERVAL '7 days'
+			  AND status NOT IN ('completed', 'archived')
+			ORDER BY delivery_date ASC
+			LIMIT 50
+		`, "No projects are due this week."))
+	case strings.Contains(normalized, "completed projects"):
+		return handledResponse(s.answerStandardQuery(ctx, "Completed Projects", "These projects are marked completed.", []resultColumn{{"project_name", "Project"}, {"client_name", "Client"}, {"completed_at", "Completed At"}}, `
+			SELECT project_name, client_name, completed_at
+			FROM projects
+			WHERE status = 'completed'
+			ORDER BY COALESCE(completed_at, updated_at) DESC
+			LIMIT 50
+		`, "No completed projects found."))
+	case strings.Contains(normalized, "highest number of issues") || strings.Contains(normalized, "highest issues"):
+		return handledResponse(s.answerStandardQuery(ctx, "Project With Highest Issues", "This ranking is based on total issues linked to each project.", []resultColumn{{"project_name", "Project"}, {"client_name", "Client"}, {"issue_count", "Issues"}}, `
+			SELECT p.project_name, p.client_name, COUNT(i.id) AS issue_count
+			FROM projects p
+			JOIN issues i ON i.project_id = p.id
+			GROUP BY p.id, p.project_name, p.client_name
+			ORDER BY issue_count DESC, p.project_name
+			LIMIT 10
+		`, "No project issues found."))
+	case strings.Contains(normalized, "revision history"):
+		projectName := cleanEntityName(strings.TrimSpace(regexp.MustCompile(`(?i).*revision history (?:for|of)?`).ReplaceAllString(message, "")))
+		response, err := s.answerProjectRevisionHistory(ctx, projectName)
+		return response, true, err
+	case strings.Contains(normalized, "pending tasks"):
+		return handledResponse(s.answerStandardQuery(ctx, "Pending Tasks", "These tasks are still pending.", []resultColumn{{"project_name", "Project"}, {"task", "Task"}, {"department", "Department"}, {"due_date", "Due Date"}}, `
+			SELECT p.project_name,
+			       COALESCE(t.title, 'Department task') AS task,
+			       COALESCE(d.name, '-') AS department,
+			       t.due_date
+			FROM department_tasks t
+			JOIN projects p ON p.id = t.project_id
+			LEFT JOIN departments d ON d.id = t.department_id
+			WHERE t.status = 'pending'
+			ORDER BY t.due_date ASC NULLS LAST, t.created_at DESC
+			LIMIT 50
+		`, "No pending tasks found."))
+	case strings.Contains(normalized, "tasks") && (strings.Contains(normalized, "blocked") || strings.Contains(normalized, "hold")):
+		return handledResponse(s.answerStandardQuery(ctx, "Blocked Tasks", "The system represents blocked work using hold statuses.", []resultColumn{{"project_name", "Project"}, {"task", "Task"}, {"department", "Department"}, {"status", "Status"}}, `
+			SELECT p.project_name,
+			       COALESCE(t.title, 'Department task') AS task,
+			       COALESCE(d.name, '-') AS department,
+			       t.status::text AS status
+			FROM department_tasks t
+			JOIN projects p ON p.id = t.project_id
+			LEFT JOIN departments d ON d.id = t.department_id
+			WHERE t.status IN ('hold', 'issue_hold', 'on_hold')
+			ORDER BY t.updated_at DESC
+			LIMIT 50
+		`, "No blocked tasks found."))
+	case strings.Contains(normalized, "overdue tasks"):
+		return handledResponse(s.answerStandardQuery(ctx, "Overdue Tasks", "These tasks are past due and not completed.", []resultColumn{{"project_name", "Project"}, {"task", "Task"}, {"department", "Department"}, {"status", "Status"}, {"due_date", "Due Date"}}, `
+			SELECT p.project_name,
+			       COALESCE(t.title, 'Department task') AS task,
+			       COALESCE(d.name, '-') AS department,
+			       t.status::text AS status,
+			       t.due_date
+			FROM department_tasks t
+			JOIN projects p ON p.id = t.project_id
+			LEFT JOIN departments d ON d.id = t.department_id
+			WHERE t.due_date < CURRENT_DATE AND t.status <> 'completed'
+			ORDER BY t.due_date ASC
+			LIMIT 50
+		`, "No overdue tasks found."))
+	case strings.Contains(normalized, "who owns task"):
+		taskRef := extractByRegex(message, `(?i)task\s+([a-z0-9-]+)`)
+		response, err := s.answerTaskOwner(ctx, taskRef)
+		return response, true, err
+	case strings.Contains(normalized, "today") && (strings.Contains(normalized, "work updates") || strings.Contains(normalized, "production")):
+		return handledResponse(s.answerTodayProduction(ctx))
+	case strings.Contains(normalized, "departments submitted reports today"):
+		return handledResponse(s.answerStandardQuery(ctx, "Departments That Submitted Reports Today", "These departments have at least one report for today.", []resultColumn{{"department", "Department"}, {"report_count", "Reports"}}, `
+			SELECT COALESCE(d.name, '-') AS department, COUNT(dr.id) AS report_count
+			FROM daily_reports dr
+			LEFT JOIN departments d ON d.id = dr.department_id
+			WHERE dr.report_date = CURRENT_DATE
+			GROUP BY d.name
+			ORDER BY report_count DESC, department
+		`, "No departments submitted reports today."))
+	case strings.Contains(normalized, "active routing") || strings.Contains(normalized, "routing version") || strings.Contains(normalized, "routing timeline"):
+		projectName := extractByRegex(message, `(?i)(?:for|of)\s+(.+)$`)
+		response, err := s.answerRouting(ctx, projectName, strings.Contains(normalized, "timeline"))
+		return response, true, err
+	case strings.Contains(normalized, "materials") && strings.Contains(normalized, "running low"):
+		return "### Materials Running Low\n\nI cannot answer this reliably yet because the current schema stores material requisitions, not inventory stock levels or reorder thresholds.", true, nil
+	case strings.Contains(normalized, "stock for"):
+		return "### Material Stock\n\nI cannot show live stock from the current schema because there is no stock/inventory table. I can show requested or approved material requisitions instead.", true, nil
+	case strings.Contains(normalized, "recently consumed materials") || strings.Contains(normalized, "consumed materials"):
+		return handledResponse(s.answerStandardQuery(ctx, "Recently Requested Materials", "The schema tracks material requisitions. These are the most recent approved or fulfilled material items.", []resultColumn{{"material_name", "Material"}, {"quantity", "Qty"}, {"unit", "Unit"}, {"project_name", "Project"}, {"status", "Status"}, {"created_at", "Requested At"}}, `
+			SELECT mi.material_name, mi.quantity, mi.unit, p.project_name, mr.status::text AS status, mr.created_at
+			FROM material_items mi
+			JOIN material_requisitions mr ON mr.id = mi.requisition_id
+			JOIN projects p ON p.id = mr.project_id
+			WHERE mr.status IN ('approved', 'fulfilled')
+			ORDER BY mr.created_at DESC
+			LIMIT 50
+		`, "No approved or fulfilled material requisitions found."))
+	case strings.Contains(normalized, "unresolved issues"):
+		return handledResponse(s.answerStandardQuery(ctx, "Unresolved Issues", "These issues are not resolved or closed.", []resultColumn{{"project_name", "Project"}, {"title", "Issue"}, {"department", "Department"}, {"status", "Status"}, {"created_at", "Raised At"}}, `
+			SELECT p.project_name, i.title, COALESCE(d.name, '-') AS department, i.status::text AS status, i.created_at
+			FROM issues i
+			JOIN projects p ON p.id = i.project_id
+			LEFT JOIN departments d ON d.id = i.department_id
+			WHERE i.status NOT IN ('resolved', 'closed')
+			ORDER BY i.created_at ASC
+			LIMIT 50
+		`, "No unresolved issues found."))
+	case strings.Contains(normalized, "issue") && strings.Contains(normalized, "open the longest"):
+		return handledResponse(s.answerStandardQuery(ctx, "Oldest Open Issue", "This is the unresolved issue that has been open the longest.", []resultColumn{{"project_name", "Project"}, {"title", "Issue"}, {"department", "Department"}, {"status", "Status"}, {"created_at", "Raised At"}}, `
+			SELECT p.project_name, i.title, COALESCE(d.name, '-') AS department, i.status::text AS status, i.created_at
+			FROM issues i
+			JOIN projects p ON p.id = i.project_id
+			LEFT JOIN departments d ON d.id = i.department_id
+			WHERE i.status NOT IN ('resolved', 'closed')
+			ORDER BY i.created_at ASC
+			LIMIT 1
+		`, "No open issues found."))
+	case strings.Contains(normalized, "today") && strings.Contains(normalized, "reworks"):
+		return handledResponse(s.answerStandardQuery(ctx, "Today's Reworks", "These rework requests were created today.", []resultColumn{{"project_name", "Project"}, {"reason", "Reason"}, {"requested_by", "Requested By"}, {"status", "Status"}, {"created_at", "Created At"}}, `
+			SELECT p.project_name, rw.reason, COALESCE(CONCAT(e.first_name, ' ', e.last_name), '-') AS requested_by, rw.status::text AS status, rw.created_at
+			FROM rework_requests rw
+			JOIN projects p ON p.id = rw.project_id
+			LEFT JOIN employees e ON e.id = rw.requested_by
+			WHERE rw.created_at::date = CURRENT_DATE
+			ORDER BY rw.created_at DESC
+			LIMIT 50
+		`, "No reworks were created today."))
+	case strings.Contains(normalized, "highest rework count"):
+		return handledResponse(s.answerStandardQuery(ctx, "Projects With Highest Rework Count", "This ranking is based on total rework requests.", []resultColumn{{"project_name", "Project"}, {"client_name", "Client"}, {"rework_count", "Reworks"}}, `
+			SELECT p.project_name, p.client_name, COUNT(rw.id) AS rework_count
+			FROM projects p
+			JOIN rework_requests rw ON rw.project_id = p.id
+			GROUP BY p.id, p.project_name, p.client_name
+			ORDER BY rework_count DESC, p.project_name
+			LIMIT 10
+		`, "No reworks found."))
+	case strings.Contains(normalized, "unread notifications"):
+		return handledResponse(s.answerStandardQuery(ctx, "Unread Notifications", "These notifications are still unread.", []resultColumn{{"recipient", "Recipient"}, {"title", "Title"}, {"type", "Type"}, {"created_at", "Created At"}}, `
+			SELECT COALESCE(CONCAT(e.first_name, ' ', e.last_name), '-') AS recipient,
+			       n.title,
+			       n.type::text AS type,
+			       n.created_at
+			FROM notifications n
+			LEFT JOIN employees e ON e.id = n.recipient_id
+			WHERE n.is_read = FALSE
+			ORDER BY n.created_at DESC
+			LIMIT 50
+		`, "No unread notifications found."))
+	case strings.Contains(normalized, "pending approvals"):
+		return handledResponse(s.answerPendingApprovals(ctx))
+	case strings.Contains(normalized, "highest workload"):
+		return handledResponse(s.answerStandardQuery(ctx, "Department Workload", "Workload is counted from non-completed department tasks.", []resultColumn{{"department", "Department"}, {"open_tasks", "Open Tasks"}}, `
+			SELECT COALESCE(d.name, '-') AS department, COUNT(t.id) AS open_tasks
+			FROM departments d
+			LEFT JOIN department_tasks t ON t.department_id = d.id AND t.status <> 'completed'
+			WHERE d.is_active = TRUE
+			GROUP BY d.name
+			ORDER BY open_tasks DESC, department
+			LIMIT 10
+		`, "No department workload found."))
+	case strings.Contains(normalized, "completed the most tasks today"):
+		return handledResponse(s.answerStandardQuery(ctx, "Departments Completing Most Tasks Today", "This counts tasks completed today by department.", []resultColumn{{"department", "Department"}, {"completed_tasks", "Completed Tasks"}}, `
+			SELECT COALESCE(d.name, '-') AS department, COUNT(t.id) AS completed_tasks
+			FROM department_tasks t
+			LEFT JOIN departments d ON d.id = t.department_id
+			WHERE t.status = 'completed' AND t.completed_at::date = CURRENT_DATE
+			GROUP BY d.name
+			ORDER BY completed_tasks DESC, department
+			LIMIT 10
+		`, "No tasks were completed today."))
+	case strings.Contains(normalized, "what happened today") || strings.Contains(normalized, "production summary") || strings.Contains(normalized, "week activities"):
+		return handledResponse(s.answerActivitySummary(ctx, strings.Contains(normalized, "week")))
+	}
+
+	return "", false, nil
+}
+
+func (s *AIService) answerStandardQuery(ctx context.Context, title, intro string, columns []resultColumn, sql string, emptyMessage string) (string, error) {
+	results, err := s.ExecuteQuery(ctx, sql)
+	if err != nil {
+		return "", err
+	}
+	if len(results) == 0 {
+		return fmt.Sprintf("### %s\n\n%s", title, emptyMessage), nil
+	}
+
+	var response strings.Builder
+	response.WriteString(fmt.Sprintf("### %s\n\n%s\n\n", title, intro))
+	response.WriteString(markdownTable(results, columns, 25))
+	if len(results) > 25 {
+		response.WriteString(fmt.Sprintf("\n\nShowing first 25 of %d records.", len(results)))
+	}
+	return response.String(), nil
+}
+
+func (s *AIService) answerEmployeeCurrentWork(ctx context.Context, name string) (string, error) {
+	employee, matches, err := s.resolveEmployee(ctx, name)
+	if err != nil {
+		return "", err
+	}
+	if employee == nil {
+		return fmt.Sprintf("### Employee Not Found\n\nI could not find an active employee matching **%s**.", name), nil
+	}
+	if len(matches) > 1 && matches[0].Score < 0.45 && nearScore(matches[0].Score, matches[1].Score) {
+		return ambiguousEmployeeResponse(name, matches), nil
+	}
+
+	results, err := s.ExecuteQueryWithArgs(ctx, `
+		SELECT p.project_name,
+		       COALESCE(t.title, 'Department task') AS task,
+		       COALESCE(d.name, '-') AS department,
+		       t.status::text AS status,
+		       t.due_date,
+		       t.started_at,
+		       tea.assigned_at
+		FROM task_employee_assignments tea
+		JOIN department_tasks t ON t.id = tea.task_id
+		JOIN projects p ON p.id = t.project_id
+		LEFT JOIN departments d ON d.id = t.department_id
+		WHERE tea.employee_id = $1
+		  AND t.status IN ('in_progress', 'pending', 'hold', 'issue_hold', 'on_hold')
+		ORDER BY
+		  CASE t.status WHEN 'in_progress' THEN 1 WHEN 'pending' THEN 2 ELSE 3 END,
+		  COALESCE(t.started_at, tea.assigned_at, t.updated_at) DESC
+		LIMIT 10
+	`, employee.ID)
+	if err != nil {
+		return "", err
+	}
+
+	var response strings.Builder
+	response.WriteString(fmt.Sprintf("### %s's Current Work\n\n", employee.Name))
+	if !strings.EqualFold(cleanEntityName(name), employee.Name) {
+		response.WriteString(fmt.Sprintf("Matched **%s** to **%s**.\n\n", name, employee.Name))
+	}
+	if len(results) == 0 {
+		response.WriteString("I did not find any active assigned task for this employee right now.")
+		return response.String(), nil
+	}
+
+	response.WriteString("Here is the active work I found:\n\n")
+	response.WriteString(markdownTable(results, []resultColumn{
+		{"project_name", "Project"},
+		{"task", "Task"},
+		{"department", "Department"},
+		{"status", "Status"},
+		{"due_date", "Due Date"},
+	}, 10))
+	return response.String(), nil
+}
+
+func (s *AIService) answerEmployeeLastWork(ctx context.Context, name string) (string, error) {
+	employee, matches, err := s.resolveEmployee(ctx, name)
+	if err != nil {
+		return "", err
+	}
+	if employee == nil {
+		return fmt.Sprintf("### Employee Not Found\n\nI could not find an active employee matching **%s**.", name), nil
+	}
+	if len(matches) > 1 && matches[0].Score < 0.45 && nearScore(matches[0].Score, matches[1].Score) {
+		return ambiguousEmployeeResponse(name, matches), nil
+	}
+
+	reports, err := s.ExecuteQueryWithArgs(ctx, `
+		SELECT dr.report_date,
+		       p.project_name,
+		       COALESCE(d.name, '-') AS department,
+		       COALESCE(t.title, '-') AS task,
+		       dr.description,
+		       dr.created_at
+		FROM daily_reports dr
+		JOIN projects p ON p.id = dr.project_id
+		LEFT JOIN departments d ON d.id = dr.department_id
+		LEFT JOIN department_tasks t ON t.id = dr.task_id
+		WHERE dr.submitted_by = $1
+		ORDER BY dr.report_date DESC, dr.created_at DESC
+		LIMIT 5
+	`, employee.ID)
+	if err != nil {
+		return "", err
+	}
+
+	tasks, err := s.ExecuteQueryWithArgs(ctx, `
+		SELECT p.project_name,
+		       COALESCE(t.title, 'Department task') AS task,
+		       COALESCE(d.name, '-') AS department,
+		       t.status::text AS status,
+		       t.completed_at,
+		       t.updated_at
+		FROM task_employee_assignments tea
+		JOIN department_tasks t ON t.id = tea.task_id
+		JOIN projects p ON p.id = t.project_id
+		LEFT JOIN departments d ON d.id = t.department_id
+		WHERE tea.employee_id = $1
+		ORDER BY COALESCE(t.completed_at, t.updated_at, tea.assigned_at) DESC
+		LIMIT 5
+	`, employee.ID)
+	if err != nil {
+		return "", err
+	}
+
+	var response strings.Builder
+	response.WriteString(fmt.Sprintf("### %s's Last Work\n\n", employee.Name))
+	if !strings.EqualFold(cleanEntityName(name), employee.Name) {
+		response.WriteString(fmt.Sprintf("Matched **%s** to **%s**.\n\n", name, employee.Name))
+	}
+
+	if len(reports) > 0 {
+		response.WriteString("**Latest daily reports**\n\n")
+		response.WriteString(markdownTable(reports, []resultColumn{
+			{"report_date", "Date"},
+			{"project_name", "Project"},
+			{"department", "Department"},
+			{"task", "Task"},
+			{"description", "Update"},
+		}, 5))
+	}
+
+	if len(tasks) > 0 {
+		if len(reports) > 0 {
+			response.WriteString("\n\n")
+		}
+		response.WriteString("**Latest assigned tasks**\n\n")
+		response.WriteString(markdownTable(tasks, []resultColumn{
+			{"project_name", "Project"},
+			{"task", "Task"},
+			{"department", "Department"},
+			{"status", "Status"},
+			{"completed_at", "Completed At"},
+		}, 5))
+	}
+
+	if len(reports) == 0 && len(tasks) == 0 {
+		response.WriteString("I found the employee, but there are no reports or assigned tasks recorded yet.")
+	}
+
+	return response.String(), nil
+}
+
+func (s *AIService) answerProjectRevisionHistory(ctx context.Context, projectName string) (string, error) {
+	project, matches, err := s.resolveProject(ctx, projectName)
+	if err != nil {
+		return "", err
+	}
+	if project == nil {
+		return fmt.Sprintf("### Project Not Found\n\nI could not find a project matching **%s**.", projectName), nil
+	}
+	if len(matches) > 1 && matches[0].Score < 0.45 && nearScore(matches[0].Score, matches[1].Score) {
+		return ambiguousProjectResponse(projectName, matches), nil
+	}
+
+	return s.answerStandardQuery(ctx, "Revision History", fmt.Sprintf("Revision history for **%s**.", project.Name), []resultColumn{
+		{"revision_number", "Revision"},
+		{"revised_by", "Revised By"},
+		{"reason", "Reason"},
+		{"client_request", "Client Request"},
+		{"routing_changed", "Routing Changed"},
+		{"created_at", "Created At"},
+	}, `
+		SELECT pr.revision_number,
+		       COALESCE(CONCAT(e.first_name, ' ', e.last_name), '-') AS revised_by,
+		       pr.reason,
+		       COALESCE(pr.client_request, '-') AS client_request,
+		       pr.routing_changed,
+		       pr.created_at
+		FROM project_revisions pr
+		LEFT JOIN employees e ON e.id = pr.revised_by
+		WHERE pr.project_id = '`+strings.ReplaceAll(project.ID, "'", "''")+`'
+		ORDER BY pr.revision_number DESC
+	`, "No revisions found for this project.")
+}
+
+func (s *AIService) answerTaskOwner(ctx context.Context, taskRef string) (string, error) {
+	taskRef = strings.TrimSpace(taskRef)
+	if taskRef == "" {
+		return "### Task Owner\n\nPlease mention the task ID or task title so I can find the owner.", nil
+	}
+
+	results, err := s.ExecuteQueryWithArgs(ctx, `
+		SELECT p.project_name,
+		       COALESCE(t.title, 'Department task') AS task,
+		       COALESCE(d.name, '-') AS department,
+		       COALESCE(CONCAT(e.first_name, ' ', e.last_name), '-') AS owner,
+		       t.status::text AS status
+		FROM department_tasks t
+		JOIN projects p ON p.id = t.project_id
+		LEFT JOIN departments d ON d.id = t.department_id
+		LEFT JOIN task_employee_assignments tea ON tea.task_id = t.id
+		LEFT JOIN employees e ON e.id = tea.employee_id
+		WHERE t.id::text ILIKE $1 OR COALESCE(t.title, '') ILIKE $2
+		ORDER BY t.updated_at DESC
+		LIMIT 20
+	`, taskRef+"%", "%"+taskRef+"%")
+	if err != nil {
+		return "", err
+	}
+
+	if len(results) == 0 {
+		return fmt.Sprintf("### Task Owner\n\nI could not find a task matching **%s**.", taskRef), nil
+	}
+
+	var response strings.Builder
+	response.WriteString("### Task Owner\n\n")
+	response.WriteString(markdownTable(results, []resultColumn{
+		{"project_name", "Project"},
+		{"task", "Task"},
+		{"department", "Department"},
+		{"owner", "Owner"},
+		{"status", "Status"},
+	}, 20))
+	return response.String(), nil
+}
+
+func (s *AIService) answerTodayProduction(ctx context.Context) (string, error) {
+	results, err := s.ExecuteQuery(ctx, `
+		SELECT dr.report_date,
+		       p.project_name,
+		       COALESCE(d.name, '-') AS department,
+		       COALESCE(CONCAT(e.first_name, ' ', e.last_name), '-') AS submitted_by,
+		       dr.description
+		FROM daily_reports dr
+		JOIN projects p ON p.id = dr.project_id
+		LEFT JOIN departments d ON d.id = dr.department_id
+		LEFT JOIN employees e ON e.id = dr.submitted_by
+		WHERE dr.report_date = CURRENT_DATE
+		ORDER BY dr.created_at DESC
+		LIMIT 50
+	`)
+	if err != nil {
+		return "", err
+	}
+	if len(results) == 0 {
+		return "### Today's Work Updates\n\nNo daily reports have been submitted today.", nil
+	}
+
+	var response strings.Builder
+	response.WriteString(fmt.Sprintf("### Today's Work Updates\n\n%d report(s) submitted today.\n\n", len(results)))
+	response.WriteString(markdownTable(results, []resultColumn{
+		{"project_name", "Project"},
+		{"department", "Department"},
+		{"submitted_by", "Submitted By"},
+		{"description", "Update"},
+	}, 25))
+	if len(results) > 25 {
+		response.WriteString(fmt.Sprintf("\n\nShowing first 25 of %d reports.", len(results)))
+	}
+	return response.String(), nil
+}
+
+func (s *AIService) answerRouting(ctx context.Context, projectName string, timeline bool) (string, error) {
+	projectName = cleanEntityName(projectName)
+	if projectName == "" {
+		return "### Routing\n\nPlease mention the project name so I can check its routing.", nil
+	}
+
+	project, matches, err := s.resolveProject(ctx, projectName)
+	if err != nil {
+		return "", err
+	}
+	if project == nil {
+		return fmt.Sprintf("### Routing\n\nI could not find a project matching **%s**.", projectName), nil
+	}
+	if len(matches) > 1 && matches[0].Score < 0.45 && nearScore(matches[0].Score, matches[1].Score) {
+		return ambiguousProjectResponse(projectName, matches), nil
+	}
+
+	if timeline {
+		return s.answerStandardQuery(ctx, "Routing Timeline", fmt.Sprintf("Routing timeline for **%s**.", project.Name), []resultColumn{
+			{"version", "Version"},
+			{"name", "Name"},
+			{"status", "Status"},
+			{"routing_type", "Type"},
+			{"published_at", "Published At"},
+			{"created_at", "Created At"},
+		}, `
+			SELECT version,
+			       COALESCE(name, '-') AS name,
+			       status::text AS status,
+			       routing_type,
+			       published_at,
+			       created_at
+			FROM routings
+			WHERE project_id = '`+strings.ReplaceAll(project.ID, "'", "''")+`'
+			ORDER BY version DESC
+		`, "No routing records found for this project.")
+	}
+
+	return s.answerStandardQuery(ctx, "Active Routing", fmt.Sprintf("Active routing for **%s**.", project.Name), []resultColumn{
+		{"version", "Version"},
+		{"name", "Name"},
+		{"status", "Status"},
+		{"routing_type", "Type"},
+		{"published_at", "Published At"},
+	}, `
+		SELECT version,
+		       COALESCE(name, '-') AS name,
+		       status::text AS status,
+		       routing_type,
+		       published_at
+		FROM routings
+		WHERE project_id = '`+strings.ReplaceAll(project.ID, "'", "''")+`'
+		  AND status = 'active'
+		ORDER BY version DESC
+		LIMIT 1
+	`, "No active routing found for this project.")
+}
+
+func (s *AIService) answerPendingApprovals(ctx context.Context) (string, error) {
+	results, err := s.ExecuteQuery(ctx, `
+		SELECT 'Issue' AS item_type, p.project_name, i.title AS item, i.status::text AS status, i.created_at
+		FROM issues i
+		JOIN projects p ON p.id = i.project_id
+		WHERE i.status = 'pending_approval'
+		UNION ALL
+		SELECT 'Rework' AS item_type, p.project_name, rw.reason AS item, rw.status::text AS status, rw.created_at
+		FROM rework_requests rw
+		JOIN projects p ON p.id = rw.project_id
+		WHERE rw.status = 'pending'
+		UNION ALL
+		SELECT 'Material' AS item_type, p.project_name, mr.title AS item, mr.status::text AS status, mr.created_at
+		FROM material_requisitions mr
+		JOIN projects p ON p.id = mr.project_id
+		WHERE mr.status = 'pending'
+		ORDER BY created_at DESC
+		LIMIT 50
+	`)
+	if err != nil {
+		return "", err
+	}
+	if len(results) == 0 {
+		return "### Pending Approvals\n\nNo pending approvals found.", nil
+	}
+
+	var response strings.Builder
+	response.WriteString("### Pending Approvals\n\n")
+	response.WriteString(markdownTable(results, []resultColumn{
+		{"item_type", "Type"},
+		{"project_name", "Project"},
+		{"item", "Item"},
+		{"status", "Status"},
+		{"created_at", "Created At"},
+	}, 50))
+	return response.String(), nil
+}
+
+func (s *AIService) answerActivitySummary(ctx context.Context, week bool) (string, error) {
+	dateFilter := "created_at::date = CURRENT_DATE"
+	reportFilter := "report_date = CURRENT_DATE"
+	taskFilter := "completed_at::date = CURRENT_DATE"
+	title := "Today"
+	if week {
+		dateFilter = "created_at >= CURRENT_DATE - INTERVAL '7 days'"
+		reportFilter = "report_date >= CURRENT_DATE - INTERVAL '7 days'"
+		taskFilter = "completed_at >= CURRENT_DATE - INTERVAL '7 days'"
+		title = "This Week"
+	}
+
+	counts, err := s.ExecuteQuery(ctx, fmt.Sprintf(`
+		SELECT
+		  (SELECT COUNT(*) FROM daily_reports WHERE %s) AS reports,
+		  (SELECT COUNT(*) FROM department_tasks WHERE status = 'completed' AND %s) AS completed_tasks,
+		  (SELECT COUNT(*) FROM issues WHERE %s) AS issues_raised,
+		  (SELECT COUNT(*) FROM rework_requests WHERE %s) AS reworks,
+		  (SELECT COUNT(*) FROM material_requisitions WHERE %s) AS material_requests
+	`, reportFilter, taskFilter, dateFilter, dateFilter, dateFilter))
+	if err != nil {
+		return "", err
+	}
+
+	recent, err := s.ExecuteQuery(ctx, fmt.Sprintf(`
+		SELECT p.project_name,
+		       COALESCE(d.name, '-') AS department,
+		       COALESCE(CONCAT(e.first_name, ' ', e.last_name), '-') AS submitted_by,
+		       dr.description,
+		       dr.report_date
+		FROM daily_reports dr
+		JOIN projects p ON p.id = dr.project_id
+		LEFT JOIN departments d ON d.id = dr.department_id
+		LEFT JOIN employees e ON e.id = dr.submitted_by
+		WHERE %s
+		ORDER BY dr.report_date DESC, dr.created_at DESC
+		LIMIT 10
+	`, reportFilter))
+	if err != nil {
+		return "", err
+	}
+
+	var response strings.Builder
+	response.WriteString(fmt.Sprintf("### %s's Production Summary\n\n", title))
+	if len(counts) > 0 {
+		response.WriteString(markdownTable(counts, []resultColumn{
+			{"reports", "Reports"},
+			{"completed_tasks", "Completed Tasks"},
+			{"issues_raised", "Issues Raised"},
+			{"reworks", "Reworks"},
+			{"material_requests", "Material Requests"},
+		}, 1))
+	}
+	if len(recent) > 0 {
+		response.WriteString("\n\n**Latest updates**\n\n")
+		response.WriteString(markdownTable(recent, []resultColumn{
+			{"report_date", "Date"},
+			{"project_name", "Project"},
+			{"department", "Department"},
+			{"submitted_by", "Submitted By"},
+			{"description", "Update"},
+		}, 10))
+	}
+	return response.String(), nil
+}
+
+func (s *AIService) resolveEmployee(ctx context.Context, name string) (*entityMatch, []entityMatch, error) {
+	name = cleanEntityName(name)
+	if name == "" {
+		return nil, nil, nil
+	}
+
+	results, err := s.ExecuteQueryWithArgs(ctx, `
+		SELECT id::text AS id,
+		       CONCAT(first_name, ' ', last_name) AS name,
+		       email AS descriptor,
+		       GREATEST(
+		         similarity(lower(CONCAT(first_name, ' ', last_name)), lower($1)),
+		         similarity(lower(first_name), lower($1)),
+		         similarity(lower(last_name), lower($1))
+		       ) AS score
+		FROM employees
+		WHERE is_active = TRUE
+		  AND (
+		    lower(CONCAT(first_name, ' ', last_name)) ILIKE lower($2)
+		    OR lower(first_name) ILIKE lower($2)
+		    OR lower(last_name) ILIKE lower($2)
+		    OR similarity(lower(CONCAT(first_name, ' ', last_name)), lower($1)) > 0.1
+		    OR similarity(lower(first_name), lower($1)) > 0.1
+		  )
+		ORDER BY score DESC, name
+		LIMIT 5
+	`, name, "%"+name+"%")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	matches := rowsToMatches(results)
+	if len(matches) == 0 {
+		return nil, nil, nil
+	}
+	return &matches[0], matches, nil
+}
+
+func (s *AIService) resolveProject(ctx context.Context, name string) (*entityMatch, []entityMatch, error) {
+	name = cleanEntityName(name)
+	if name == "" {
+		return nil, nil, nil
+	}
+
+	results, err := s.ExecuteQueryWithArgs(ctx, `
+		SELECT id::text AS id,
+		       project_name AS name,
+		       client_name AS descriptor,
+		       GREATEST(
+		         similarity(lower(project_name), lower($1)),
+		         similarity(lower(po_number), lower($1)),
+		         similarity(lower(client_name), lower($1))
+		       ) AS score
+		FROM projects
+		WHERE lower(project_name) ILIKE lower($2)
+		   OR lower(po_number) ILIKE lower($2)
+		   OR lower(client_name) ILIKE lower($2)
+		   OR similarity(lower(project_name), lower($1)) > 0.1
+		ORDER BY score DESC, updated_at DESC
+		LIMIT 5
+	`, name, "%"+name+"%")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	matches := rowsToMatches(results)
+	if len(matches) == 0 {
+		return nil, nil, nil
+	}
+	return &matches[0], matches, nil
+}
+
+func rowsToMatches(rows []map[string]interface{}) []entityMatch {
+	matches := make([]entityMatch, 0, len(rows))
+	for _, row := range rows {
+		match := entityMatch{
+			ID:         fmt.Sprintf("%v", row["id"]),
+			Name:       fmt.Sprintf("%v", row["name"]),
+			Descriptor: fmt.Sprintf("%v", row["descriptor"]),
+			Score:      numberValue(row["score"]),
+		}
+		matches = append(matches, match)
+	}
+	return matches
+}
+
+func nearScore(a, b float64) bool {
+	diff := a - b
+	if diff < 0 {
+		diff = -diff
+	}
+	return diff < 0.08
+}
+
+func ambiguousEmployeeResponse(input string, matches []entityMatch) string {
+	return ambiguousEntityResponse("Employee", input, matches)
+}
+
+func ambiguousProjectResponse(input string, matches []entityMatch) string {
+	return ambiguousEntityResponse("Project", input, matches)
+}
+
+func ambiguousEntityResponse(kind, input string, matches []entityMatch) string {
+	var response strings.Builder
+	response.WriteString(fmt.Sprintf("### %s Match Needed\n\nI found multiple possible matches for **%s**. Please specify one:\n\n", kind, input))
+	limit := len(matches)
+	if limit > 3 {
+		limit = 3
+	}
+	for i := 0; i < limit; i++ {
+		descriptor := matches[i].Descriptor
+		if descriptor != "" && descriptor != "<nil>" {
+			response.WriteString(fmt.Sprintf("- **%s** (%s)\n", matches[i].Name, descriptor))
+		} else {
+			response.WriteString(fmt.Sprintf("- **%s**\n", matches[i].Name))
+		}
+	}
+	return response.String()
+}
+
+func markdownTable(rows []map[string]interface{}, columns []resultColumn, limit int) string {
+	if len(rows) == 0 {
+		return ""
+	}
+	if limit <= 0 || limit > len(rows) {
+		limit = len(rows)
+	}
+
+	var response strings.Builder
+	for _, col := range columns {
+		response.WriteString("| ")
+		response.WriteString(col.Label)
+		response.WriteString(" ")
+	}
+	response.WriteString("|\n")
+	for range columns {
+		response.WriteString("|---")
+	}
+	response.WriteString("|\n")
+
+	for i := 0; i < limit; i++ {
+		for _, col := range columns {
+			response.WriteString("| ")
+			response.WriteString(formatMarkdownValue(rows[i][col.Key]))
+			response.WriteString(" ")
+		}
+		response.WriteString("|\n")
+	}
+
+	return strings.TrimRight(response.String(), "\n")
+}
+
+func formatMarkdownValue(value interface{}) string {
+	if value == nil {
+		return "-"
+	}
+
+	var output string
+	switch v := value.(type) {
+	case time.Time:
+		if v.Hour() == 0 && v.Minute() == 0 && v.Second() == 0 {
+			output = v.Format("2006-01-02")
+		} else {
+			output = v.Format("2006-01-02 15:04")
+		}
+	default:
+		output = fmt.Sprintf("%v", value)
+	}
+
+	output = strings.TrimSpace(output)
+	if output == "" || output == "<nil>" {
+		return "-"
+	}
+	output = strings.ReplaceAll(output, "_", " ")
+	output = strings.ReplaceAll(output, "\n", " ")
+	output = strings.ReplaceAll(output, "|", "\\|")
+	if len(output) > 180 {
+		output = output[:177] + "..."
+	}
+	return output
+}
+
+func numberValue(value interface{}) float64 {
+	switch v := value.(type) {
+	case float64:
+		return v
+	case float32:
+		return float64(v)
+	case int64:
+		return float64(v)
+	case int:
+		return float64(v)
+	case []byte:
+		var parsed float64
+		fmt.Sscanf(string(v), "%f", &parsed)
+		return parsed
+	case string:
+		var parsed float64
+		fmt.Sscanf(v, "%f", &parsed)
+		return parsed
+	default:
+		return 0
+	}
+}
+
 // ProcessChat handles the complete chat flow
 func (s *AIService) ProcessChat(ctx context.Context, message string) (string, error) {
+	message = strings.TrimSpace(message)
 	log.Printf("AI Service: Processing chat message: %s", message)
+
+	switch classifyChatIntent(message) {
+	case intentGreeting:
+		return "Hi. I’m ready to help with employees, projects, tasks, reports, issues, routing, materials, notifications, and production summaries.", nil
+	case intentHelp:
+		return "Ask me things like **What is Amit working on right now?**, **Which projects are delayed?**, **Who has not submitted today's report?**, or **Give me a production summary**.", nil
+	case intentSmallTalk:
+		return "I’m here. Ask me about your production data and I’ll check the system step by step.", nil
+	}
+
+	if response, handled, err := s.processBusinessQuery(ctx, message); handled {
+		return response, err
+	}
 
 	// Get database schema
 	schema, err := s.GetDatabaseSchema(ctx)
@@ -765,6 +1836,11 @@ type QueryStep struct {
 
 // breakDownQuery breaks a complex query into multiple steps
 func (s *AIService) breakDownQuery(ctx context.Context, message string, schema *SchemaInfo) ([]QueryStep, error) {
+	schemaJSON, err := json.MarshalIndent(schema, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal schema: %w", err)
+	}
+
 	prompt := fmt.Sprintf(`You are a query analyzer for a Project Management System. Break down the following user question into 2-3 sequential steps to retrieve the information.
 
 DATABASE SCHEMA:
@@ -787,7 +1863,7 @@ Query 2: [natural language query for step 2]
 Step 3: [description of what to find]
 Query 3: [natural language query for step 3]
 
-If the question can be answered in 1 step, just provide Step 1 and Query 1.`, schema, message)
+If the question can be answered in 1 step, just provide Step 1 and Query 1.`, string(schemaJSON), message)
 
 	response, err := s.callGroqAPI(ctx, prompt)
 	if err != nil {

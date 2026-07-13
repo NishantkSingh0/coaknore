@@ -16,6 +16,7 @@ export default function ReportsPage() {
   const [projectSearch, setProjectSearch] = useState('')
   const [projectResults, setProjectResults] = useState<Project[]>([])
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const { execute, loading: actLoading } = useAsyncAction()
 
   const { data, loading, refetch } = useAsync(
@@ -39,15 +40,19 @@ export default function ReportsPage() {
     if (!selectedProject || !form.description) {
       toast.error('Project and description are required'); return
     }
-    const ok = await execute(() =>
+    const report = await execute(() =>
       reportApi.create({ ...form, project_id: selectedProject.id })
     )
-    if (ok !== null) {
+    if (report !== null && selectedFile) {
+      await execute(() => reportApi.uploadFile(report.id, selectedFile))
+    }
+    if (report !== null) {
       toast.success('Report submitted')
       setSubmitOpen(false)
       setForm({ project_id: '', description: '', report_date: '' })
       setSelectedProject(null)
       setProjectSearch('')
+      setSelectedFile(null)
       refetch()
     }
   }
@@ -56,6 +61,7 @@ export default function ReportsPage() {
     setForm({ project_id: '', description: '', report_date: new Date().toISOString().split('T')[0] })
     setSelectedProject(null)
     setProjectSearch('')
+    setSelectedFile(null)
     setSubmitOpen(true)
   }
 
@@ -131,7 +137,7 @@ export default function ReportsPage() {
           <div>
             <label className="label">Project <span className="text-red-500">*</span></label>
             {selectedProject ? (
-              <div className="flex items-center gap-2 px-3 py-2 bg-brand-50 border border-brand-200 rounded-lg">
+              <div className="flex items-center gap-2 px-3 py-2 bg-brand-50 dark:bg-gray-700 border border-brand-200 rounded-lg">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{selectedProject.project_name}</p>
                   <p className="text-xs text-gray-500">PO: {selectedProject.po_number}</p>
@@ -148,13 +154,13 @@ export default function ReportsPage() {
                   className="input"
                 />
                 {projectResults.length > 0 && (
-                  <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border dark:bg-gray-600 border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                     {projectResults.map((p) => (
                       <button key={p.id}
                         onClick={() => { setSelectedProject(p); setProjectSearch(''); setProjectResults([]) }}
-                        className="w-full px-3 py-2 text-left hover:bg-gray-50 flex flex-col">
+                        className="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-600 flex flex-col">
                         <span className="text-sm font-medium">{p.project_name}</span>
-                        <span className="text-xs text-gray-500">PO: {p.po_number} · {p.client_name}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">PO: {p.po_number} · {p.client_name}</span>
                       </button>
                     ))}
                   </div>
@@ -167,6 +173,7 @@ export default function ReportsPage() {
             <label className="label">Report Date</label>
             <input type="date" value={form.report_date}
               onChange={(e) => setForm((f) => ({ ...f, report_date: e.target.value }))}
+              readOnly
               className="input" />
           </div>
 
@@ -178,6 +185,18 @@ export default function ReportsPage() {
               rows={5} className="input resize-none"
               placeholder="Describe what work was completed today, any progress made, materials used, etc."
             />
+          </div>
+
+          <div>
+            <label className="label">Attachment (Optional)</label>
+            <input
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              className="input"
+            />
+            {selectedFile && (
+              <p className="text-xs text-gray-500 mt-1">Selected: {selectedFile.name}</p>
+            )}
           </div>
         </div>
       </Modal>

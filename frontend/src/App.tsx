@@ -16,9 +16,7 @@ import EmployeesPage from './pages/EmployeesPage'
 import DepartmentsPage from './pages/DepartmentsPage'
 import IssuesPage from './pages/IssuesPage'
 import IssueDetailPage from './pages/IssueDetailPage'
-import ReworksPage from './pages/ReworksPage'
 import ReportsPage from './pages/ReportsPage'
-import MaterialsPage from './pages/MaterialsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import MyTasksPage from './pages/MyTasksPage'
 import TaskDetailPage from './pages/TaskDetailPage'
@@ -77,9 +75,9 @@ export default function App() {
         <Route path="/issues" element={<IssuesPage />} />
         <Route path="/issues/:id" element={<IssueDetailPage />} />
 
-        <Route path="/reworks" element={<ReworksPage />} />
+        <Route path="/reworks" element={<Navigate to="/issues" replace />} />
         <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/materials" element={<MaterialsPage />} />
+        <Route path="/materials" element={<Navigate to="/issues" replace />} />
         <Route path="/notifications" element={<NotificationsPage />} />
 
         <Route path="/employees" element={<EmployeesPage />} />

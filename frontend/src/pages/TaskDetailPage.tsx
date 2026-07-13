@@ -4,7 +4,7 @@ import {
   PlusIcon, PaperClipIcon, ExclamationCircleIcon,
   CheckCircleIcon, CalendarDaysIcon, LockClosedIcon, PhotoIcon,
 } from '@heroicons/react/24/outline'
-import { taskApi, issueApi, projectApi } from '../services/api'
+import { taskApi, issueApi, projectApi, orgApi } from '../services/api'
 import { useAsync, useAsyncAction } from '../hooks/useAsync'
 import { useAuth } from '../context/AuthContext'
 import { fmtDate, priorityColor, priorityLabel, issueTypeLabel } from '../utils/helpers'
@@ -22,6 +22,7 @@ export default function TaskDetailPage() {
   const { user, isLayerTwo, isLayerThree, isAdmin } = useAuth()
   const canAct = isLayerThree || isLayerTwo || isAdmin
   const { data: task, loading, refetch } = useAsync(() => taskApi.getTask(id!), [id])
+  const { data: departments } = useAsync(() => orgApi.listDepartments('layer3'), [])
   const { execute, loading: actionLoading } = useAsyncAction()
   const { openPreview } = usePreviewModal()
 
@@ -42,7 +43,8 @@ export default function TaskDetailPage() {
   // issue form
   const [issueForm, setIssueForm] = useState({
     type: 'custom' as IssueType, title: '', description: '',
-    material_description: '', required_quantity: '', material_unit: '', material_remarks: '',
+    assigned_to_dept_id: '',
+    material_name: '', material_description: '', required_quantity: '', material_unit: '', material_remarks: '',
   })
   const [issueImage, setIssueImage] = useState<File | null>(null)
   const issueFileRef = useRef<HTMLInputElement>(null)
@@ -109,11 +111,23 @@ export default function TaskDetailPage() {
 
   const handleRaiseIssue = async () => {
     if (!issueForm.title || !issueForm.description) { toast.error('Title and description required'); return }
+    if (issueForm.type === 'rework_required' && !issueForm.assigned_to_dept_id) {
+      toast.error('Please select the department that needs rework')
+      return
+    }
+    if (issueForm.type === 'material_missing' && (!issueForm.material_name || !issueForm.required_quantity || !issueForm.material_unit)) {
+      toast.error('Material name, quantity, and unit are required')
+      return
+    }
     const payload: Parameters<typeof issueApi.raise>[1] = {
       task_id: id, type: issueForm.type, title: issueForm.title, description: issueForm.description,
     }
+    if (issueForm.type === 'rework_required') {
+      payload.assigned_to_dept_id = issueForm.assigned_to_dept_id
+    }
     if (issueForm.type === 'material_missing') {
       Object.assign(payload, {
+        material_name: issueForm.material_name,
         material_description: issueForm.material_description,
         required_quantity: parseFloat(issueForm.required_quantity) || 0,
         material_unit: issueForm.material_unit,
@@ -127,7 +141,7 @@ export default function TaskDetailPage() {
         try { await issueApi.uploadFile(issued.id, issueImage) } catch { /* non-fatal */ }
       }
       toast.success('Issue raised'); setRaiseIssueOpen(false)
-      setIssueForm({ type: 'custom', title: '', description: '', material_description: '', required_quantity: '', material_unit: '', material_remarks: '' })
+      setIssueForm({ type: 'custom', title: '', description: '', assigned_to_dept_id: '', material_name: '', material_description: '', required_quantity: '', material_unit: '', material_remarks: '' })
       setIssueImage(null); refetch()
     }
   }
@@ -195,6 +209,24 @@ export default function TaskDetailPage() {
             {Object.entries(issueTypeLabel).map(([val, lbl]) => <option key={val} value={val}>{lbl}</option>)}
           </select>
         </div>
+        {issueForm.type === 'rework_required' && (
+          <div className="space-y-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Rework Details</p>
+            <div>
+              <label className="label dark:text-gray-300">Department to Rework <span className="text-red-500 dark:text-red-400">*</span></label>
+              <select
+                value={issueForm.assigned_to_dept_id}
+                onChange={(e) => setIssueForm((f) => ({ ...f, assigned_to_dept_id: e.target.value }))}
+                className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+              >
+                <option value="">Select department</option>
+                {departments?.map((dept) => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
         <div>
           <label className="label dark:text-gray-300">Title <span className="text-red-500 dark:text-red-400">*</span></label>
           <input value={issueForm.title}
@@ -214,20 +246,26 @@ export default function TaskDetailPage() {
               <input value={task.department_name || ''} disabled className="input bg-gray-100 dark:bg-gray-700 dark:border-gray-700 dark:text-gray-300 cursor-not-allowed" />
             </div>
             <div>
-              <label className="label dark:text-gray-300">Material Description <span className="text-red-500 dark:text-red-400">*</span></label>
+              <label className="label dark:text-gray-300">Item Name <span className="text-red-500 dark:text-red-400">*</span></label>
+              <input value={issueForm.material_name}
+                onChange={(e) => setIssueForm((f) => ({ ...f, material_name: e.target.value }))}
+                className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" placeholder="Material or item name" />
+            </div>
+            <div>
+              <label className="label dark:text-gray-300">Material Description</label>
               <textarea value={issueForm.material_description}
                 onChange={(e) => setIssueForm((f) => ({ ...f, material_description: e.target.value }))}
                 rows={2} className="input resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" placeholder="Describe the required material..." />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label dark:text-gray-300">Required Quantity</label>
+                <label className="label dark:text-gray-300">Required Quantity <span className="text-red-500 dark:text-red-400">*</span></label>
                 <input type="number" step="0.01" min="0" value={issueForm.required_quantity}
                   onChange={(e) => setIssueForm((f) => ({ ...f, required_quantity: e.target.value }))}
                   className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" placeholder="e.g. 10" />
               </div>
               <div>
-                <label className="label dark:text-gray-300">Unit</label>
+                <label className="label dark:text-gray-300">Unit <span className="text-red-500 dark:text-red-400">*</span></label>
                 <input value={issueForm.material_unit}
                   onChange={(e) => setIssueForm((f) => ({ ...f, material_unit: e.target.value }))}
                   className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" placeholder="pcs, kg, m..." />

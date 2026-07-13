@@ -84,6 +84,48 @@ export default function IssueDetailPage() {
         </div>
       </div>
 
+      {(issue.type === 'material_missing' || issue.type === 'rework_required') && (
+        <div className="card">
+          <div className="card-header"><h3 className="font-semibold">Issue Details</h3></div>
+          <div className="card-body">
+            {issue.type === 'rework_required' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Department Raising Issue</p>
+                  <p className="text-gray-900 dark:text-gray-100">{issue.department_name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Department to Rework</p>
+                  <p className="text-gray-900 dark:text-gray-100">{issue.assigned_to_dept || '-'}</p>
+                </div>
+              </div>
+            )}
+            {issue.type === 'material_missing' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Item Name</p>
+                  <p className="text-gray-900 dark:text-gray-100">{issue.material_name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Quantity</p>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {issue.required_quantity !== undefined ? `${issue.required_quantity} ${issue.material_unit || ''}` : '-'}
+                  </p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Material Description</p>
+                  <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{issue.material_description || '-'}</p>
+                </div>
+                <div className="sm:col-span-2">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Remarks</p>
+                  <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{issue.material_remarks || '-'}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Review info */}
       {issue.reviewed_by && (
         <div className="card border-l-4 border-l-blue-500">

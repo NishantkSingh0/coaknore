@@ -210,6 +210,7 @@ export interface Issue {
   resolved_at?: string
   resolution_notes?: string
   // Material Missing extras
+  material_name?: string
   material_description?: string
   required_quantity?: number
   material_unit?: string

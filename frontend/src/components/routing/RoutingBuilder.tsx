@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import {
   PlusIcon, TrashIcon, CheckIcon, PlayIcon,
   PencilIcon, ClockIcon, ExclamationTriangleIcon,
@@ -15,16 +15,14 @@ import { fmtDateTime } from '../../utils/helpers'
 interface StepDraft {
   id: string
   stepOrder: number
-  name: string
-  dependencyPolicy: 'require_all' | 'require_any'
+  requireAll: boolean
   departmentIds: string[]
 }
 
 const newStep = (order: number): StepDraft => ({
   id: crypto.randomUUID(),
   stepOrder: order,
-  name: '',
-  dependencyPolicy: 'require_all',
+  requireAll: true,
   departmentIds: [],
 })
 
@@ -51,7 +49,6 @@ export default function RoutingBuilder({
 
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState<string | null>(null)
-  const [deptSearch, setDeptSearch] = useState<Record<string, string>>({})
 
   // Timeline
   const [timelineRoutingId, setTimelineRoutingId] = useState<string | null>(null)
@@ -63,6 +60,9 @@ export default function RoutingBuilder({
   const [pendingEditReason, setPendingEditReason] = useState('')
   const [pendingEditRoutingId, setPendingEditRoutingId] = useState<string | null>(null)
 
+  // Create/save confirmation modal
+  const [saveWarningOpen, setSaveWarningOpen] = useState(false)
+
   const addStep = () => setSteps((s) => [...s, newStep(s.length + 1)])
   const removeStep = (id: string) =>
     setSteps((s) => s.filter((x) => x.id !== id).map((x, i) => ({ ...x, stepOrder: i + 1 })))
@@ -72,24 +72,33 @@ export default function RoutingBuilder({
       s.map((step) => {
         if (step.id !== stepId) return step
         const has = step.departmentIds.includes(deptId)
+        const departmentIds = has ? step.departmentIds.filter((d) => d !== deptId) : [...step.departmentIds, deptId]
+        // Dependency policy only matters once 2+ departments are in the same step;
+        // default back to "require all" whenever it drops below that.
         return {
           ...step,
-          departmentIds: has ? step.departmentIds.filter((d) => d !== deptId) : [...step.departmentIds, deptId],
+          departmentIds,
+          requireAll: departmentIds.length >= 2 ? step.requireAll : true,
         }
       })
     )
   }
 
-  const updateStep = (id: string, field: keyof StepDraft, value: unknown) => {
-    setSteps((s) => s.map((step) => (step.id === id ? { ...step, [field]: value } : step)))
+  const toggleRequireAll = (id: string) => {
+    setSteps((s) => s.map((step) => (step.id === id ? { ...step, requireAll: !step.requireAll } : step)))
   }
 
   const getDeptName = (id: string) => allDepts?.find((d) => d.id === id)?.name || id
 
-  const filteredDepts = useCallback((stepId: string) => {
-    const q = (deptSearch[stepId] || '').toLowerCase()
-    return (allDepts || []).filter((d) => d.name.toLowerCase().includes(q) && d.is_active)
-  }, [allDepts, deptSearch])
+  // Builds a cumulative "Assembly → Carpentry → Design → Inventory + Polishing" style label
+  // for all steps up to and including the given index.
+  const getCumulativeLabel = (uptoIdx: number) => {
+    return steps
+      .slice(0, uptoIdx + 1)
+      .map((s) => s.departmentIds.map((id) => getDeptName(id)).join(' + '))
+      .filter(Boolean)
+      .join(' → ')
+  }
 
   const loadStepsFromRouting = (routing: Routing) => {
     setRoutingName(routing.name || '')
@@ -97,8 +106,7 @@ export default function RoutingBuilder({
       (routing.steps || []).map((s) => ({
         id: crypto.randomUUID(),
         stepOrder: s.step_order,
-        name: s.name || '',
-        dependencyPolicy: s.dependency_policy,
+        requireAll: s.dependency_policy === 'require_all',
         departmentIds: s.departments?.map((d) => d.id) || [],
       }))
     )
@@ -118,12 +126,11 @@ export default function RoutingBuilder({
         name: routingName,
         steps: steps.map((s) => ({
           step_order: s.stepOrder,
-          name: s.name,
-          dependency_policy: s.dependencyPolicy,
+          dependency_policy: s.requireAll ? 'require_all' : 'require_any',
           department_ids: s.departmentIds,
         })),
       })
-      toast.success('Routing saved as draft')
+      toast.success('Routing saved as draft, Ensure to Publish it over all Departments!')
       setMode('idle')
       setSteps([newStep(1)])
       setRoutingName('')
@@ -175,8 +182,7 @@ export default function RoutingBuilder({
         edit_reason: pendingEditReason,
         steps: steps.map((s) => ({
           step_order: s.stepOrder,
-          name: s.name,
-          dependency_policy: s.dependencyPolicy,
+          dependency_policy: s.requireAll ? 'require_all' : 'require_any',
           department_ids: s.departmentIds,
         })),
       })
@@ -232,106 +238,128 @@ export default function RoutingBuilder({
     setRoutingName('')
   }
 
+  // Trigger warning modal before actually saving a brand new routing
+  const requestSaveNew = () => {
+    for (const step of steps) {
+      if (step.departmentIds.length === 0) {
+        toast.error(`Step ${step.stepOrder} must have at least one department`)
+        return
+      }
+    }
+    setSaveWarningOpen(true)
+  }
+
+  const confirmSaveNew = async () => {
+    setSaveWarningOpen(false)
+    await saveNewRouting()
+  }
+
   const isBuilding = mode === 'create' || mode === 'edit'
 
-  // ── Step builder UI (shared between create and edit) ─────────────────────
+  // ── Step builder UI (shared between create and edit) — compact, click-and-continue ──
   const StepBuilder = (
-    <div className="card-body space-y-4">
-      <div>
-        <label className="label">Routing Name (optional)</label>
-        <input
-          value={routingName}
-          onChange={(e) => setRoutingName(e.target.value)}
-          className="input max-w-sm"
-          placeholder="e.g. Standard Manufacturing Flow"
-        />
-      </div>
+    <div className="card-body space-y-3">
+      <input
+        value={routingName}
+        onChange={(e) => setRoutingName(e.target.value)}
+        className="input max-w-sm text-sm dark:bg-gray-900 dark:border-gray-600 dark:text-white dark:placeholder-gray-500"
+        placeholder="Routing name (optional)"
+      />
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {steps.map((step, idx) => (
-          <div key={step.id} className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center flex-shrink-0">
+          <div key={step.id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <div className="bg-gray-50 dark:bg-gray-800 px-3 py-2.5 flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full bg-black dark:bg-white dark:text-black text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
                 {step.stepOrder}
               </div>
-              <input
-                value={step.name}
-                onChange={(e) => updateStep(step.id, 'name', e.target.value)}
-                className="input flex-1 py-1.5 text-sm"
-                placeholder={`Step ${step.stepOrder} name (optional)`}
-              />
-              <select
-                value={step.dependencyPolicy}
-                onChange={(e) => updateStep(step.id, 'dependencyPolicy', e.target.value)}
-                className="input py-1.5 text-xs w-36"
-              >
-                <option value="require_all">Require ALL</option>
-                <option value="require_any">Require ANY</option>
-              </select>
-              {steps.length > 1 && (
-                <button onClick={() => removeStep(step.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-medium text-gray-600">Departments (parallel in this step)</label>
-                {step.departmentIds.length > 0 && (
-                  <span className="text-xs text-brand-600">{step.departmentIds.length} selected</span>
+
+              {/* Require All / Any toggle — only relevant (and shown) once 2+ departments are picked */}
+              <div
+                className={clsx(
+                  'flex items-center gap-1.5 flex-shrink-0 overflow-hidden transition-all duration-300 ease-out',
+                  step.departmentIds.length >= 2
+                    ? 'max-w-[8rem] opacity-100 scale-100'
+                    : 'max-w-0 opacity-0 scale-95 pointer-events-none'
                 )}
+              >
+                <span className={clsx('text-xs font-semibold whitespace-nowrap', step.requireAll ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500')}>
+                  ALL
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleRequireAll(step.id)}
+                  className={clsx(
+                    'relative inline-flex items-center h-5 w-9 rounded-full transition-colors flex-shrink-0',
+                    step.requireAll ? 'bg-black dark:bg-gray-500' : 'bg-gray-300 dark:bg-gray-600'
+                  )}
+                  title={step.requireAll ? 'Require ALL departments — click to switch to ANY' : 'Require ANY department — click to switch to ALL'}
+                  aria-pressed={!step.requireAll}
+                >
+                  <span
+                    className={clsx(
+                      'inline-block h-4 w-4 rounded-full bg-white dark:bg-gray-100 shadow transform transition-transform',
+                      step.requireAll ? 'translate-x-0.5' : 'translate-x-[1.125rem]'
+                    )}
+                  />
+                </button>
+                <span className={clsx('text-xs font-semibold whitespace-nowrap', !step.requireAll ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500')}>
+                  ANY
+                </span>
               </div>
-              <input
-                value={deptSearch[step.id] || ''}
-                onChange={(e) => setDeptSearch((s) => ({ ...s, [step.id]: e.target.value }))}
-                className="input text-xs py-1.5 mb-2"
-                placeholder="Filter departments..."
-              />
-              <div className="flex flex-wrap gap-2">
-                {filteredDepts(step.id).map((dept) => {
+
+              <div className="flex-1 flex flex-wrap gap-1.5">
+                {(allDepts || []).filter((d) => d.is_active).map((dept) => {
                   const selected = step.departmentIds.includes(dept.id)
                   return (
                     <button key={dept.id} onClick={() => toggleDept(step.id, dept.id)}
                       className={clsx(
-                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border',
-                          selected ? 'bg-black text-white border-black' : 'bg-white dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 text-gray-700 border-gray-200 hover:border-black'
+                          'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors border',
+                          selected
+                            ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
+                            : 'bg-white dark:bg-gray-900 dark:text-gray-200 dark:border-gray-600 text-gray-700 border-gray-200 hover:border-black dark:hover:border-gray-300'
                         )}>
-                      {selected && <CheckIcon className="w-3 h-3" />}
+                      {selected && <CheckIcon className="w-3.5 h-3.5" />}
                       {dept.name}
                     </button>
                   )
                 })}
-                {filteredDepts(step.id).length === 0 && (
-                  <p className="text-xs text-gray-400">No departments found</p>
-                )}
               </div>
-              {step.departmentIds.length > 0 && (
-                <div className="mt-2 flex items-center gap-1 flex-wrap">
-                  <span className="text-xs text-gray-500">→</span>
-                  {step.departmentIds.map((did) => (
-                    <span key={did} className="badge-blue text-xs">{getDeptName(did)}</span>
-                  ))}
-                </div>
+
+              {steps.length > 1 && (
+                <button onClick={() => removeStep(step.id)}
+                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-md flex-shrink-0">
+                  <TrashIcon className="w-4 h-4" />
+                </button>
               )}
             </div>
-            {idx < steps.length - 1 && <div className="text-center pb-2 text-gray-400 text-sm">↓</div>}
+
+            {/* Cumulative routing summary so far */}
+            {getCumulativeLabel(idx) && (
+              <div className="px-3 py-2 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                  {getCumulativeLabel(idx)}
+                </p>
+              </div>
+            )}
+
+            {/* {idx < steps.length - 1 && <div className="text-center py-1 text-gray-400 dark:text-gray-500 text-sm">↓</div>} */}
           </div>
         ))}
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <button onClick={addStep} className="btn-secondary">
+      <div className="flex items-center gap-2 flex-wrap">
+        <button onClick={addStep} className="btn-secondary btn-sm">
           <PlusIcon className="w-4 h-4" /> Add Step
         </button>
         <button
-          onClick={mode === 'edit' ? saveEditedRouting : saveNewRouting}
+          onClick={mode === 'edit' ? saveEditedRouting : requestSaveNew}
           disabled={saving}
-          className="btn-primary"
+          className="btn-primary btn-sm"
         >
-          {saving ? 'Saving...' : mode === 'edit' ? 'Update Routing' : 'Save Draft'}
+          {saving ? 'Saving...' : mode === 'edit' ? 'Update' : 'Save'}
         </button>
-        <button onClick={cancel} className="btn-ghost">Cancel</button>
+        <button onClick={cancel} className="btn-ghost btn-sm">Cancel</button>
       </div>
     </div>
   )
@@ -435,6 +463,31 @@ export default function RoutingBuilder({
               className="input resize-none"
               placeholder="Explain why this routing change is necessary..."
             />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Save (create) confirmation modal */}
+      <Modal
+        open={saveWarningOpen}
+        onClose={() => setSaveWarningOpen(false)}
+        title="Sure about this Routing?"
+        footer={
+          <>
+            <button onClick={() => setSaveWarningOpen(false)} className="btn-secondary">Cancel</button>
+            <button onClick={confirmSaveNew} disabled={saving} className="btn-danger">
+              {saving ? 'Saving...' : 'Yes, Save Routing'}
+            </button>
+          </>
+        }
+      >
+        <div className="flex gap-3 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+          <ExclamationTriangleIcon className="w-6 h-6 text-orange-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-orange-800">Changing this later can cause problems</p>
+            <p className="text-sm text-orange-700 mt-1">
+              Once tasks are generated from this routing, editing it can disrupt work already in progress. Make sure the steps and departments are correct before saving.
+            </p>
           </div>
         </div>
       </Modal>
@@ -557,7 +610,6 @@ function ActiveRoutingFlow({ routing }: { routing: Routing }) {
                   {step.step_order}
                 </div>
                 <div className="bg-white dark:bg-gray-800/10 border border-brand-200 dark:border-brand-600 rounded-xl p-3 min-w-32 text-center shadow-sm">
-                  {step.name && <p className="text-xs font-medium text-gray-700 mb-2">{step.name}</p>}
                   <div className="flex flex-wrap gap-1 justify-center">
                     {step.departments?.map((d) => (
                       <span key={d.id} className="badge-blue text-xs whitespace-nowrap">{d.name}</span>

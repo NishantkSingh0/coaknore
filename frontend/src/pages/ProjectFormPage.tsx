@@ -235,7 +235,7 @@ export default function ProjectFormPage() {
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 transition-colors"
+              className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center cursor-pointer hover:border-brand-400 hover:bg-brand-50 dark:hover:bg-gray-800 transition-colors"
             >
               <PhotoIcon className="w-10 h-10 text-gray-300 mx-auto mb-2" />
               <p className="text-sm text-gray-500">

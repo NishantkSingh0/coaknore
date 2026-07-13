@@ -327,6 +327,8 @@ export const issueApi = {
   raise: async (projectId: string, data: {
     task_id?: string; type: IssueType; title: string;
     description: string; assigned_to_dept_id?: string
+    material_name?: string; material_description?: string;
+    required_quantity?: number; material_unit?: string; material_remarks?: string
   }) => {
     const res = await api.post<ApiResponse<Issue>>(`/projects/${projectId}/issues`, data)
     return unwrap(res)

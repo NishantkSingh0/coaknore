@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: pms-backend
+    runtime: go
+
+    buildCommand: go build -o app ./cmd
+
+    startCommand: ./app
+
+    plan: free
+
+    autoDeploy: true
