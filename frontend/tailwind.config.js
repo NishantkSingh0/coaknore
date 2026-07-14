@@ -25,6 +25,15 @@ export default {
       },
 
       keyframes: {
+        logoSpin: {
+          from: {
+            transform: "rotate(0deg)",
+          },
+          to: {
+            transform: "rotate(-360deg)",
+          },
+        },
+
         wave: {
           '0%': { transform: 'rotate(0deg)' },
           '3%': { transform: 'rotate(14deg)' },
@@ -33,14 +42,13 @@ export default {
           '12%': { transform: 'rotate(-4deg)' },
           '15%': { transform: 'rotate(10deg)' },
           '18%': { transform: 'rotate(0deg)' },
-
-          /* Stay still for the remaining ~5 seconds */
           '100%': { transform: 'rotate(0deg)' },
         },
       },
 
       animation: {
-        wave: 'wave 7s ease-in-out infinite',
+        'wave': 'wave 7s ease-in-out infinite',
+        "logo-spin": "logoSpin 0.3s linear forwards",
       },
 
       fontFamily: {

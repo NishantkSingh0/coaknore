@@ -3,12 +3,14 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
+import clsx from 'clsx'
 
 export default function LoginPage() {
   const { user, login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [anim, setAnim] = useState("");
 
   if (user) return <Navigate to="/dashboard" replace />
 
@@ -35,7 +37,16 @@ export default function LoginPage() {
           <img
             src="/invertedLogo.png"
             alt="Logo"
-            className="w-16 h-16 transition-transform duration-[1500ms] ease-in-out group-hover:rotate-[360deg]"
+            onMouseEnter={() => {
+              setAnim("");
+              requestAnimationFrame(() => setAnim("animate-logo-spin"));
+            }}
+            onMouseLeave={() => {
+              setAnim("");
+              requestAnimationFrame(() => setAnim("animate-logo-spin"));
+            }}
+            onAnimationEnd={() => setAnim("")}
+            className={clsx("w-16 h-16", anim)}
           />
           <h1 className="text-2xl font-bold pt-3 text-gray-900">Crafted Oak & Ore Pvt. Ltd.</h1>
         </div>

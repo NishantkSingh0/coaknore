@@ -38,12 +38,19 @@ export default function EmployeesPage() {
     phone: '', layer: 'layer3', department_id: ''
   })
   const filteredDepartments = depts?.filter((d) => d.layer === form.layer) ?? []
+  const isAdmin = form.layer === 'layer1'
+
   const handleCreate = async () => {
-    if (!form.email || !form.password || !form.first_name || !form.last_name || !form.department_id) { 
-      toast.error('Please fill in all required fields, including the department.'); 
-      return;
+    if (!form.email || !form.password || !form.first_name || !form.last_name) {
+      toast.error('Please fill in all required fields.')
+      return
     }
-    const ok = await execute(() => orgApi.createEmployee(form))
+    if (!isAdmin && !form.department_id) {
+      toast.error('Please select a department.')
+      return
+    }
+    const payload = isAdmin ? { ...form, department_id: '' } : form
+    const ok = await execute(() => orgApi.createEmployee(payload))
     if (ok !== null) {
       toast.success('Employee created')
       setCreateOpen(false); resetForm(); refetch()
@@ -233,8 +240,11 @@ export default function EmployeesPage() {
             </select>
           </div>
           <div>
-            <label className="label">Department</label>
-            <select value={form.department_id} disabled={form.layer === 'layer1'} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, })) } className="input disabled:bg-gray-100 disabled:cursor-not-allowed">
+            <label className="label">
+              Department {!isAdmin && <span className="text-red-500">*</span>}
+              {isAdmin && <span className="text-gray-400 text-xs font-normal ml-1">(optional for Admin)</span>}
+            </label>
+            <select value={form.department_id} disabled={isAdmin} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, })) } className="input disabled:bg-gray-100 disabled:cursor-not-allowed">
               <option value="">Select Department</option>
               {filteredDepartments.map((d) => (
                 <option key={d.id} value={d.id}>
