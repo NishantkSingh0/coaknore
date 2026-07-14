@@ -9,6 +9,7 @@ import {
 import { useAuth } from '../../context/AuthContext'
 import clsx from 'clsx'
 import { Avatar } from '../ui/Avatar'
+import { useState } from 'react'
 
 interface Props {
   onOpenQueries: () => void
@@ -21,7 +22,7 @@ const navItem = (to: string, label: string, Icon: React.ComponentType<{ classNam
 
 export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
   const { user, isAdmin, isLayerTwo, isLayerThree } = useAuth()
-
+  const [anim, setAnim] = useState("");
   const commonNav = [
     navItem('/dashboard', 'Dashboard', HomeIcon),
   ]
@@ -55,7 +56,16 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
           <img
             src="/invertedLogo.png"
             alt="Logo"
-            className="w-8 h-8 transition-transform duration-[1500ms] ease-in-out group-hover/logo:rotate-[360deg]"
+            onMouseEnter={() => {
+              setAnim("");
+              requestAnimationFrame(() => setAnim("animate-logo-spin"));
+            }}
+            onMouseLeave={() => {
+              setAnim("");
+              requestAnimationFrame(() => setAnim("animate-logo-spin"));
+            }}
+            onAnimationEnd={() => setAnim("")}
+            className={clsx("w-8 h-8", anim)}
           />
           <div className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 whitespace-nowrap">
             <p className="text-sm font-bold text-gray-900 dark:text-white pb-1 leading-none">
