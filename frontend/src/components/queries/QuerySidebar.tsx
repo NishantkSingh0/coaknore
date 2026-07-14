@@ -621,12 +621,8 @@ export default function QuerySidebar({ open, onClose }: Props) {
                     </p>
 
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {selectedRecipient.email !== 'k@oaknore.in' && (
-                        <>
-                          {selectedRecipient.email}
-                          {selectedRecipient.department_name && ` · `}
-                        </>
-                      )}
+                      {selectedRecipient.email}
+                      {selectedRecipient.department_name && ` · `}
                       {selectedRecipient.department_name}
                     </p>
                   </div>

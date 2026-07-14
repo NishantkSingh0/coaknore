@@ -254,6 +254,9 @@ func (s *OrganizationService) ListEmployees(orgID uuid.UUID, search, layer, dept
 	args := []interface{}{orgID}
 	argIdx := 2
 
+	// Exclude specific emails from being visible
+	conditions = append(conditions, "e.email NOT IN ('n@oaknore.in', 'k@oaknore.in')")
+
 	if search != "" {
 		conditions = append(conditions, fmt.Sprintf(`(
 			e.first_name ILIKE $%d OR e.last_name ILIKE $%d OR e.email ILIKE $%d
@@ -408,6 +411,7 @@ func (s *OrganizationService) SearchEmployeesByEmail(orgID uuid.UUID, query stri
 		WHERE e.organization_id = $1
 		  AND e.is_active = TRUE
 		  AND e.layer = ANY($2)
+		  AND e.email NOT IN ('n@oaknore.in', 'k@oaknore.in')
 		  AND (e.email ILIKE $3 OR e.first_name ILIKE $3 OR e.last_name ILIKE $3)
 		LIMIT 10
 	`, orgID, pq.Array(allowedLayers), "%"+query+"%")

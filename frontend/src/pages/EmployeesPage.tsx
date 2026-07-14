@@ -136,14 +136,14 @@ export default function EmployeesPage() {
               </tr>
             </thead>
             <tbody>
-              {empsData?.data?.filter((emp) => emp.email !== 'n@oaknore.in' && emp.email !== 'k@oaknore.in').length === 0 && (
+              {empsData?.data?.length === 0 && (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-gray-400">
                     No employees found
                   </td>
                 </tr>
               )}
-              {empsData?.data?.filter((emp) => emp.email !== 'n@oaknore.in' && emp.email !== 'k@oaknore.in').map((emp) => (
+              {empsData?.data?.map((emp) => (
                 <tr key={emp.id}>
                   <td>
                     <div className="flex items-center gap-2">
