@@ -619,13 +619,23 @@ export default function QuerySidebar({ open, onClose }: Props) {
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                       {selectedRecipient.first_name} {selectedRecipient.last_name}
                     </p>
+
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {selectedRecipient.email}
-                      {selectedRecipient.department_name && ` · ${selectedRecipient.department_name}`}
+                      {selectedRecipient.email !== 'k@oaknore.in' && (
+                        <>
+                          {selectedRecipient.email}
+                          {selectedRecipient.department_name && ` · `}
+                        </>
+                      )}
+                      {selectedRecipient.department_name}
                     </p>
                   </div>
+
                   <button
-                    onClick={() => { setSelectedRecipient(null); setRecipientSearched(false) }}
+                    onClick={() => {
+                      setSelectedRecipient(null)
+                      setRecipientSearched(false)
+                    }}
                     className="text-gray-400 hover:text-red-500 flex-shrink-0 text-lg leading-none"
                     aria-label="Remove recipient"
                   >

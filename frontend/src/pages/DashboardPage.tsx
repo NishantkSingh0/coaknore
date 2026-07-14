@@ -245,7 +245,7 @@ function AdminDashboard() {
           <StatCard label="Completed"        value={stats.completed_projects} icon={CheckCircleIcon}             color="bg-emerald-50 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" to="/projects?status=completed" />
           <StatCard label="Opened Issues"      value={stats.open_issues}        icon={ExclamationCircleIcon}       color="bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400"     to="/issues" />
           <StatCard label="Pending Reworks"  value={stats.pending_reworks}    icon={ArrowPathIcon}               color="bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400" to="/reworks?status=pending" />
-          <StatCard label="Mat. Requests"    value={stats.pending_materials}  icon={CubeIcon}                    color="bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400" to="/materials?status=pending" />
+          <StatCard label="Material Requests"    value={stats.pending_materials}  icon={CubeIcon}                    color="bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400" to="/materials?status=pending" />
           <StatCard label="Staff"        value={stats.total_employees-2}    icon={UserGroupIcon}               color="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" to="/employees" />
         </div>
       )}
