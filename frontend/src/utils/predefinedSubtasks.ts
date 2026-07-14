@@ -28,7 +28,7 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
     },
     {
       title: 'IQC',
-      description: 'Incoming Quality Control - inspection of materials and components before use'
+      description: 'Initial Quality Check - inspection of materials and components before use'
     }
   ],
   stone: [
@@ -74,7 +74,7 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
     },
     {
       title: 'IQC',
-      description: 'Incoming Quality Control - inspection of stone materials before processing'
+      description: 'Initial Quality Check - inspection of stone materials before processing'
     }
   ],
   polishing: [
@@ -116,7 +116,7 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
     },
     {
       title: 'IQC',
-      description: 'Incoming Quality Control - inspection of materials before polishing process'
+      description: 'Initial Quality Check - inspection of materials before polishing process'
     }
   ],
   metal: [
@@ -165,8 +165,8 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
       description: 'Assembling hardware components and fittings'
     },
     {
-      title: 'Quality Inspection',
-      description: 'Final quality inspection of metal work before proceeding'
+      title: 'IQC',
+      description: 'Initial Quality Check - inspection of metal materials before processing'
     }
   ],
   carpentry: [
@@ -196,7 +196,7 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
     },
     {
       title: 'IQC',
-      description: 'Incoming Quality Control - inspection of wood materials before processing'
+      description: 'Initial Quality Check - inspection of wood materials before processing'
     }
   ],
   design: [
@@ -251,6 +251,10 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
     {
       title: 'Drawing & Files Release',
       description: 'Releasing approved drawings and production files to manufacturing departments'
+    },
+    {
+      title: 'IQC',
+      description: 'Initial Quality Check - inspection of wood materials before processing'
     }
   ]
 }
