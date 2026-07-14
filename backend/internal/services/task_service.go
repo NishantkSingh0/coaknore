@@ -436,6 +436,9 @@ func (s *TaskService) CompleteSubtask(orgID, subtaskID, completedBy uuid.UUID, n
 			fmt.Sprintf("A subtask was completed in %s", task.DepartmentName),
 			&task.ProjectID, "subtask", &subtaskID)
 
+		// Check if n-1/n tasks are completed (all except IQC)
+		go s.checkNMinusOneCompletion(orgID, taskID, task)
+
 		// Auto-advance task: if all required subtasks are complete, mark task complete
 		go s.checkAndAutoCompleteTask(orgID, taskID, completedBy)
 	}
@@ -456,6 +459,45 @@ func (s *TaskService) checkAndAutoCompleteTask(orgID, taskID, actorID uuid.UUID)
 	}
 	// All required subtasks done — auto-complete task
 	s.UpdateTaskStatus(orgID, taskID, actorID, models.TaskCompleted)
+}
+
+// checkNMinusOneCompletion checks if all subtasks except IQC are completed and sends notification
+func (s *TaskService) checkNMinusOneCompletion(orgID, taskID uuid.UUID, task *models.DepartmentTask) {
+	var totalSubtasks, completedSubtasks int
+	var iqcCompleted bool
+	
+	// Get total subtasks count
+	s.db.QueryRow(`SELECT COUNT(*) FROM subtasks WHERE task_id = $1`, taskID).Scan(&totalSubtasks)
+	
+	// Get completed subtasks count (excluding IQC)
+	s.db.QueryRow(`
+		SELECT COUNT(*) FROM subtasks 
+		WHERE task_id = $1 AND status = 'completed' AND title != 'IQC'
+	`, taskID).Scan(&completedSubtasks)
+	
+	// Check if IQC exists and its status
+	var iqcStatus sql.NullString
+	s.db.QueryRow(`
+		SELECT status FROM subtasks 
+		WHERE task_id = $1 AND title = 'IQC'
+	`, taskID).Scan(&iqcStatus)
+	
+	if iqcStatus.Valid {
+		iqcCompleted = iqcStatus.String == "completed"
+	}
+	
+	// If all non-IQC tasks are completed and IQC is not completed, send notification
+	if totalSubtasks > 0 && completedSubtasks == totalSubtasks-1 && !iqcCompleted {
+		notificationTitle := fmt.Sprintf("%s Department is Completed Their Work", task.DepartmentName)
+		notificationBody := fmt.Sprintf("%s Department is Completed Their Work.. Your IQC Required.. Please Have a Look over %s Department", task.DepartmentName, task.DepartmentName)
+		
+		// Notify Admin and Layer2
+		go s.notifSvc.NotifyLayer(orgID, []models.LayerType{models.LayerSuperAdmin, models.LayerTwo}, 
+			models.NotifSubtaskCompleted,
+			notificationTitle,
+			notificationBody,
+			&task.ProjectID, "task", &taskID)
+	}
 }
 
 // SetExpectedCompletionDate sets the expected completion date and locks it.

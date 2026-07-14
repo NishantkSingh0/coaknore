@@ -9,12 +9,12 @@ import { TaskBadge } from '../ui/StatusBadge'
 import { Avatar } from '../ui/Avatar'
 import type { TaskStatus, DepartmentTask, Routing } from '../../types'
 
-const COLUMNS: { status: TaskStatus; label: string; color: string; bg: string }[] = [
-  { status: 'pending', label: 'Pending', color: 'bg-gray-100 border-gray-300 dark:bg-gray-400/20 dark:border-gray-600', bg: 'bg-gray-50 dark:bg-gray-700/50' },
-  { status: 'on_hold', label: 'On Hold', color: 'bg-yellow-50 border-yellow-300 dark:bg-yellow-500/20 dark:border-yellow-500/40', bg: 'bg-yellow-50/60 dark:bg-yellow-900/30' },
-  { status: 'issue_hold', label: 'Issue Hold', color: 'bg-red-200 border-red-200 dark:bg-red-500/20 dark:border-red-500/40', bg: 'bg-red-200/60 dark:bg-red-900/30' },
-  { status: 'in_progress', label: 'In Progress', color: 'bg-blue-50 border-blue-200 dark:bg-blue-500/20 dark:border-blue-500/40', bg: 'bg-blue-50/60 dark:bg-blue-900/30' },
-  { status: 'completed', label: 'Completed', color: 'bg-green-50 border-green-200 dark:bg-green-500/20 dark:border-green-500/40', bg: 'bg-green-50/60 dark:bg-green-900/30' },
+const COLUMNS: { status: TaskStatus; label: string; description: string; color: string; bg: string }[] = [
+  { status: 'pending', label: 'Pending', description: 'Routing has not been initiated for these departments.', color: 'bg-gray-100 border-gray-300 dark:bg-gray-400/20 dark:border-gray-600', bg: 'bg-gray-50 dark:bg-gray-700/50' },
+  { status: 'on_hold', label: 'On Hold', description: 'Routing has been assigned to this department, but the department admin has not started work yet.', color: 'bg-yellow-50 border-yellow-300 dark:bg-yellow-500/20 dark:border-yellow-500/40', bg: 'bg-yellow-50/60 dark:bg-yellow-900/30' },
+  { status: 'issue_hold', label: 'Issue Hold', description: 'Work is currently on hold due to an issue in the department listed below.', color: 'bg-red-200 border-red-200 dark:bg-red-500/20 dark:border-red-500/40', bg: 'bg-red-200/60 dark:bg-red-900/30' },
+  { status: 'in_progress', label: 'In Progress', description: 'Work is currently in progress in the department listed below.', color: 'bg-blue-500 border-blue-200 dark:bg-blue-500/20 dark:border-blue-500/40', bg: 'bg-blue-500/60 dark:bg-blue-900/30' },
+  { status: 'completed', label: 'Completed', description: 'Work has been completed by the department listed below.', color: 'bg-green-500 border-green-200 dark:bg-green-500/20 dark:border-green-500/40', bg: 'bg-green-500/60 dark:bg-green-900/30' },
 ]
 
 export default function TaskBoard({ projectId }: { projectId: string }) {
@@ -102,7 +102,8 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
               return (
                 <div
                   key={col.status}
-                  className={`rounded-lg border p-2 mb-2 ${col.color} flex items-center justify-between`}
+                  title={col.description}
+                  className={`rounded-lg border p-2 mb-2 ${col.color} flex items-center justify-between cursor-default`}
                 >
                   <span className="text-xs font-semibold text-gray-600 dark:text-gray-200">
                     {col.label}

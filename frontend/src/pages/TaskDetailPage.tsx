@@ -552,9 +552,9 @@ export default function TaskDetailPage() {
 
                 </div>
                 {subtask.status !== 'completed' && canAct && (
-                  <label className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors">
+                  <label title="Upload an image or PDF as completion proof. Once the proof is uploaded and approved, this subtask will be marked as completed." className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors">
                     <PhotoIcon className="w-4 h-4" />
-                    <span className="text-sm">Upload Proof</span>
+                    <span className="text-sm">Completion Proof</span>
                     <input
                       type="file"
                       accept="image/*,.pdf"

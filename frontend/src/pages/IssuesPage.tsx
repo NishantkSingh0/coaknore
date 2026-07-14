@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { issueApi } from '../services/api'
 import { useAsync } from '../hooks/useAsync'
 import { fmtRelative, issueTypeLabel } from '../utils/helpers'
@@ -17,6 +17,7 @@ const STATUS_OPTS: { label: string; value: IssueStatus | '' }[] = [
 ]
 
 export default function IssuesPage() {
+  const navigate = useNavigate()
   const [status, setStatus] = useState<IssueStatus | ''>('')
   const [page, setPage] = useState(1)
 
@@ -67,15 +68,23 @@ export default function IssuesPage() {
                 <tr><td colSpan={6} className="text-center py-12 text-gray-400">No issues found</td></tr>
               )}
               {data?.data?.map((issue) => (
-                <tr key={issue.id}>
+                <tr
+                  key={issue.id}
+                  onClick={() => navigate(`/issues/${issue.id}`)}
+                  className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                >
                   <td>
-                    <Link to={`/issues/${issue.id}`} className="font-medium text-brand-700 dark:text-brand-400 hover:underline">
+                    <span className="font-medium text-brand-700 dark:text-brand-400">
                       {issue.title}
-                    </Link>
+                    </span>
                   </td>
+
                   <td>
-                    <span className="badge-gray text-xs">{issueTypeLabel[issue.type]}</span>
+                    <span className="badge-gray text-xs">
+                      {issueTypeLabel[issue.type]}
+                    </span>
                   </td>
+
                   <td>{issue.department_name}</td>
                   <td>{issue.raised_by_name}</td>
                   <td><IssueBadge status={issue.status} /></td>
