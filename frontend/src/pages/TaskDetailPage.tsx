@@ -15,6 +15,7 @@ import Modal from '../components/ui/Modal'
 import ConfirmationModal from '../components/ui/ConfirmationModal'
 import clsx from 'clsx'
 import { usePreviewModal } from '../hooks/usePreviewModal'
+import { matchDepartmentToSubtasks } from '../utils/predefinedSubtasks'
 
 
 export default function TaskDetailPage() {
@@ -39,7 +40,7 @@ export default function TaskDetailPage() {
   const [expectedDate, setExpectedDate] = useState('')
   const [settingDate, setSettingDate] = useState(false)
   // subtask form
-  const [newSubtask, setNewSubtask] = useState({ title: '', description: '', is_required: true })
+  const [selectedPredefinedTasks, setSelectedPredefinedTasks] = useState<string[]>([])
   // issue form
   const [issueForm, setIssueForm] = useState({
     type: 'custom' as IssueType, title: '', description: '',
@@ -60,11 +61,36 @@ export default function TaskDetailPage() {
   }
 
   const handleAddSubtask = async () => {
-    if (!newSubtask.title) { toast.error('Title is required'); return }
-    const ok = await execute(() => taskApi.createSubtask(id!, newSubtask))
-    if (ok !== null) {
-      toast.success('Subtask added'); setAddSubtaskOpen(false)
-      setNewSubtask({ title: '', description: '', is_required: true }); refetch()
+    if (selectedPredefinedTasks.length === 0) { toast.error('Please select at least one subtask'); return }
+    
+    const predefinedTasksList = task?.department_name ? matchDepartmentToSubtasks(task.department_name) : []
+    // Create tasks in the order they were selected
+    const tasksToCreate = selectedPredefinedTasks.map(title => 
+      predefinedTasksList.find(task => task.title === title)
+    ).filter((task): task is NonNullable<typeof task> => task !== undefined)
+    
+    let successCount = 0
+    for (const taskData of tasksToCreate) {
+      const ok = await execute(() => taskApi.createSubtask(id!, {
+        title: taskData.title,
+        description: taskData.description,
+        is_required: true
+      }))
+      if (ok !== null) successCount++
+    }
+    
+    if (successCount === tasksToCreate.length) {
+      toast.success(`${successCount} subtask(s) added successfully`)
+      setAddSubtaskOpen(false)
+      setSelectedPredefinedTasks([])
+      refetch()
+    } else if (successCount > 0) {
+      toast.success(`${successCount} of ${tasksToCreate.length} subtask(s) added`)
+      setAddSubtaskOpen(false)
+      setSelectedPredefinedTasks([])
+      refetch()
+    } else {
+      toast.error('Failed to add subtasks')
     }
   }
 
@@ -162,32 +188,50 @@ export default function TaskDetailPage() {
   const rp = restrictedProject as Record<string, string> | null
 
   // ── shared modal JSX (declared before any return, so both views can use them)
+  const predefinedTasks = task?.department_name ? matchDepartmentToSubtasks(task.department_name) : []
+  
+  const toggleTaskSelection = (taskTitle: string) => {
+    if (selectedPredefinedTasks.includes(taskTitle)) {
+      setSelectedPredefinedTasks(selectedPredefinedTasks.filter(t => t !== taskTitle))
+    } else {
+      setSelectedPredefinedTasks([...selectedPredefinedTasks, taskTitle])
+    }
+  }
+  
   const AddSubtaskModal = (
-    <Modal open={addSubtaskOpen} onClose={() => setAddSubtaskOpen(false)} title="Add Subtask"
+    <Modal open={addSubtaskOpen} onClose={() => { setAddSubtaskOpen(false); setSelectedPredefinedTasks([]); }} title="Add Subtasks"
       footer={<>
-        <button onClick={() => setAddSubtaskOpen(false)} className="btn-secondary">Cancel</button>
-        <button onClick={handleAddSubtask} disabled={actionLoading} className="btn-primary">
-          {actionLoading ? 'Adding...' : 'Add Subtask'}
+        <button onClick={() => { setAddSubtaskOpen(false); setSelectedPredefinedTasks([]); }} className="btn-secondary">Cancel</button>
+        <button onClick={handleAddSubtask} disabled={actionLoading || selectedPredefinedTasks.length === 0} className="btn-primary">
+          {actionLoading ? 'Adding...' : `Add ${selectedPredefinedTasks.length} Subtask${selectedPredefinedTasks.length !== 1 ? 's' : ''}`}
         </button>
       </>}>
       <div className="space-y-4">
-        <div>
-          <label className="label dark:text-gray-300">Title <span className="text-red-500 dark:text-red-400">*</span></label>
-          <input value={newSubtask.title} onChange={(e) => setNewSubtask((s) => ({ ...s, title: e.target.value }))}
-            className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" placeholder="Subtask title" />
-        </div>
-        <div>
-          <label className="label dark:text-gray-300">Description</label>
-          <textarea value={newSubtask.description}
-            onChange={(e) => setNewSubtask((s) => ({ ...s, description: e.target.value }))}
-            className="input resize-none dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500" rows={3} />
-        </div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" checked={newSubtask.is_required}
-            onChange={(e) => setNewSubtask((s) => ({ ...s, is_required: e.target.checked }))}
-            className="w-4 h-4 text-brand-600 rounded dark:bg-gray-800 dark:border-gray-600" />
-          <span className="text-sm text-gray-700 dark:text-gray-300">Required for task completion</span>
-        </label>
+        {predefinedTasks.length > 0 ? (
+          <div>
+            <label className="label dark:text-gray-300 mb-3 block">Select Steps to Add <span className="text-red-500 dark:text-red-400">*</span></label>
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+              {predefinedTasks.map((task) => (
+                <label key={task.title} className="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedPredefinedTasks.includes(task.title)}
+                    onChange={() => toggleTaskSelection(task.title)}
+                    className="w-4 h-4 text-brand-600 rounded mt-0.5 dark:bg-gray-800 dark:border-gray-600"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{task.title}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{task.description}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            No predefined subtasks available for this department
+          </div>
+        )}
       </div>
     </Modal>
   )
