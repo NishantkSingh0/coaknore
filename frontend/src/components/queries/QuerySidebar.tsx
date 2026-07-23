@@ -26,7 +26,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
   const { user } = useAuth()
   const [view, setView] = useState<View>('list')
   const { openPreview } = usePreviewModal()
-
+  const recipientDropdownRef = useRef<HTMLDivElement>(null);
   const [queries, setQueries] = useState<Query[]>([])
   const [activeQuery, setActiveQuery] = useState<Query | null>(null)
   const [message, setMessage] = useState('')
@@ -58,7 +58,22 @@ export default function QuerySidebar({ open, onClose }: Props) {
   // transition actually animates instead of snapping straight to place.
   const [shouldRender, setShouldRender] = useState(open)
   const [isVisible, setIsVisible] = useState(false)
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        recipientDropdownRef.current &&
+        !recipientDropdownRef.current.contains(event.target as Node)
+      ) {
+        setRecipientSearched(false);
+      }
+    }
 
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   useEffect(() => {
     if (open) {
       setShouldRender(true)
@@ -643,11 +658,16 @@ export default function QuerySidebar({ open, onClose }: Props) {
                 </div>
               )}
               
-              <div className="relative">
+              <div ref={recipientDropdownRef} className="relative">
                 <input
                   type="text"
                   value={recipientSearch}
-                  onChange={(e) => setRecipientSearch(e.target.value)}
+                  onFocus={() => setRecipientSearched(true)}
+                  onClick={() => setRecipientSearched(true)}
+                  onChange={(e) => {
+                    setRecipientSearch(e.target.value);
+                    setRecipientSearched(true);
+                  }}
                   placeholder="Search by name or email..."
                   className="input w-full dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
                   autoComplete="off"

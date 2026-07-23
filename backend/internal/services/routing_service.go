@@ -402,6 +402,18 @@ func (s *RoutingService) generateTasksFromRouting(orgID, projectID, routingID, _
 			&projectID, "task", &taskID,
 		)
 	}
+
+	// Create upcoming tasks for all subsequent steps (step_order > 1)
+	for i := 1; i < len(steps); i++ {
+		step := steps[i]
+		for _, dept := range step.Departments {
+			s.db.Exec(`
+				INSERT INTO upcoming_tasks (project_id, routing_id, routing_step_id, department_id, step_order)
+				VALUES ($1, $2, $3, $4, $5)
+				ON CONFLICT DO NOTHING
+			`, projectID, routingID, step.ID, dept.ID, step.StepOrder)
+		}
+	}
 }
 
 // ── GetRouting ────────────────────────────────────────────────────────────────
@@ -694,6 +706,12 @@ func (s *RoutingService) ActivateNextStep(orgID, projectID, routingID uuid.UUID,
 			RETURNING id
 		`, projectID, routingID, nextStep.ID, dept.ID).Scan(&taskID)
 
+		// Remove from upcoming_tasks since it's now an active task
+		tx.Exec(`
+			DELETE FROM upcoming_tasks
+			WHERE project_id = $1 AND routing_step_id = $2 AND department_id = $3
+		`, projectID, nextStep.ID, dept.ID)
+
 		go s.notifSvc.NotifyDepartment(orgID, dept.ID, models.NotifTaskAssigned,
 			"New Task Activated",
 			fmt.Sprintf("Your department has a new task for: %s", pName),
@@ -736,4 +754,77 @@ func (s *RoutingService) GetRoutingTemplates(orgID uuid.UUID) ([]models.RoutingT
 		templates = append(templates, t)
 	}
 	return templates, nil
+}
+
+// ── GetUpcomingTasksForDepartment ───────────────────────────────────────────────
+
+func (s *RoutingService) GetUpcomingTasksForDepartment(departmentID uuid.UUID) ([]models.UpcomingTask, error) {
+	// First, get the current active step for this routing to determine if this department is next
+	rows, err := s.db.Query(`
+		WITH current_step AS (
+			SELECT dt.routing_step_id, dt.routing_id
+			FROM department_tasks dt
+			WHERE dt.department_id = $1
+			AND dt.status IN ('pending', 'in_progress', 'on_hold')
+			ORDER BY dt.created_at DESC
+			LIMIT 1
+		)
+		SELECT ut.id, ut.project_id, ut.routing_id, ut.routing_step_id,
+		       ut.department_id, ut.step_order, ut.created_at,
+		       p.project_name, rs.name AS step_name, d.name AS dept_name,
+		       dt.expected_completion_date AS assignment_date,
+		       cs.routing_step_id AS current_routing_step_id
+		FROM upcoming_tasks ut
+		JOIN projects p ON p.id = ut.project_id
+		JOIN routing_steps rs ON rs.id = ut.routing_step_id
+		JOIN departments d ON d.id = ut.department_id
+		LEFT JOIN department_tasks dt ON dt.routing_id = ut.routing_id 
+			AND dt.routing_step_id = (SELECT rs2.id FROM routing_steps rs2 WHERE rs2.routing_id = ut.routing_id AND rs2.step_order = ut.step_order - 1 LIMIT 1)
+		LEFT JOIN current_step cs ON cs.routing_id = ut.routing_id
+		WHERE ut.department_id = $1
+		ORDER BY ut.step_order ASC, ut.created_at ASC
+	`, departmentID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var upcomingTasks []models.UpcomingTask
+	for rows.Next() {
+		var ut models.UpcomingTask
+		var stepName, deptName sql.NullString
+		var assignmentDate sql.NullTime
+		var currentRoutingStepID sql.NullString
+		rows.Scan(
+			&ut.ID, &ut.ProjectID, &ut.RoutingID, &ut.RoutingStepID,
+			&ut.DepartmentID, &ut.StepOrder, &ut.CreatedAt,
+			&ut.ProjectName, &stepName, &deptName, &assignmentDate, &currentRoutingStepID,
+		)
+		if stepName.Valid {
+			ut.StepName = stepName.String
+		}
+		if deptName.Valid {
+			ut.DeptName = deptName.String
+		}
+		
+		// Only show assignment date if this department is the next in sequence
+		// (i.e., the current step is the previous step in the routing)
+		if currentRoutingStepID.Valid {
+			// Check if the current step is the previous step
+			var isNextStep bool
+			s.db.QueryRow(`
+				SELECT EXISTS (
+					SELECT 1 FROM routing_steps 
+					WHERE routing_id = $1 AND step_order = $2 - 1 AND id = $3
+				)
+			`, ut.RoutingID, ut.StepOrder, currentRoutingStepID).Scan(&isNextStep)
+			
+			if isNextStep && assignmentDate.Valid {
+				ut.AssignmentDate = &assignmentDate.Time
+			}
+		}
+		
+		upcomingTasks = append(upcomingTasks, ut)
+	}
+	return upcomingTasks, nil
 }

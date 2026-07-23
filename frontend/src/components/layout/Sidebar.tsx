@@ -4,7 +4,7 @@ import {
   ExclamationCircleIcon, DocumentTextIcon,
   BellIcon, UserGroupIcon, BuildingOfficeIcon,
   ChatBubbleLeftRightIcon, Cog6ToothIcon, WrenchScrewdriverIcon,
-  SparklesIcon
+  SparklesIcon, CalendarIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 import clsx from 'clsx'
@@ -29,6 +29,7 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
 
   const layer3Nav = [
     navItem('/tasks', 'My Tasks', ClipboardDocumentListIcon),
+    navItem('/upcoming-tasks', 'Upcoming Tasks', CalendarIcon),
     navItem('/issues', 'Issues', ExclamationCircleIcon),
     navItem('/reports', 'Daily Reports', DocumentTextIcon),
   ]
@@ -41,7 +42,7 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
 
   const adminNav = [
     navItem('/projects', 'Projects', FolderIcon),
-    navItem('/employees', 'Employees', UserGroupIcon),
+    navItem('/employees', 'Staffs', UserGroupIcon),
     navItem('/sdepartments', 'Departments', BuildingOfficeIcon),
     navItem('/issues', 'Issues', ExclamationCircleIcon),
     navItem('/reports', 'Reports', DocumentTextIcon),

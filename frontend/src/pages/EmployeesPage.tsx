@@ -100,7 +100,7 @@ export default function EmployeesPage() {
   return (
     <div className="space-y-6">
       <div className="page-header">
-        <h1 className="page-title">Employees</h1>
+        <h1 className="page-title">Staffs</h1>
         <button onClick={() => { resetForm(); setCreateOpen(true) }} className="btn-primary">
           <PlusIcon className="w-4 h-4" /> New Staff
         </button>
@@ -153,7 +153,7 @@ export default function EmployeesPage() {
               {empsData?.data?.length === 0 && (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-gray-400">
-                    No employees found
+                    No Staff found
                   </td>
                 </tr>
               )}
@@ -201,7 +201,7 @@ export default function EmployeesPage() {
 
       {empsData && empsData.total_pages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">{empsData.total} employees</p>
+          <p className="text-sm text-gray-500">{empsData.total} Staffs</p>
           <div className="flex items-center gap-2">
             <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="btn-secondary btn-sm">Previous</button>
             <span className="text-sm">{page} / {empsData.total_pages}</span>
@@ -281,7 +281,7 @@ export default function EmployeesPage() {
           </div>
           <div>
             <label className="label">Phone</label>
-            <input value={form.phone} placeholder="Helps Navigating Employees Contact." onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="input" />
+            <input value={form.phone} placeholder="Helps Navigating Staffs Contact." onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="input" />
           </div>
           <div>
             <label className="label">Layer / Role <span className="text-red-500">*</span></label>

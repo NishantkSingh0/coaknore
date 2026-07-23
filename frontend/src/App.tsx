@@ -19,6 +19,7 @@ import IssueDetailPage from './pages/IssueDetailPage'
 import ReportsPage from './pages/ReportsPage'
 import NotificationsPage from './pages/NotificationsPage'
 import MyTasksPage from './pages/MyTasksPage'
+import UpcomingTasksPage from './pages/UpcomingTasksPage'
 import TaskDetailPage from './pages/TaskDetailPage'
 import SettingsPage from './pages/SettingsPage'
 
@@ -71,6 +72,7 @@ export default function App() {
 
         <Route path="/tasks" element={<MyTasksPage />} />
         <Route path="/tasks/:id" element={<TaskDetailPage />} />
+        <Route path="/upcoming-tasks" element={<UpcomingTasksPage />} />
 
         <Route path="/issues" element={<IssuesPage />} />
         <Route path="/issues/:id" element={<IssueDetailPage />} />

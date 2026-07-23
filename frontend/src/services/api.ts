@@ -5,7 +5,7 @@ import type {
   MaterialRequisition, Notification, AuditLog, FileAsset, Organization,
   DashboardStats, SearchResult, PaginatedResponse, ApiResponse,
   ProjectStatus, TaskStatus, IssueType, DependencyPolicy, DepartmentLayer,
-  LayerType, MaterialItem
+  LayerType, MaterialItem, UpcomingTask
 } from '../types'
 
 const RAW_BASE_URL = import.meta.env.VITE_API_URL ?? '/api'
@@ -250,6 +250,10 @@ export const routingApi = {
   },
   getTemplates: async () => {
     const res = await api.get<ApiResponse<unknown[]>>('/routing-templates')
+    return unwrap(res) || []
+  },
+  getUpcomingTasks: async (departmentId: string) => {
+    const res = await api.get<ApiResponse<UpcomingTask[]>>(`/departments/${departmentId}/upcoming-tasks`)
     return unwrap(res) || []
   },
 }

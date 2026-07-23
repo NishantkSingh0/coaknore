@@ -22,6 +22,7 @@ export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user, isLayerTwo, isLayerThree, isAdmin } = useAuth()
   const canAct = isLayerThree || isLayerTwo || isAdmin
+  const isUpcoming = new URLSearchParams(location.search).get('mode') === 'upcoming'
   const { data: task, loading, refetch } = useAsync(() => taskApi.getTask(id!), [id])
   const { data: departments } = useAsync(() => orgApi.listDepartments('layer3'), [])
   const { execute, loading: actionLoading } = useAsyncAction()
@@ -410,7 +411,7 @@ export default function TaskDetailPage() {
             <TaskBadge status={task.status} />
           </div>
         </div>
-        {canAct && (
+        {canAct && !isUpcoming && (
           <div className="flex gap-2">
             <button onClick={() => setAddSubtaskOpen(true)} className="btn-secondary flex items-center gap-1">
               <PlusIcon className="w-4 h-4" /> Add Subtask
@@ -442,7 +443,11 @@ export default function TaskDetailPage() {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmtDate(task.expected_completion_date)}</p>
             )}
           </div>
-          {isLayerThree ? (
+          {isUpcoming ? (
+            <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+              <LockClosedIcon className="w-3 h-3" /> Not available for upcoming tasks
+            </span>
+          ) : isLayerThree ? (
             // Layer3: Date is locked, show locked status
             task.completion_date_locked ? (
               <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
@@ -586,18 +591,24 @@ export default function TaskDetailPage() {
                   )}
 
                 </div>
-                {subtask.status !== 'completed' && canAct && (
-                  <label title="Upload an image or PDF as completion proof. Once the proof is uploaded and approved, this subtask will be marked as completed." className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors">
-                    <PhotoIcon className="w-4 h-4" />
-                    <span className="text-sm">Completion Proof</span>
-                    <input
-                      type="file"
-                      accept="image/*,.pdf"
-                      className="hidden"
-                      onChange={(e) => e.target.files?.[0] && handleProofSelected(subtask.id, e.target.files[0])}
-                    />
-                  </label>
-                )}
+                  {(!isLayerThree || subtask.title !== "IQC") && subtask.status !== "completed" && canAct && !isUpcoming && (
+                    <label
+                      title="Upload an image or PDF as completion proof. Once the proof is uploaded and approved, this subtask will be marked as completed."
+                      className="cursor-pointer flex items-center gap-2 px-3 py-2 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 rounded-lg hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors"
+                    >
+                      <PhotoIcon className="w-4 h-4" />
+                      <span className="text-sm">Completion Proof</span>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={(e) =>
+                          e.target.files?.[0] &&
+                          handleProofSelected(subtask.id, e.target.files[0])
+                        }
+                      />
+                    </label>
+                  )}
               </div>
             ))
           )}

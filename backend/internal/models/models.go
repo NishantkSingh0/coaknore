@@ -570,6 +570,21 @@ type RoutingEditTimeline struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
+type UpcomingTask struct {
+	ID                      uuid.UUID  `json:"id"`
+	ProjectID               uuid.UUID  `json:"project_id"`
+	ProjectName             string     `json:"project_name,omitempty"`
+	RoutingID               uuid.UUID  `json:"routing_id"`
+	RoutingStepID           uuid.UUID  `json:"routing_step_id"`
+	StepName                string     `json:"step_name,omitempty"`
+	DepartmentID            uuid.UUID  `json:"department_id"`
+	DeptName                string     `json:"dept_name,omitempty"`
+	StepOrder               int        `json:"step_order"`
+	AssignmentDate          *time.Time `json:"assignment_date,omitempty"`
+	PreviousStepCompletedAt *time.Time `json:"previous_step_completed_at,omitempty"`
+	CreatedAt               time.Time  `json:"created_at"`
+}
+
 // ============================================================
 // REQUEST/RESPONSE TYPES
 // ============================================================

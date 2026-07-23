@@ -218,6 +218,7 @@ func main() {
 		r.Get("/api/projects/{projectId}/tasks", taskHandler.GetProjectTasks)
 		r.Get("/api/tasks/{id}", taskHandler.GetTask)
 		r.Get("/api/my-tasks", taskHandler.GetDepartmentTasks)
+		r.Get("/api/departments/{departmentId}/upcoming-tasks", routingHandler.GetUpcomingTasks)
 
 		r.Group(func(r chi.Router) {
 			r.Use(appmiddleware.RequireLayer(

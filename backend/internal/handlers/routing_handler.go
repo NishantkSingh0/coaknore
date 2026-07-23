@@ -140,3 +140,18 @@ func (h *RoutingHandler) GetTemplates(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.Success(w, templates)
 }
+
+func (h *RoutingHandler) GetUpcomingTasks(w http.ResponseWriter, r *http.Request) {
+	deptID, err := uuid.Parse(chi.URLParam(r, "departmentId"))
+	if err != nil {
+		utils.BadRequest(w, "Invalid department ID")
+		return
+	}
+
+	upcomingTasks, err := h.routingSvc.GetUpcomingTasksForDepartment(deptID)
+	if err != nil {
+		utils.InternalError(w, err.Error())
+		return
+	}
+	utils.Success(w, upcomingTasks)
+}

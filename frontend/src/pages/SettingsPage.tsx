@@ -74,12 +74,12 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      <h1 className="page-title">Settings</h1>
+      
 
       {/* Profile Card */}
-      <div className="card">
+      <div className="card mt-16">
         <div className="card-header flex items-center justify-between">
-          <h2 className="font-semibold">My Profile</h2>
+          <h2 className="font-semibold text-xl">Settings</h2>
           <div className="flex items-center gap-3">
             <DayNightBtn />
             <button

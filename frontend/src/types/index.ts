@@ -231,6 +231,21 @@ export interface RoutingEditTimeline {
   created_at: string
 }
 
+export interface UpcomingTask {
+  id: string
+  project_id: string
+  project_name?: string
+  routing_id: string
+  routing_step_id: string
+  step_name?: string
+  department_id: string
+  dept_name?: string
+  step_order: number
+  assignment_date?: string
+  previous_step_completed_at?: string
+  created_at: string
+}
+
 export interface ReworkRequest {
   id: string
   project_id: string

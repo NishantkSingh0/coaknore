@@ -3,11 +3,11 @@ import {
   FolderIcon, ClipboardDocumentListIcon, ExclamationCircleIcon,
   ArrowPathIcon, CubeIcon, UserGroupIcon, BuildingOfficeIcon,
   CheckCircleIcon, ClockIcon, ExclamationTriangleIcon,
-  ChartBarIcon, QueueListIcon
+  ChartBarIcon, QueueListIcon, CalendarIcon, LockClosedIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 import { useAsync } from '../hooks/useAsync'
-import { searchApi, taskApi, reportApi, issueApi, reworkApi, materialApi } from '../services/api'
+import { searchApi, taskApi, reportApi, issueApi, reworkApi, materialApi, routingApi } from '../services/api'
 import { fmtDate, fmtRelative, taskStatusColor, taskStatusLabel, issueStatusColor } from '../utils/helpers'
 import { ProjectBadge, IssueBadge, ReworkBadge } from '../components/ui/StatusBadge'
 import clsx from 'clsx'
@@ -246,7 +246,7 @@ function AdminDashboard() {
           <StatCard label="Opened Issues"      value={stats.open_issues}        icon={ExclamationCircleIcon}       color="bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400"     to="/issues" />
           <StatCard label="Pending Reworks"  value={stats.pending_reworks}    icon={ArrowPathIcon}               color="bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400" to="/reworks?status=pending" />
           <StatCard label="Material Requests"    value={stats.pending_materials}  icon={CubeIcon}                    color="bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400" to="/materials?status=pending" />
-          <StatCard label="Staff"    value={Math.max(0, stats.total_employees - 2)}    icon={UserGroupIcon}               color="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" to="/employees" />
+          <StatCard label="Staffs"    value={Math.max(0, stats.total_employees - 2)}    icon={UserGroupIcon}               color="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" to="/employees" />
         </div>
       )}
 
@@ -425,11 +425,16 @@ function Layer2Dashboard() {
 // ── Layer 3 Dashboard ────────────────────────────────────────────────────────
 
 function Layer3Dashboard() {
+  const { user } = useAuth()
   const { data: myTasksData } = useAsync(
     () => taskApi.getMyTasks({ page_size: 8 }), []
   )
   const { data: issuesData } = useAsync(
     () => issueApi.list({ page_size: 5 }), []
+  )
+  const { data: upcomingTasksData } = useAsync(
+    () => user?.department_id ? routingApi.getUpcomingTasks(user.department_id) : Promise.resolve([]),
+    [user?.department_id]
   )
 
   return (
@@ -499,6 +504,37 @@ function Layer3Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Upcoming Tasks Section */}
+      {upcomingTasksData && upcomingTasksData.length > 0 && (
+        <div className="card">
+          <div className="card-header flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <CalendarIcon className="w-5 h-5 text-brand-500" />
+              Upcoming Tasks
+            </h2>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Read-only preview</span>
+          </div>
+          <div className="divide-y divide-gray-100 dark:divide-gray-600">
+            {upcomingTasksData.map((upcoming) => (
+              <div key={upcoming.id} className="flex items-center gap-3 px-5 py-3 bg-gray-50 dark:bg-gray-800/50">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate text-gray-900 dark:text-gray-100">{upcoming.project_name}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{upcoming.step_name || `Step ${upcoming.step_order}`}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">•</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{fmtRelative(upcoming.created_at)}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                  <LockClosedIcon className="w-3.5 h-3.5" />
+                  <span>Upcoming</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

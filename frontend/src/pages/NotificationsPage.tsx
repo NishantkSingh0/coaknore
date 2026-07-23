@@ -75,31 +75,36 @@ const NOTIF_PRIORITY: Record<string, Priority> = {
 
 const getPriority = (type: string): Priority => NOTIF_PRIORITY[type] || 'standard'
 
+// Solid hex values used as an inline-style fallback so the left border
+// ALWAYS renders with the right color on every row, regardless of
+// Tailwind's JIT class scanning / purge behavior.
+const PRIORITY_HEX: Record<Priority, string> = {
+  critical: '#ef4444',   // red-500
+  important: '#f97316',  // orange-500
+  standard: '#9ca3af',   // gray-400
+}
+
 const PRIORITY_META: Record<Priority, {
   label: string
   badge: string
-  border: string
   bgUnread: string
   iconRing: string
 }> = {
   critical: {
     label: 'Critical',
     badge: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-800',
-    border: 'border-l-4 border-l-red-500 dark:border-l-red-500',
     bgUnread: 'bg-red-50/60 dark:bg-red-950/30',
     iconRing: 'bg-red-100 dark:bg-red-950 ring-1 ring-red-200 dark:ring-red-800',
   },
   important: {
     label: 'Important',
-    badge: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
-    border: 'border-l-4 border-l-amber-500 dark:border-l-amber-500',
-    bgUnread: 'bg-amber-50/60 dark:bg-amber-950/20',
-    iconRing: 'bg-amber-100 dark:bg-amber-950 ring-1 ring-amber-200 dark:ring-amber-800',
+    badge: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300 border border-orange-200 dark:border-orange-800',
+    bgUnread: 'bg-orange-50/60 dark:bg-orange-950/20',
+    iconRing: 'bg-orange-100 dark:bg-orange-950 ring-1 ring-orange-200 dark:ring-orange-800',
   },
   standard: {
     label: 'Standard',
     badge: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700',
-    border: 'border-l-4 border-l-gray-300 dark:border-l-gray-600',
     bgUnread: 'bg-brand-50/50 dark:bg-gray-800',
     iconRing: 'bg-gray-100 dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700',
   },
@@ -149,15 +154,15 @@ export default function NotificationsPage() {
       {!loading && data?.data && data.data.length > 0 && (
         <div className="flex items-center gap-4 px-1 text-xs text-gray-500 dark:text-gray-400">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0" />
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PRIORITY_HEX.critical }} />
             Critical
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0" />
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PRIORITY_HEX.important }} />
             Important
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-gray-300 dark:bg-gray-600 flex-shrink-0" />
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PRIORITY_HEX.standard }} />
             Standard
           </span>
         </div>
@@ -182,10 +187,10 @@ export default function NotificationsPage() {
               <div
                 key={notif.id}
                 className={clsx(
-                  'flex items-start gap-3 px-5 py-4 transition-colors',
-                  meta.border,
+                  'flex items-start gap-3 px-5 py-4 transition-colors rounded-md mb-2',
                   !notif.is_read ? meta.bgUnread : 'dark:bg-gray-900'
                 )}
+                style={{ borderLeft: `4px solid ${PRIORITY_HEX[priority]}` }}
               >
                 <span className={clsx(
                   'text-xl flex-shrink-0 mt-0.5 w-9 h-9 rounded-full flex items-center justify-center',

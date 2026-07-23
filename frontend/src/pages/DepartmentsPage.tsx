@@ -165,7 +165,7 @@ export default function DepartmentsPage() {
           message={
             toggleConfirm.active
               ? `Are you sure you want to enable the department "${toggleConfirm.name}"?`
-              : `Are you sure you want to disable the department "${toggleConfirm.name}"? This might affect tasks and employees associated with it.`
+              : `Are you sure you want to disable the department "${toggleConfirm.name}"? This might affect tasks and Staffs associated with it.`
           }
           confirmText={toggleConfirm.active ? 'Enable' : 'Disable'}
           type={toggleConfirm.active ? 'info' : 'warning'}
