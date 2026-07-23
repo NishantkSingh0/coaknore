@@ -19,9 +19,10 @@ import (
 )
 
 type FileService struct {
-	db       *sql.DB
-	s3Client *s3.Client
-	bucket   string
+	db                *sql.DB
+	s3Client          *s3.Client
+	bucket            string
+	compressionService *CompressionService
 }
 
 func NewFileService(db *sql.DB) (*FileService, error) {
@@ -56,7 +57,12 @@ func NewFileService(db *sql.DB) (*FileService, error) {
 		}
 	})
 
-	return &FileService{db: db, s3Client: s3Client, bucket: cfg.AWSS3Bucket}, nil
+	return &FileService{
+		db:                 db,
+		s3Client:           s3Client,
+		bucket:             cfg.AWSS3Bucket,
+		compressionService: NewCompressionService(),
+	}, nil
 }
 
 func (s *FileService) UploadFile(
@@ -68,18 +74,28 @@ func (s *FileService) UploadFile(
 	header *multipart.FileHeader,
 ) (*models.FileAsset, error) {
 
-	ext := filepath.Ext(header.Filename)
+	// Compress file before upload
+	compressedFile, compressedHeader, err := s.compressionService.CompressFile(file, header)
+	if err != nil {
+		// If compression fails, use original file
+		file.Seek(0, 0)
+		compressedFile = file
+		compressedHeader = header
+	}
+	defer compressedFile.Close()
+
+	ext := filepath.Ext(compressedHeader.Filename)
 	uniqueName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
 	s3Key := buildS3Key(orgID, ownerType, ownerID, uniqueName)
 
 	// Upload to S3 (no ACL - use presigned URLs for access)
-	_, err := s.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+	_, err = s.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucket),
 		Key:         aws.String(s3Key),
-		Body:        file,
-		ContentType: aws.String(header.Header.Get("Content-Type")),
+		Body:        compressedFile,
+		ContentType: aws.String(compressedHeader.Header.Get("Content-Type")),
 		ContentDisposition: aws.String(
-			fmt.Sprintf(`inline; filename="%s"`, header.Filename),
+			fmt.Sprintf(`inline; filename="%s"`, compressedHeader.Filename),
 		),
 	})
 	if err != nil {
@@ -247,15 +263,25 @@ func (s *FileService) UploadAvatar(
 	file multipart.File,
 	header *multipart.FileHeader,
 ) (string, error) {
-	ext := filepath.Ext(header.Filename)
+	// Compress avatar before upload
+	compressedFile, compressedHeader, err := s.compressionService.CompressFile(file, header)
+	if err != nil {
+		// If compression fails, use original file
+		file.Seek(0, 0)
+		compressedFile = file
+		compressedHeader = header
+	}
+	defer compressedFile.Close()
+
+	ext := filepath.Ext(compressedHeader.Filename)
 	uniqueName := fmt.Sprintf("avatar_%s_%d%s", employeeID, time.Now().Unix(), ext)
 	s3Key := fmt.Sprintf("org/%s/avatars/%s", orgID, uniqueName)
 
-	_, err := s.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
+	_, err = s.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucket),
 		Key:         aws.String(s3Key),
-		Body:        file,
-		ContentType: aws.String(header.Header.Get("Content-Type")),
+		Body:        compressedFile,
+		ContentType: aws.String(compressedHeader.Header.Get("Content-Type")),
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to upload avatar to S3: %w", err)

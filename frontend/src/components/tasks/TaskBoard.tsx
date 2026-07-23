@@ -127,7 +127,7 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
                   {!task && col.status === 'pending' && (
                     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-gray-900 dark:text-gray-100">
                       <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">{dep}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-400">Pending assignment</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-400">Pending Project Assignment</p>
                     </div>
                   )}
                 </div>

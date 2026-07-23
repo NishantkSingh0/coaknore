@@ -31,12 +31,12 @@ func (h *QueryHandler) CreateQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query, err := h.querySvc.CreateQuery(orgID, empID, req)
+	queries, err := h.querySvc.CreateQuery(orgID, empID, req)
 	if err != nil {
 		utils.BadRequest(w, err.Error())
 		return
 	}
-	utils.Created(w, query)
+	utils.Created(w, queries)
 }
 
 func (h *QueryHandler) SendMessage(w http.ResponseWriter, r *http.Request) {

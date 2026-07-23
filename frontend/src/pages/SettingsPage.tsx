@@ -84,7 +84,7 @@ export default function SettingsPage() {
             <DayNightBtn />
             <button
               onClick={logout}
-              className="flex items-center w-10 h-10 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-500 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-700 transition-all duration-300"
+              className="flex items-center w-10 h-10 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-500 bg-white dark:bg-gray-800 hover:bg-red-400 dark:hover:bg-red-700 transition-all duration-300"
             >
               <ArrowRightOnRectangleIcon
                 className="w-5 h-5 flex-shrink-0 text-black dark:text-gray-100 ml-2 transition-colors duration-300"

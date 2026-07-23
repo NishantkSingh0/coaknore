@@ -393,8 +393,8 @@ export const queryApi = {
     const res = await api.get<ApiResponse<Query>>(`/queries/${id}`)
     return unwrap(res)
   },
-  create: async (data: { project_id: string; recipient_id: string; subject: string; message?: string }) => {
-    const res = await api.post<ApiResponse<Query>>('/queries', data)
+  create: async (data: { project_id: string; recipient_ids: string[]; subject: string; message?: string }) => {
+    const res = await api.post<ApiResponse<Query[]>>('/queries', data)
     return unwrap(res)
   },
   sendMessage: async (id: string, message: string) => {

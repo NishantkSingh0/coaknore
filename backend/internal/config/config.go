@@ -35,6 +35,12 @@ type Config struct {
 	CORSAllowedOrigins string
 	MaxUploadSizeMB    int64
 
+	// Compression settings
+	EnableCompression     bool
+	MaxImageWidth         int
+	MaxImageHeight        int
+	ImageQuality          int
+
 	PasswordResetExpiryHours int
 
 	GeminiAPIKey string
@@ -64,6 +70,11 @@ func Load() {
 	maxUpload, _ := strconv.ParseInt(getEnv("MAX_UPLOAD_SIZE_MB", "50"), 10, 64)
 	pwResetExpiry, _ := strconv.Atoi(getEnv("PASSWORD_RESET_EXPIRY_HOURS", "2"))
 
+	enableCompression := getEnv("ENABLE_COMPRESSION", "true") == "true"
+	maxImageWidth, _ := strconv.Atoi(getEnv("MAX_IMAGE_WIDTH", "1920"))
+	maxImageHeight, _ := strconv.Atoi(getEnv("MAX_IMAGE_HEIGHT", "1080"))
+	imageQuality, _ := strconv.Atoi(getEnv("IMAGE_QUALITY", "85"))
+
 	App = &Config{
 		AppEnv:             getEnv("APP_ENV", "development"),
 		AppPort:            getEnv("APP_PORT", "8080"),
@@ -88,6 +99,11 @@ func Load() {
 		AWSS3Endpoint:      getEnv("AWS_S3_ENDPOINT", ""),
 
 		MaxUploadSizeMB: maxUpload,
+
+		EnableCompression:  enableCompression,
+		MaxImageWidth:     maxImageWidth,
+		MaxImageHeight:    maxImageHeight,
+		ImageQuality:      imageQuality,
 
 		PasswordResetExpiryHours: pwResetExpiry,
 

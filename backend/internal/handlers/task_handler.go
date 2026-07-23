@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -257,6 +258,7 @@ func (h *TaskHandler) UploadSubtaskProof(w http.ResponseWriter, r *http.Request)
 func (h *TaskHandler) SetExpectedCompletionDate(w http.ResponseWriter, r *http.Request) {
 	orgID := middleware.GetOrgID(r)
 	empID := middleware.GetEmployeeID(r)
+	layer := middleware.GetLayer(r)
 	taskID, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
 		utils.BadRequest(w, "Invalid task ID")
@@ -271,7 +273,13 @@ func (h *TaskHandler) SetExpectedCompletionDate(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	task, err := h.taskSvc.SetExpectedCompletionDate(orgID, taskID, empID, req.Date)
+	// Allow Layer1/Level2/SuperAdmin to override date lock
+	overrideLock := layer == models.LayerOne || layer == models.LayerTwo || layer == models.LayerSuperAdmin
+
+	// Debug logging
+	fmt.Printf("DEBUG: SetExpectedCompletionDate - Layer: %s, OverrideLock: %v, TaskID: %s\n", layer, overrideLock, taskID)
+
+	task, err := h.taskSvc.SetExpectedCompletionDate(orgID, taskID, empID, req.Date, overrideLock)
 	if err != nil {
 		utils.BadRequest(w, err.Error())
 		return

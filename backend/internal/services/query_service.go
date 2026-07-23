@@ -20,85 +20,91 @@ func NewQueryService(db *sql.DB, audit *AuditService, notif *NotificationService
 }
 
 type CreateQueryRequest struct {
-	ProjectID   string `json:"project_id"`
-	RecipientID string `json:"recipient_id"`
-	Subject     string `json:"subject"`
-	Message     string `json:"message"`
+	ProjectID    string   `json:"project_id"`
+	RecipientIDs []string `json:"recipient_ids"`
+	Subject      string   `json:"subject"`
+	Message      string   `json:"message"`
 }
 
-func (s *QueryService) CreateQuery(orgID, senderID uuid.UUID, req CreateQueryRequest) (*models.Query, error) {
+func (s *QueryService) CreateQuery(orgID, senderID uuid.UUID, req CreateQueryRequest) ([]*models.Query, error) {
 	if req.Subject == "" {
 		return nil, errors.New("subject is required")
+	}
+	if len(req.RecipientIDs) == 0 {
+		return nil, errors.New("at least one recipient is required")
 	}
 	projectID, err := uuid.Parse(req.ProjectID)
 	if err != nil {
 		return nil, errors.New("invalid project_id")
 	}
-	recipientID, err := uuid.Parse(req.RecipientID)
-	if err != nil {
-		return nil, errors.New("invalid recipient_id")
-	}
-	if senderID == recipientID {
-		return nil, errors.New("cannot send query to yourself")
-	}
 
-	// Validate adjacent layer rule
-	var senderLayer, recipientLayer models.LayerType
-	s.db.QueryRow(`SELECT layer FROM employees WHERE id = $1`, senderID).Scan(&senderLayer)
-	s.db.QueryRow(`SELECT layer FROM employees WHERE id = $1`, recipientID).Scan(&recipientLayer)
-
-	if !isAdjacentLayer(senderLayer, recipientLayer) {
-		return nil, errors.New("communication only allowed between adjacent or same organizational layers")
+	// Parse all recipient IDs
+	recipientIDs := make([]uuid.UUID, 0, len(req.RecipientIDs))
+	for _, rid := range req.RecipientIDs {
+		rID, err := uuid.Parse(rid)
+		if err != nil {
+			return nil, errors.New("invalid recipient_id")
+		}
+		if senderID == rID {
+			return nil, errors.New("cannot send query to yourself")
+		}
+		recipientIDs = append(recipientIDs, rID)
 	}
 
-	tx, err := s.db.Begin()
-	if err != nil {
-		return nil, err
+	// Create individual queries for each recipient
+	var createdQueries []*models.Query
+	for _, recipientID := range recipientIDs {
+		tx, err := s.db.Begin()
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+
+		q := &models.Query{}
+		err = tx.QueryRow(`
+			INSERT INTO queries (project_id, subject, sender_id, recipient_id, status)
+			VALUES ($1,$2,$3,$4,'open')
+			RETURNING id, project_id, subject, sender_id, recipient_id, status,
+			          sender_resolved, recipient_resolved, created_at, updated_at
+		`, projectID, req.Subject, senderID, recipientID).Scan(
+			&q.ID, &q.ProjectID, &q.Subject, &q.SenderID, &q.RecipientID, &q.Status,
+			&q.SenderResolved, &q.RecipientResolved, &q.CreatedAt, &q.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create query: %w", err)
+		}
+
+		// Add initial message if provided
+		if req.Message != "" {
+			tx.Exec(`
+				INSERT INTO query_messages (query_id, sender_id, message)
+				VALUES ($1,$2,$3)
+			`, q.ID, senderID, req.Message)
+		}
+
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+
+		// Load sender/recipient names
+		s.db.QueryRow(`SELECT CONCAT(first_name,' ',last_name), layer FROM employees WHERE id = $1`, senderID).Scan(&q.SenderName, &q.SenderLayer)
+		s.db.QueryRow(`SELECT CONCAT(first_name,' ',last_name), layer FROM employees WHERE id = $1`, recipientID).Scan(&q.RecipientName, &q.RecipientLayer)
+
+		s.auditSvc.Log(AuditEntry{
+			OrgID: orgID, ProjectID: &projectID, ActorID: &senderID,
+			Action: models.AuditCreated, EntityType: "query", EntityID: &q.ID,
+			EntityName: req.Subject,
+		})
+
+		go s.notifSvc.Send(orgID, recipientID, models.NotifQueryReceived,
+			"New Query",
+			fmt.Sprintf("%s sent you a query: %s", q.SenderName, req.Subject),
+			&projectID, "query", &q.ID)
+
+		createdQueries = append(createdQueries, q)
 	}
-	defer tx.Rollback()
 
-	q := &models.Query{}
-	err = tx.QueryRow(`
-		INSERT INTO queries (project_id, subject, sender_id, recipient_id, status)
-		VALUES ($1,$2,$3,$4,'open')
-		RETURNING id, project_id, subject, sender_id, recipient_id, status,
-		          sender_resolved, recipient_resolved, created_at, updated_at
-	`, projectID, req.Subject, senderID, recipientID).Scan(
-		&q.ID, &q.ProjectID, &q.Subject, &q.SenderID, &q.RecipientID, &q.Status,
-		&q.SenderResolved, &q.RecipientResolved, &q.CreatedAt, &q.UpdatedAt,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create query: %w", err)
-	}
-
-	// Add initial message if provided
-	if req.Message != "" {
-		tx.Exec(`
-			INSERT INTO query_messages (query_id, sender_id, message)
-			VALUES ($1,$2,$3)
-		`, q.ID, senderID, req.Message)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	// Load sender/recipient names
-	s.db.QueryRow(`SELECT CONCAT(first_name,' ',last_name), layer FROM employees WHERE id = $1`, senderID).Scan(&q.SenderName, &q.SenderLayer)
-	s.db.QueryRow(`SELECT CONCAT(first_name,' ',last_name), layer FROM employees WHERE id = $1`, recipientID).Scan(&q.RecipientName, &q.RecipientLayer)
-
-	s.auditSvc.Log(AuditEntry{
-		OrgID: orgID, ProjectID: &projectID, ActorID: &senderID,
-		Action: models.AuditCreated, EntityType: "query", EntityID: &q.ID,
-		EntityName: req.Subject,
-	})
-
-	go s.notifSvc.Send(orgID, recipientID, models.NotifQueryReceived,
-		"New Query",
-		fmt.Sprintf("%s sent you a query: %s", q.SenderName, req.Subject),
-		&projectID, "query", &q.ID)
-
-	return q, nil
+	return createdQueries, nil
 }
 
 func (s *QueryService) SendMessage(orgID, queryID, senderID uuid.UUID, message string) (*models.QueryMessage, error) {
@@ -386,19 +392,4 @@ func (s *QueryService) ListQueries(employeeID uuid.UUID, projectID *uuid.UUID, s
 		queries = append(queries, q)
 	}
 	return queries, total, nil
-}
-
-func isAdjacentLayer(a, b models.LayerType) bool {
-	adj := map[models.LayerType][]models.LayerType{
-		models.LayerThree:     {models.LayerThree, models.LayerTwo},
-		models.LayerTwo:       {models.LayerTwo, models.LayerOne, models.LayerSuperAdmin, models.LayerThree},
-		models.LayerOne:       {models.LayerOne, models.LayerTwo},
-		models.LayerSuperAdmin: {models.LayerSuperAdmin, models.LayerTwo},
-	}
-	for _, l := range adj[a] {
-		if l == b {
-			return true
-		}
-	}
-	return false
 }

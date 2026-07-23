@@ -43,7 +43,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
   const [recipientResults, setRecipientResults] = useState<Employee[]>([])
   const [recipientSearching, setRecipientSearching] = useState(false)
   const [recipientSearched, setRecipientSearched] = useState(false)
-  const [selectedRecipient, setSelectedRecipient] = useState<Employee | null>(null)
+  const [selectedRecipients, setSelectedRecipients] = useState<Employee[]>([])
   const [allRecipients, setAllRecipients] = useState<Employee[]>([])
   const [projectSearch, setProjectSearch] = useState('')
   const [projectResults, setProjectResults] = useState<Project[]>([])
@@ -271,21 +271,21 @@ export default function QuerySidebar({ open, onClose }: Props) {
 
   // ── Create query ─────────────────────────────────────────────────────────
   const createQuery = async () => {
-    if (!selectedRecipient || !selectedProject || !subject.trim()) {
-      toast.error('Recipient, project, and subject are required')
+    if (selectedRecipients.length === 0 || !selectedProject || !subject.trim()) {
+      toast.error('At least one recipient, project, and subject are required')
       return
     }
     setCreating(true)
     try {
       const created = await queryApi.create({
         project_id: selectedProject.id,
-        recipient_id: selectedRecipient.id,
+        recipient_ids: selectedRecipients.map(r => r.id),
         subject: subject.trim(),
         message: initialMessage.trim(),
       })
-      toast.success('Query sent')
+      toast.success(`Query sent to ${created.length} recipient(s)`)
       // Reset form
-      setSelectedRecipient(null)
+      setSelectedRecipients([])
       setSelectedProject(null)
       setSubject('')
       setInitialMessage('')
@@ -295,10 +295,12 @@ export default function QuerySidebar({ open, onClose }: Props) {
       setProjectResults([])
       setRecipientSearched(false)
       setAllRecipients([])
-      // Jump directly into the new chat
-      const full = await queryApi.get(created.id)
-      setActiveQuery(full)
-      setView('chat')
+      // Jump directly into the first new chat
+      if (created.length > 0) {
+        const full = await queryApi.get(created[0].id)
+        setActiveQuery(full)
+        setView('chat')
+      }
       loadQueries(true)
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Failed to create query')
@@ -613,80 +615,83 @@ export default function QuerySidebar({ open, onClose }: Props) {
             {/* Recipient search */}
             <div>
               <label className="label dark:text-gray-300">To (search by name or email)</label>
-              {selectedRecipient ? (
-                <div className="flex items-center gap-2 px-3 py-2 bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-700 rounded-lg">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                      {selectedRecipient.first_name} {selectedRecipient.last_name}
-                    </p>
-
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {selectedRecipient.email}
-                      {selectedRecipient.department_name && ` · `}
-                      {selectedRecipient.department_name}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setSelectedRecipient(null)
-                      setRecipientSearched(false)
-                    }}
-                    className="text-gray-400 hover:text-red-500 flex-shrink-0 text-lg leading-none"
-                    aria-label="Remove recipient"
-                  >
-                    ×
-                  </button>
-                </div>
-              ) : (
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={recipientSearch}
-                    onChange={(e) => setRecipientSearch(e.target.value)}
-                    placeholder="Search by name or email..."
-                    className="input w-full dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
-                    autoComplete="off"
-                  />
-                  {/* Dropdown */}
-                  {recipientSearched && (
-                    <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
-                      {recipientSearching ? (
-                        <p className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">Searching...</p>
-                      ) : recipientResults.length > 0 ? (
-                        <div className="max-h-48 overflow-y-auto">
-                          {recipientResults.map((emp) => (
-                            <button
-                              key={emp.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedRecipient(emp)
-                                setRecipientSearch('')
-                                setRecipientResults([])
-                                setRecipientSearched(false)
-                              }}
-                              className="w-full px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700 flex flex-col border-b border-gray-50 dark:border-gray-700 last:border-0"
-                            >
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {emp.first_name} {emp.last_name}
-                              </span>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {emp.email}
-                                {emp.department_name && ` · ${emp.department_name}`}
-                                {emp.layer && ` · ${emp.layer.replace('_', ' ')}`}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : recipientSearched ? (
-                        <p className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
-                          No users found matching your search.
+              
+              {/* Selected recipients chips */}
+              {selectedRecipients.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {selectedRecipients.map((emp) => (
+                    <div
+                      key={emp.id}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-brand-50 dark:bg-brand-900/30 border border-brand-200 dark:border-brand-700 rounded-lg"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {emp.first_name} {emp.last_name}
                         </p>
-                      ) : null}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedRecipients(prev => prev.filter(r => r.id !== emp.id))
+                        }}
+                        className="text-gray-400 hover:text-red-500 flex-shrink-0 text-lg leading-none"
+                        aria-label="Remove recipient"
+                      >
+                        ×
+                      </button>
                     </div>
-                  )}
+                  ))}
                 </div>
               )}
+              
+              <div className="relative">
+                <input
+                  type="text"
+                  value={recipientSearch}
+                  onChange={(e) => setRecipientSearch(e.target.value)}
+                  placeholder="Search by name or email..."
+                  className="input w-full dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500"
+                  autoComplete="off"
+                />
+                {/* Dropdown */}
+                {recipientSearched && (
+                  <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
+                    {recipientSearching ? (
+                      <p className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">Searching...</p>
+                    ) : recipientResults.length > 0 ? (
+                      <div className="max-h-48 overflow-y-auto">
+                        {recipientResults
+                          .filter(emp => !selectedRecipients.some(r => r.id === emp.id))
+                          .map((emp) => (
+                          <button
+                            key={emp.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedRecipients(prev => [...prev, emp])
+                              setRecipientSearch('')
+                              setRecipientResults([])
+                              setRecipientSearched(false)
+                            }}
+                            className="w-full px-3 py-2.5 text-left hover:bg-gray-50 dark:hover:bg-gray-700 flex flex-col border-b border-gray-50 dark:border-gray-700 last:border-0"
+                          >
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {emp.first_name} {emp.last_name}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {emp.email}
+                              {emp.department_name && ` · ${emp.department_name}`}
+                              {emp.layer && ` · ${emp.layer.replace('_', ' ')}`}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : recipientSearched ? (
+                      <p className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                        No users found matching your search.
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Project search */}
@@ -761,7 +766,7 @@ export default function QuerySidebar({ open, onClose }: Props) {
 
             <button
               onClick={createQuery}
-              disabled={creating || !selectedRecipient || !selectedProject || !subject.trim()}
+              disabled={creating || selectedRecipients.length === 0 || !selectedProject || !subject.trim()}
               className="btn-primary w-full disabled:opacity-50"
             >
               {creating ? 'Sending...' : 'Send Query'}

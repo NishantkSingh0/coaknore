@@ -260,7 +260,7 @@ export default function ProjectFormPage() {
         <div className="card">
           <div className="card-header"><h2 className="font-semibold">Project Information</h2></div>
           <div className="card-body grid grid-cols-2 gap-4">
-            <Field label="PO Number"     name="po_number"    required placeholder="PO-2024-001" />
+            <Field label="PO Number"     name="po_number"    required placeholder="56-2026-001" />
             <Field label="Project Name"  name="project_name" required placeholder="Living Room Set" />
             <Field label="Client Name"   name="client_name"  required />
             <Field label="Client Email"  name="client_email" type="email" />

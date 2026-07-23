@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 	"github.com/pms/backend/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -382,27 +381,7 @@ func (s *OrganizationService) GetEmployee(id uuid.UUID) (*models.Employee, error
 
 // SearchEmployeesByEmail searches employees for the query panel recipient search
 func (s *OrganizationService) SearchEmployeesByEmail(orgID uuid.UUID, query string, callerLayer models.LayerType, callerDeptID *uuid.UUID) ([]models.Employee, error) {
-	// Adjacent or same layer:
-	// layer3 can message layer3 and layer2
-	// layer2 can message layer2, layer1, super_admin, and layer3
-	// layer1 can message layer1 and layer2
-	// super_admin can message super_admin and layer2
-	var allowedLayers []string
-	switch callerLayer {
-	case models.LayerThree:
-		allowedLayers = []string{"layer3", "layer2"}
-	case models.LayerTwo:
-		allowedLayers = []string{"layer2", "layer1", "super_admin", "layer3"}
-	case models.LayerOne:
-		allowedLayers = []string{"layer1", "layer2"}
-	case models.LayerSuperAdmin:
-		allowedLayers = []string{"super_admin", "layer2"}
-	}
-
-	if len(allowedLayers) == 0 {
-		return nil, nil
-	}
-
+	// No layer restrictions - any user can communicate with any user
 	rows, err := s.db.Query(`
 		SELECT e.id, e.organization_id, e.department_id, e.email, e.first_name, e.last_name,
 		       e.layer, e.is_active, COALESCE(d.name, '') as dept_name
@@ -410,11 +389,10 @@ func (s *OrganizationService) SearchEmployeesByEmail(orgID uuid.UUID, query stri
 		LEFT JOIN departments d ON d.id = e.department_id
 		WHERE e.organization_id = $1
 		  AND e.is_active = TRUE
-		  AND e.layer = ANY($2)
 		  AND e.email NOT IN ('n@oaknore.in', 'k@oaknore.in')
-		  AND (e.email ILIKE $3 OR e.first_name ILIKE $3 OR e.last_name ILIKE $3)
+		  AND (e.email ILIKE $2 OR e.first_name ILIKE $2 OR e.last_name ILIKE $2)
 		LIMIT 10
-	`, orgID, pq.Array(allowedLayers), "%"+query+"%")
+	`, orgID, "%"+query+"%")
 	if err != nil {
 		return nil, err
 	}

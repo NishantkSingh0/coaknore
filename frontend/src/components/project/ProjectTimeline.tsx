@@ -22,6 +22,7 @@ export default function ProjectTimeline({ projectId }: { projectId: string }) {
     routing_published: 'bg-brand-100 text-brand-700 dark:bg-brand-700/40 dark:text-brand-300',
     revision_created: 'bg-orange-100 text-orange-700 dark:bg-orange-700/40 dark:text-orange-300',
     assigned: 'bg-blue-100 text-blue-700 dark:bg-blue-700/40 dark:text-blue-300',
+    date_changed: 'bg-amber-100 text-amber-700 dark:bg-amber-700/40 dark:text-amber-300',
   }
 
   return (
@@ -58,6 +59,11 @@ export default function ProjectTimeline({ projectId }: { projectId: string }) {
                         {log.entity_type} {log.entity_name ? `— ${log.entity_name}` : ''}
                       </span>
                     </div>
+                    {log.metadata?.change_type === 'date_change' && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        Changed date from {String(log.metadata.old_date || 'Not set')} to {String(log.metadata.new_date)}
+                      </p>
+                    )}
                     {log.actor_name && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">by {log.actor_name}</p>
                     )}

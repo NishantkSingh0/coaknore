@@ -1,3 +1,5 @@
+import { distance } from 'fastest-levenshtein'
+
 // Predefined subtasks for each department with descriptions
 export interface PredefinedSubtask {
   title: string
@@ -263,31 +265,148 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
  * Matches a department name to predefined subtasks using case-insensitive comparison
  * and handles common variations/misspellings
  */
-export function matchDepartmentToSubtasks(departmentName: string): PredefinedSubtask[] {
+const DEPARTMENT_ALIASES: Record<string, string[]> = {
+  upholstery: [
+    'upholstery',
+    'upholster'
+  ],
+  stone: [
+    'stone',
+    'stonework',
+    'stone mason',
+    'stonemason'
+  ],
+  polishing: [
+    'polishing',
+    'polish',
+    'finishing'
+  ],
+  metal: [
+    'metal',
+    'metalwork',
+    'metal fabrication',
+    'welder',
+    'welding'
+  ],
+  carpentry: [
+    'carpentry',
+    'carpenter'
+  ],
+  design: [
+    'design',
+    'designer',
+    'drawing',
+    'drafting',
+    'cad'
+  ]
+}
+
+// Minimum alias length required to allow fuzzy (edit-distance) matching.
+// Short aliases (e.g. "cad") are too error-prone for fuzzy scoring and are
+// only matched via exact word-boundary comparison.
+const MIN_FUZZY_ALIAS_LENGTH = 4
+
+// Confidence threshold required to accept a fuzzy match
+const FUZZY_MATCH_THRESHOLD = 0.9
+
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+}
+
+function similarity(a: string, b: string): number {
+  const maxLength = Math.max(a.length, b.length)
+  if (maxLength === 0) return 1
+
+  return 1 - distance(a, b) / maxLength
+}
+
+// Flat alias -> department lookup, built once at module load, for fast
+// exact/word-boundary matching before falling back to fuzzy scoring.
+const ALIAS_TO_DEPARTMENT: Record<string, string> = {}
+for (const [department, aliases] of Object.entries(DEPARTMENT_ALIASES)) {
+  for (const alias of aliases) {
+    ALIAS_TO_DEPARTMENT[normalize(alias)] = department
+  }
+}
+
+export function matchDepartmentToSubtasks(
+  departmentName: string
+): PredefinedSubtask[] {
   if (!departmentName) return []
-  
-  const normalizedDept = departmentName.toLowerCase().trim()
-  
-  // Direct match
-  if (DEPARTMENT_SUBTASKS[normalizedDept]) {
-    return DEPARTMENT_SUBTASKS[normalizedDept]
+
+  const input = normalize(departmentName)
+  if (!input) return []
+
+  // Exact department key
+  if (DEPARTMENT_SUBTASKS[input]) {
+    return DEPARTMENT_SUBTASKS[input]
   }
-  
-  // Handle common variations
-  const variations: Record<string, string[]> = {
-    upholstery: ['upholstery', 'upholster'],
-    stone: ['stone', 'stones', 'marble', 'granite'],
-    polishing: ['polishing', 'polish', 'finish', 'finishing'],
-    metal: ['metal', 'metals', 'metalwork', 'metal work'],
-    carpentry: ['carpentry', 'woodwork', 'wood work', 'woodworking']
+
+  // Exact alias match (whole string)
+  if (ALIAS_TO_DEPARTMENT[input]) {
+    return DEPARTMENT_SUBTASKS[ALIAS_TO_DEPARTMENT[input]]
   }
-  
-  for (const [key, variants] of Object.entries(variations)) {
-    if (variants.some(variant => normalizedDept.includes(variant))) {
-      return DEPARTMENT_SUBTASKS[key]
+
+  const inputWords = input.split(' ')
+
+  // Word-boundary alias match (e.g. "metal dept" -> "metal")
+  for (const word of inputWords) {
+    if (ALIAS_TO_DEPARTMENT[word]) {
+      return DEPARTMENT_SUBTASKS[ALIAS_TO_DEPARTMENT[word]]
     }
   }
-  
-  // No match found
+
+  // Multi-word phrase match (e.g. "stone mason team" -> "stone mason")
+  for (let i = 0; i < inputWords.length - 1; i++) {
+    const phrase = `${inputWords[i]} ${inputWords[i + 1]}`
+    if (ALIAS_TO_DEPARTMENT[phrase]) {
+      return DEPARTMENT_SUBTASKS[ALIAS_TO_DEPARTMENT[phrase]]
+    }
+  }
+
+  // Fuzzy fallback for typos/misspellings
+  let bestDepartment: string | null = null
+  let bestScore = 0
+
+  for (const [department, aliases] of Object.entries(DEPARTMENT_ALIASES)) {
+    for (const alias of aliases) {
+      const normalizedAlias = normalize(alias)
+
+      // Skip fuzzy scoring for short aliases; they're only matched exactly
+      // (handled above) to avoid false positives from tiny edit distances.
+      if (normalizedAlias.length < MIN_FUZZY_ALIAS_LENGTH) {
+        continue
+      }
+
+      // Compare entire sentence
+      let score = similarity(input, normalizedAlias)
+
+      // Compare each individual word
+      for (const word of inputWords) {
+        score = Math.max(score, similarity(word, normalizedAlias))
+      }
+
+      // Compare every 2-word phrase (helps "metal dept")
+      for (let i = 0; i < inputWords.length - 1; i++) {
+        const phrase = `${inputWords[i]} ${inputWords[i + 1]}`
+        score = Math.max(score, similarity(phrase, normalizedAlias))
+      }
+
+      if (score > bestScore) {
+        bestScore = score
+        bestDepartment = department
+      }
+    }
+  }
+
+  // Require at least 90% confidence
+  if (bestDepartment && bestScore >= FUZZY_MATCH_THRESHOLD) {
+    return DEPARTMENT_SUBTASKS[bestDepartment]
+  }
+
   return []
 }

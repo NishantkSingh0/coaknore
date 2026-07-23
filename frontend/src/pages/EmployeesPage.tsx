@@ -14,8 +14,8 @@ import clsx from 'clsx'
 export default function EmployeesPage() {
   const [search, setSearch] = useState('')
   const [layer, setLayer] = useState<LayerType | ''>('')
+  const [emailEdited, setEmailEdited] = useState(false)
   const [page, setPage] = useState(1)
-
   const { data: empsData, loading, refetch } = useAsync(
     () => orgApi.listEmployees({ page, page_size: 20, search, layer: layer || undefined }),
     [page, search, layer]
@@ -29,14 +29,28 @@ export default function EmployeesPage() {
   const [newPassword, setNewPassword] = useState('')
   const [toggleConfirm, setToggleConfirm] = useState<{ id: string; active: boolean; name: string } | null>(null)
   const [form, setForm] = useState({
-    email: '', password: '', first_name: '', last_name: '',
-    phone: '', layer: 'layer3' as LayerType, department_id: ''
+    email: '',
+    password: '',
+    first_name: '',
+    last_name: '',
+    phone: '',
+    layer: 'layer3' as LayerType,
+    department_id: ''
   })
 
-  const resetForm = () => setForm({
-    email: '', password: '', first_name: '', last_name: '',
-    phone: '', layer: 'layer3', department_id: ''
-  })
+  const resetForm = () => {
+    setEmailEdited(false)
+
+    setForm({
+      email: '',
+      password: '',
+      first_name: '',
+      last_name: '',
+      phone: '',
+      layer: 'layer3',
+      department_id: ''
+    })
+  }
   const filteredDepartments = depts?.filter((d) => d.layer === form.layer) ?? []
   const isAdmin = form.layer === 'layer1'
 
@@ -88,7 +102,7 @@ export default function EmployeesPage() {
       <div className="page-header">
         <h1 className="page-title">Employees</h1>
         <button onClick={() => { resetForm(); setCreateOpen(true) }} className="btn-primary">
-          <PlusIcon className="w-4 h-4" /> New Employee
+          <PlusIcon className="w-4 h-4" /> New Staff
         </button>
       </div>
 
@@ -197,7 +211,7 @@ export default function EmployeesPage() {
       )}
 
       {/* Create Modal */}
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="New Employee" size="lg"
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="New Staff" size="lg"
         footer={
           <>
             <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
@@ -211,7 +225,33 @@ export default function EmployeesPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="label">First Name <span className="text-red-500">*</span></label>
-              <input value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} className="input" />
+              <input
+                value={form.first_name}
+                onChange={(e) => {
+                  const first = e.target.value
+
+                  setForm((prev) => {
+                    const updated = {
+                      ...prev,
+                      first_name: first,
+                    }
+
+                    if (!emailEdited) {
+                      const firstName = first
+                        .trim()
+                        .toLowerCase()
+                        .replace(/\s+/g, "")
+
+                      updated.email = firstName
+                        ? `${firstName}@oaknore.in`
+                        : ""
+                    }
+
+                    return updated
+                  })
+                }}
+                className="input"
+              />
             </div>
             <div>
               <label className="label">Last Name <span className="text-red-500">*</span></label>
@@ -220,7 +260,19 @@ export default function EmployeesPage() {
           </div>
           <div>
             <label className="label">Email <span className="text-red-500">*</span></label>
-            <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="input" />
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => {
+                setEmailEdited(true)
+
+                setForm((prev) => ({
+                  ...prev,
+                  email: e.target.value,
+                }))
+              }}
+              className="input"
+            />
           </div>
           <div>
             <label className="label">Password <span className="text-red-500">*</span></label>
@@ -229,7 +281,7 @@ export default function EmployeesPage() {
           </div>
           <div>
             <label className="label">Phone</label>
-            <input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="input" />
+            <input value={form.phone} placeholder="Helps Navigating Employees Contact." onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="input" />
           </div>
           <div>
             <label className="label">Layer / Role <span className="text-red-500">*</span></label>
@@ -239,20 +291,21 @@ export default function EmployeesPage() {
               <option value="layer3">Execution (Layer 3)</option>
             </select>
           </div>
-          <div>
-            <label className="label">
-              Department {!isAdmin && <span className="text-red-500">*</span>}
-              {isAdmin && <span className="text-gray-400 text-xs font-normal ml-1">(optional for Admin)</span>}
-            </label>
-            <select value={form.department_id} disabled={isAdmin} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, })) } className="input disabled:bg-gray-100 disabled:cursor-not-allowed">
-              <option value="">Select Department</option>
-              {filteredDepartments.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!isAdmin && (
+            <div>
+              <label className="label">
+                Department {!isAdmin && <span className="text-red-500">*</span>}
+              </label>
+              <select value={form.department_id} disabled={isAdmin} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, })) } className="input disabled:bg-gray-500 disabled:cursor-not-allowed">
+                <option value="">Select Department</option>
+                {filteredDepartments.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </Modal>
 

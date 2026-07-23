@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, type DragEvent } from 'react'
 import {
   PlusIcon, TrashIcon, CheckIcon, PlayIcon,
   PencilIcon, ClockIcon, ExclamationTriangleIcon,
+  Bars3Icon, ChevronUpIcon, ChevronDownIcon,
 } from '@heroicons/react/24/outline'
 import { routingApi, orgApi } from '../../services/api'
 import { useAsync } from '../../hooks/useAsync'
@@ -42,6 +43,10 @@ export default function RoutingBuilder({
 
   const [steps, setSteps] = useState<StepDraft[]>([newStep(1)])
   const [routingName, setRoutingName] = useState('')
+
+  // Drag-and-drop step reordering
+  const [draggedStepId, setDraggedStepId] = useState<string | null>(null)
+  const [dragOverStepId, setDragOverStepId] = useState<string | null>(null)
 
   // Modes: 'idle' | 'create' | 'edit'
   const [mode, setMode] = useState<'idle' | 'create' | 'edit'>('idle')
@@ -86,6 +91,59 @@ export default function RoutingBuilder({
 
   const toggleRequireAll = (id: string) => {
     setSteps((s) => s.map((step) => (step.id === id ? { ...step, requireAll: !step.requireAll } : step)))
+  }
+
+  // Reassigns stepOrder to match each step's position in the array (1-based)
+  const renumberSteps = (list: StepDraft[]) => list.map((s, i) => ({ ...s, stepOrder: i + 1 }))
+
+  // Moves the step with `fromId` to sit where `toId` currently is
+  const reorderSteps = (fromId: string, toId: string) => {
+    if (fromId === toId) return
+    setSteps((prev) => {
+      const fromIdx = prev.findIndex((s) => s.id === fromId)
+      const toIdx = prev.findIndex((s) => s.id === toId)
+      if (fromIdx === -1 || toIdx === -1) return prev
+      const updated = [...prev]
+      const [moved] = updated.splice(fromIdx, 1)
+      updated.splice(toIdx, 0, moved)
+      return renumberSteps(updated)
+    })
+  }
+
+  // Nudges a step one position up/down — a keyboard/touch-friendly fallback to dragging
+  const moveStep = (id: string, direction: -1 | 1) => {
+    setSteps((prev) => {
+      const idx = prev.findIndex((s) => s.id === id)
+      const targetIdx = idx + direction
+      if (idx === -1 || targetIdx < 0 || targetIdx >= prev.length) return prev
+      const updated = [...prev]
+      ;[updated[idx], updated[targetIdx]] = [updated[targetIdx], updated[idx]]
+      return renumberSteps(updated)
+    })
+  }
+
+  const handleStepDragStart = (e: DragEvent<HTMLSpanElement>, id: string) => {
+    setDraggedStepId(id)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', id)
+  }
+
+  const handleStepDragOver = (e: DragEvent<HTMLDivElement>, id: string) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (dragOverStepId !== id) setDragOverStepId(id)
+  }
+
+  const handleStepDrop = (e: DragEvent<HTMLDivElement>, targetId: string) => {
+    e.preventDefault()
+    if (draggedStepId) reorderSteps(draggedStepId, targetId)
+    setDraggedStepId(null)
+    setDragOverStepId(null)
+  }
+
+  const handleStepDragEnd = () => {
+    setDraggedStepId(null)
+    setDragOverStepId(null)
   }
 
   const getDeptName = (id: string) => allDepts?.find((d) => d.id === id)?.name || id
@@ -267,85 +325,133 @@ export default function RoutingBuilder({
       />
 
       <div className="space-y-2">
-        {steps.map((step, idx) => (
-          <div key={step.id} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-            <div className="bg-gray-50 dark:bg-gray-800 px-3 py-2.5 flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-black dark:bg-white dark:text-black text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
-                {step.stepOrder}
-              </div>
-
-              {/* Require All / Any toggle — only relevant (and shown) once 2+ departments are picked */}
-              <div
-                className={clsx(
-                  'flex items-center gap-1.5 flex-shrink-0 overflow-hidden transition-all duration-300 ease-out',
-                  step.departmentIds.length >= 2
-                    ? 'max-w-[8rem] opacity-100 scale-100'
-                    : 'max-w-0 opacity-0 scale-95 pointer-events-none'
-                )}
-              >
-                <span className={clsx('text-xs font-semibold whitespace-nowrap', step.requireAll ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500')}>
-                  ALL
-                </span>
-                <button
-                  type="button"
-                  onClick={() => toggleRequireAll(step.id)}
-                  className={clsx(
-                    'relative inline-flex items-center h-5 w-9 rounded-full transition-colors flex-shrink-0',
-                    step.requireAll ? 'bg-black dark:bg-gray-500' : 'bg-gray-300 dark:bg-gray-600'
-                  )}
-                  title={step.requireAll ? 'Require ALL departments — click to switch to ANY' : 'Require ANY department — click to switch to ALL'}
-                  aria-pressed={!step.requireAll}
-                >
-                  <span
-                    className={clsx(
-                      'inline-block h-4 w-4 rounded-full bg-white dark:bg-gray-100 shadow transform transition-transform',
-                      step.requireAll ? 'translate-x-0.5' : 'translate-x-[1.125rem]'
-                    )}
-                  />
-                </button>
-                <span className={clsx('text-xs font-semibold whitespace-nowrap', !step.requireAll ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500')}>
-                  ANY
-                </span>
-              </div>
-
-              <div className="flex-1 flex flex-wrap gap-1.5">
-                {(allDepts || []).filter((d) => d.is_active).map((dept) => {
-                  const selected = step.departmentIds.includes(dept.id)
-                  return (
-                    <button key={dept.id} onClick={() => toggleDept(step.id, dept.id)}
-                      className={clsx(
-                          'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors border',
-                          selected
-                            ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
-                            : 'bg-white dark:bg-gray-900 dark:text-gray-200 dark:border-gray-600 text-gray-700 border-gray-200 hover:border-black dark:hover:border-gray-300'
-                        )}>
-                      {selected && <CheckIcon className="w-3.5 h-3.5" />}
-                      {dept.name}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {steps.length > 1 && (
-                <button onClick={() => removeStep(step.id)}
-                  className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-md flex-shrink-0">
-                  <TrashIcon className="w-4 h-4" />
-                </button>
+        {steps.map((step, idx) => {
+          const isDragging = draggedStepId === step.id
+          const isDropTarget = !!draggedStepId && draggedStepId !== step.id && dragOverStepId === step.id
+          return (
+            <div
+              key={step.id}
+              onDragOver={(e) => handleStepDragOver(e, step.id)}
+              onDrop={(e) => handleStepDrop(e, step.id)}
+              className={clsx(
+                'border rounded-lg overflow-hidden transition-colors',
+                isDragging && 'opacity-50',
+                isDropTarget
+                  ? 'border-black dark:border-white ring-2 ring-black/10 dark:ring-white/10'
+                  : 'border-gray-200 dark:border-gray-700'
               )}
-            </div>
+            >
+              <div className="bg-gray-50 dark:bg-gray-800 px-3 py-2.5 flex items-center gap-2.5">
+                {/* Drag handle + up/down reorder controls */}
+                <div className="flex items-center gap-0.5 flex-shrink-0">
+                  <span
+                    draggable
+                    onDragStart={(e) => handleStepDragStart(e, step.id)}
+                    onDragEnd={handleStepDragEnd}
+                    className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 select-none"
+                    title="Drag to reorder"
+                  >
+                    <Bars3Icon className="w-4 h-4" />
+                  </span>
+                  <div className="flex flex-col -space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => moveStep(step.id, -1)}
+                      disabled={idx === 0}
+                      className="text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-25 disabled:hover:text-gray-400 dark:disabled:hover:text-gray-500"
+                      title="Move step up"
+                    >
+                      <ChevronUpIcon className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveStep(step.id, 1)}
+                      disabled={idx === steps.length - 1}
+                      className="text-gray-400 hover:text-black dark:hover:text-white disabled:opacity-25 disabled:hover:text-gray-400 dark:disabled:hover:text-gray-500"
+                      title="Move step down"
+                    >
+                      <ChevronDownIcon className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
 
-            {/* Cumulative routing summary so far */}
-            {getCumulativeLabel(idx) && (
-              <div className="px-3 py-2 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                  {getCumulativeLabel(idx)}
-                </p>
+                <div className="w-7 h-7 rounded-full bg-black dark:bg-white dark:text-black text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+                  {step.stepOrder}
+                </div>
+
+                {/* Require All / Any toggle — only relevant (and shown) once 2+ departments are picked */}
+                <div
+                  className={clsx(
+                    'flex items-center gap-1.5 flex-shrink-0 overflow-hidden transition-all duration-300 ease-out',
+                    step.departmentIds.length >= 2
+                      ? 'max-w-[8rem] opacity-100 scale-100'
+                      : 'max-w-0 opacity-0 scale-95 pointer-events-none'
+                  )}
+                >
+                  <span className={clsx('text-xs font-semibold whitespace-nowrap', step.requireAll ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500')}>
+                    ALL
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggleRequireAll(step.id)}
+                    className={clsx(
+                      'relative inline-flex items-center h-5 w-9 rounded-full transition-colors flex-shrink-0',
+                      step.requireAll ? 'bg-black dark:bg-gray-500' : 'bg-gray-300 dark:bg-gray-600'
+                    )}
+                    title={step.requireAll ? 'Require ALL departments — click to switch to ANY' : 'Require ANY department — click to switch to ALL'}
+                    aria-pressed={!step.requireAll}
+                  >
+                    <span
+                      className={clsx(
+                        'inline-block h-4 w-4 rounded-full bg-white dark:bg-gray-100 shadow transform transition-transform',
+                        step.requireAll ? 'translate-x-0.5' : 'translate-x-[1.125rem]'
+                      )}
+                    />
+                  </button>
+                  <span className={clsx('text-xs font-semibold whitespace-nowrap', !step.requireAll ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500')}>
+                    ANY
+                  </span>
+                </div>
+
+                <div className="flex-1 flex flex-wrap gap-1.5">
+                  {(allDepts || []).filter((d) => d.is_active).map((dept) => {
+                    const selected = step.departmentIds.includes(dept.id)
+                    return (
+                      <button key={dept.id} onClick={() => toggleDept(step.id, dept.id)}
+                        className={clsx(
+                            'flex items-center gap-1 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors border',
+                            selected
+                              ? 'bg-black text-white border-black dark:bg-white dark:text-black dark:border-white'
+                              : 'bg-white dark:bg-gray-900 dark:text-gray-200 dark:border-gray-600 text-gray-700 border-gray-200 hover:border-black dark:hover:border-gray-300'
+                          )}>
+                        {selected && <CheckIcon className="w-3.5 h-3.5" />}
+                        {dept.name}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {steps.length > 1 && (
+                  <button onClick={() => removeStep(step.id)}
+                    className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-md flex-shrink-0">
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-            )}
 
-            {/* {idx < steps.length - 1 && <div className="text-center py-1 text-gray-400 dark:text-gray-500 text-sm">↓</div>} */}
-          </div>
-        ))}
+              {/* Cumulative routing summary so far */}
+              {getCumulativeLabel(idx) && (
+                <div className="px-3 py-2 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                    {getCumulativeLabel(idx)}
+                  </p>
+                </div>
+              )}
+
+              {/* {idx < steps.length - 1 && <div className="text-center py-1 text-gray-400 dark:text-gray-500 text-sm">↓</div>} */}
+            </div>
+          )
+        })}
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
@@ -445,11 +551,11 @@ export default function RoutingBuilder({
         }
       >
         <div className="space-y-4">
-          <div className="flex gap-3 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+          <div className="flex gap-3 p-4 bg-orange-50 dark:bg-orange-900 border border-orange-200 rounded-xl">
             <ExclamationTriangleIcon className="w-6 h-6 text-orange-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-orange-800">Routing modifications affect downstream departments</p>
-              <p className="text-sm text-orange-700 mt-1">
+              <p className="text-sm font-semibold text-orange-800 dark:text-orange-200">Routing modifications affect downstream departments</p>
+              <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">
                 Editing the routing can disrupt tasks currently in progress. Only modify when absolutely necessary. All changes are recorded in the routing edit timeline.
               </p>
             </div>
@@ -481,12 +587,12 @@ export default function RoutingBuilder({
           </>
         }
       >
-        <div className="flex gap-3 p-4 bg-orange-50 border border-orange-200 rounded-xl">
-          <ExclamationTriangleIcon className="w-6 h-6 text-orange-500 flex-shrink-0 mt-0.5" />
+        <div className="flex gap-3 p-4 bg-orange-50 dark:bg-orange-900 border border-orange-200 rounded-xl">
+          <ExclamationTriangleIcon className="w-6 h-6 text-orange-500 dark:text-orange-200 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-orange-800">Changing this later can cause problems</p>
-            <p className="text-sm text-orange-700 mt-1">
-              Once tasks are generated from this routing, editing it can disrupt work already in progress. Make sure the steps and departments are correct before saving.
+            <p className="text-sm font-semibold text-orange-800 dark:text-orange-200">Changing this later can cause problems</p>
+            <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">
+              Once tasks are generated from this routing, editing it can disrupt work already in progress. Try to Raise Re-Routing Minimal.
             </p>
           </div>
         </div>

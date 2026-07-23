@@ -502,18 +502,25 @@ func (s *TaskService) checkNMinusOneCompletion(orgID, taskID uuid.UUID, task *mo
 
 // SetExpectedCompletionDate sets the expected completion date and locks it.
 // Also transitions task to in_progress automatically.
-func (s *TaskService) SetExpectedCompletionDate(orgID, taskID, actorID uuid.UUID, dateStr string) (*models.DepartmentTask, error) {
+// overrideLock allows Layer1/Level2 to bypass the lock check.
+func (s *TaskService) SetExpectedCompletionDate(orgID, taskID, actorID uuid.UUID, dateStr string, overrideLock bool) (*models.DepartmentTask, error) {
 	task, err := s.GetTask(taskID)
 	if err != nil {
 		return nil, err
 	}
-	if task.CompletionDateLocked {
+	if task.CompletionDateLocked && !overrideLock {
 		return nil, errors.New("expected completion date is locked and cannot be changed")
 	}
 
 	t, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
 		return nil, errors.New("invalid date format, use YYYY-MM-DD")
+	}
+
+	// Store old date for audit log
+	oldDateStr := ""
+	if task.ExpectedCompletionDate != nil {
+		oldDateStr = task.ExpectedCompletionDate.Format("2006-01-02")
 	}
 
 	_, err = s.db.Exec(`
@@ -528,11 +535,42 @@ func (s *TaskService) SetExpectedCompletionDate(orgID, taskID, actorID uuid.UUID
 		return nil, err
 	}
 
+	// Get actor name for audit log
+	actorName := ""
+	if actorID != uuid.Nil {
+		var firstName, lastName sql.NullString
+		s.db.QueryRow(`SELECT first_name, last_name FROM employees WHERE id = $1`, actorID).Scan(&firstName, &lastName)
+		if firstName.Valid && lastName.Valid {
+			actorName = fmt.Sprintf("%s %s", firstName.String, lastName.String)
+		} else if firstName.Valid {
+			actorName = firstName.String
+		} else if lastName.Valid {
+			actorName = lastName.String
+		}
+	}
+
 	s.auditSvc.Log(AuditEntry{
-		OrgID: orgID, ProjectID: &task.ProjectID, ActorID: &actorID,
-		Action: models.AuditUpdated, EntityType: "task", EntityID: &taskID,
+		OrgID:      orgID,
+		ProjectID:  &task.ProjectID,
+		ActorID:    &actorID,
+		ActorName:  actorName,
+		Action:     models.AuditUpdated,
+		EntityType: "task",
+		EntityID:   &taskID,
 		EntityName: task.DepartmentName,
-		AfterState: map[string]string{"expected_completion_date": dateStr},
+		BeforeState: map[string]string{
+			"expected_completion_date": oldDateStr,
+		},
+		AfterState: map[string]string{
+			"expected_completion_date": dateStr,
+		},
+		Metadata: map[string]interface{}{
+			"change_type": "date_change",
+			"department":  task.DepartmentName,
+			"old_date":    oldDateStr,
+			"new_date":    dateStr,
+			"lock_override": overrideLock,
+		},
 	})
 
 	return s.GetTask(taskID)

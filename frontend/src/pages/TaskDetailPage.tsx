@@ -52,6 +52,7 @@ export default function TaskDetailPage() {
   
   const [proofConfirm, setProofConfirm] = useState<{ subtaskId: string; file: File; previewUrl: string } | null>(null)
   const [uploadingProof, setUploadingProof] = useState(false)
+  const [dateChangeConfirm, setDateChangeConfirm] = useState<{ oldDate: string; newDate: string } | null>(null)
 
   // ── handlers ──────────────────────────────────────────────────────────────
   const handleStatusChange = async (status: TaskStatus) => {
@@ -126,10 +127,26 @@ export default function TaskDetailPage() {
 
   const handleSetExpectedCompletion = async () => {
     if (!expectedDate) { toast.error('Please select a date'); return }
+    
+    // For Level1/Level2, show confirmation popup
+    if (!isLayerThree) {
+      const oldDate = task?.expected_completion_date ? fmtDate(task.expected_completion_date) : 'Not set'
+      setDateChangeConfirm({ oldDate, newDate: expectedDate })
+      return
+    }
+    
+    // For Layer3, proceed directly
+    await executeDateChange(expectedDate)
+  }
+
+  const executeDateChange = async (date: string) => {
     setSettingDate(true)
     try {
-      await taskApi.setExpectedCompletion(id!, expectedDate)
-      toast.success('Expected completion date set, task is now In Progress'); refetch()
+      await taskApi.setExpectedCompletion(id!, date)
+      toast.success('Expected completion date set, task is now In Progress')
+      refetch()
+      setDateChangeConfirm(null)
+      setExpectedDate('')
     } catch (err: unknown) {
       toast.error((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to set date')
     } finally { setSettingDate(false) }
@@ -416,17 +433,18 @@ export default function TaskDetailPage() {
         </div>
       </div>
 
-      {/* ── Expected Completion Date (Layer 3) ─────────────────────────────────── */}
-      {isLayerThree && (
-        <div className="card p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Expected Completion Date</p>
-              {task.expected_completion_date && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmtDate(task.expected_completion_date)}</p>
-              )}
-            </div>
-            {task.completion_date_locked ? (
+      {/* ── Expected Completion Date ───────────────────────────────────────────── */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Expected Completion Date</p>
+            {task.expected_completion_date && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{fmtDate(task.expected_completion_date)}</p>
+            )}
+          </div>
+          {isLayerThree ? (
+            // Layer3: Date is locked, show locked status
+            task.completion_date_locked ? (
               <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
                 <LockClosedIcon className="w-3 h-3" /> Locked
               </span>
@@ -446,10 +464,27 @@ export default function TaskDetailPage() {
                   {settingDate ? 'Setting...' : 'Set Date'}
                 </button>
               </div>
-            )}
-          </div>
+            )
+          ) : (
+            // Level1/Level2: Can edit date with confirmation
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={expectedDate}
+                onChange={(e) => setExpectedDate(e.target.value)}
+                className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:[color-scheme:dark]"
+              />
+              <button
+                onClick={handleSetExpectedCompletion}
+                disabled={settingDate || !expectedDate}
+                className="btn-primary whitespace-nowrap"
+              >
+                {settingDate ? 'Setting...' : 'Set Date'}
+              </button>
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* ── Project Info (Layer 3) ───────────────────────────────────────────────── */}
       {isLayerThree && rp && (
@@ -604,6 +639,19 @@ export default function TaskDetailPage() {
             </div>
           )}
         </ConfirmationModal>
+      )}
+
+      {dateChangeConfirm && (
+        <ConfirmationModal
+          open={!!dateChangeConfirm}
+          onClose={() => setDateChangeConfirm(null)}
+          onConfirm={() => executeDateChange(dateChangeConfirm.newDate)}
+          title="Confirm Date Change"
+          message={`Are you sure you want to change the expected completion date for ${task.department_name} from ${dateChangeConfirm.oldDate} to ${dateChangeConfirm.newDate}? This action will be recorded in the timeline.`}
+          confirmText="Confirm Change"
+          type="warning"
+          loading={settingDate}
+        />
       )}
     </div>
   )
