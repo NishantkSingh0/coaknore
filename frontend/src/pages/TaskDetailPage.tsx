@@ -516,12 +516,20 @@ export default function TaskDetailPage() {
       {/* ── Project Info (Layer 3) ───────────────────────────────────────────────── */}
       {isLayerThree && rp && (
         <div className="card p-4">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Project Information</h3>
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+              Project Information
+            </h3>
+            <h1 className="inline-flex items-center px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200">
+              {rp.quantity || 'N/A'} UNIT
+            </h1>
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">PO Number</p>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{rp.po_number || 'N/A'}</p>
             </div>
+
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">Routed Date</p>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{rp.routed_to_dept_at ? fmtDate(rp.routed_to_dept_at) : 'N/A'}</p>

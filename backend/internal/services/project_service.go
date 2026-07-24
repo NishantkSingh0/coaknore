@@ -329,9 +329,10 @@ func (s *ProjectService) GetProjectRestricted(projectID, deptID uuid.UUID) (map[
 	var routedAt sql.NullTime
 	var expectedCompletion sql.NullTime
 	var completionLocked bool
+	var quantity int
 
 	err := s.db.QueryRow(`
-		SELECT p.po_number, p.render_files_url,
+		SELECT p.po_number, p.render_files_url, p.quantity,
 		       f.id as drawing_id, f.s3_key as drawing_key, f.original_name as drawing_name,
 		       t.routed_to_dept_at, t.expected_completion_date, t.completion_date_locked
 		FROM projects p
@@ -341,7 +342,7 @@ func (s *ProjectService) GetProjectRestricted(projectID, deptID uuid.UUID) (map[
 		ORDER BY t.created_at DESC
 		LIMIT 1
 	`, projectID, deptID).Scan(
-		&poNumber, &renderFilesURL,
+		&poNumber, &renderFilesURL, &quantity,
 		&drawFileID, &drawFileKey, &drawFileName,
 		&routedAt, &expectedCompletion, &completionLocked,
 	)
@@ -367,6 +368,7 @@ func (s *ProjectService) GetProjectRestricted(projectID, deptID uuid.UUID) (map[
 		"drawing_url":             drawingURL,
 		"drawing_name":            drawFileName.String,
 		"completion_date_locked":  completionLocked,
+		"quantity":                quantity,
 	}
 	if routedAt.Valid {
 		result["routed_to_dept_at"] = routedAt.Time
