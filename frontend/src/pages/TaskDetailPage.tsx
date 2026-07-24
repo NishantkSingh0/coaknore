@@ -516,13 +516,13 @@ export default function TaskDetailPage() {
       {/* ── Project Info (Layer 3) ───────────────────────────────────────────────── */}
       {isLayerThree && rp && (
         <div className="card p-4">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-5 mb-3">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">
               Project Information
             </h3>
-            <h1 className="inline-flex items-center px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200">
+            <h3 className="inline-flex items-center px-[6px] py-[2px] rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200">
               {rp.quantity || 'N/A'} UNIT
-            </h1>
+            </h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

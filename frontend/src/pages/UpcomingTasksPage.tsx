@@ -61,7 +61,7 @@ export default function UpcomingTasksPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="badge-gray bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                        Step {upcoming.step_order}
+                        You are at Routing Step&nbsp; <b>{upcoming.step_order}</b>
                       </span>
                       {isComingSoon(upcoming) ? (
                         <span className="text-xs text-orange-500 dark:text-orange-400 flex items-center gap-1">

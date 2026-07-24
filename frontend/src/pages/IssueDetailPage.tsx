@@ -131,7 +131,7 @@ export default function IssueDetailPage() {
         <div className="card border-l-4 border-l-blue-500">
             <div className="card-body">
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-300 mb-1">
-              {issue.status === 'approved' ? '✅ Approved' : '❌ Rejected'} by {issue.reviewed_by_name}
+              {issue.status === 'approved' || issue.resolved_by ? '✅ Approved' : '❌ Rejected'} by {issue.reviewed_by_name}
             </p>
             {issue.review_notes && <p className="text-sm text-gray-700">{issue.review_notes}</p>}
             <p className="text-xs text-gray-400 dark:text-gray-300 mt-1">{fmtDateTime(issue.reviewed_at)}</p>

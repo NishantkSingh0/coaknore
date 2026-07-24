@@ -209,10 +209,14 @@ export default function ProjectDetailPage() {
 
 
             <div className="card">
-              <div className="card-header"><h3 className="font-semibold">Project Details</h3></div>
+              <div className="card-header flex items-center justify-between">
+                <h3 className="font-semibold">Project Details</h3>
+                <span className="inline-flex items-center px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-200 dark:bg-gray-700 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                  {project.quantity || 'N/A'} UNIT
+                </span>
+              </div>
               <div className="card-body grid grid-cols-2 gap-4 text-sm">
                 {[
-                  ['Quantity', project.quantity],
                   ['Client', project.client_name],
                   ['Client Email', project.client_email || '—'],
                   ['Client Phone', project.client_phone || '—'],
