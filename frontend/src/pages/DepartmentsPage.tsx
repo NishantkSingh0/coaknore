@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PlusIcon, BuildingOfficeIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, BuildingOfficeIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
 import { orgApi } from '../services/api'
 import { useAsync, useAsyncAction } from '../hooks/useAsync'
 import Modal from '../components/ui/Modal'
@@ -46,7 +46,11 @@ export default function DepartmentsPage() {
             'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
             dept.layer === 'layer2' ? 'bg-purple-100' : 'bg-blue-100'
           )}>
-            <BuildingOfficeIcon className={clsx('w-5 h-5', dept.layer === 'layer2' ? 'text-purple-600' : 'text-blue-600')} />
+            {dept.layer === 'layer2' ? (
+              <BuildingOfficeIcon className="w-5 h-5 text-purple-600" />
+            ) : (
+              <WrenchScrewdriverIcon className="w-5 h-5 text-blue-600" />
+            )}         
           </div>
           <div>
             <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{dept.name}</p>

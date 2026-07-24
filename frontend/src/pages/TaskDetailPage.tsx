@@ -32,7 +32,7 @@ export default function TaskDetailPage() {
     () => (isLayerThree && task?.project_id ? projectApi.getRestricted(task.project_id) : Promise.resolve(null)),
     [task?.project_id, isLayerThree]
   )
-  console.log(restrictedProject)
+  // console.log('Task routing_is_latest:', task?.routing_is_latest)
 
   // modals
   const [addSubtaskOpen, setAddSubtaskOpen] = useState(false)
@@ -206,7 +206,7 @@ export default function TaskDetailPage() {
   const rp = restrictedProject as Record<string, string> | null
 
   // ── shared modal JSX (declared before any return, so both views can use them)
-  const predefinedTasks = task?.department_name ? matchDepartmentToSubtasks(task.department_name) : []
+  const predefinedTasks = task?.department_name ? matchDepartmentToSubtasks(task.department_name) || [] : []
   
   const toggleTaskSelection = (taskTitle: string) => {
     if (selectedPredefinedTasks.includes(taskTitle)) {
@@ -413,10 +413,26 @@ export default function TaskDetailPage() {
         </div>
         {canAct && !isUpcoming && (
           <div className="flex gap-2">
-            <button onClick={() => setAddSubtaskOpen(true)} className="btn-secondary flex items-center gap-1">
+            <button 
+              onClick={() => setAddSubtaskOpen(true)} 
+              disabled={!task.routing_is_latest}
+              className={clsx(
+                "btn-secondary flex items-center gap-1",
+                !task.routing_is_latest && "opacity-50 cursor-not-allowed"
+              )}
+              title={!task.routing_is_latest ? "Cannot add subtasks to superseded routing tasks" : "Add Subtask"}
+            >
               <PlusIcon className="w-4 h-4" /> Add Subtask
             </button>
-            <button onClick={() => setRaiseIssueOpen(true)} className="btn-danger flex items-center gap-1">
+            <button 
+              onClick={() => setRaiseIssueOpen(true)} 
+              disabled={!task.routing_is_latest}
+              className={clsx(
+                "btn-danger flex items-center gap-1",
+                !task.routing_is_latest && "opacity-50 cursor-not-allowed"
+              )}
+              title={!task.routing_is_latest ? "Cannot raise issues for superseded routing tasks" : "Raise Issue"}
+            >
               <ExclamationCircleIcon className="w-4 h-4" /> Raise Issue
             </button>
           </div>
@@ -449,9 +465,9 @@ export default function TaskDetailPage() {
             </span>
           ) : isLayerThree ? (
             // Layer3: Date is locked, show locked status
-            task.completion_date_locked ? (
+            task.completion_date_locked || !task.routing_is_latest ? (
               <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                <LockClosedIcon className="w-3 h-3" /> Locked
+                <LockClosedIcon className="w-3 h-3" /> {!task.routing_is_latest ? "Superseded routing - Read only" : "Locked"}
               </span>
             ) : (
               <div className="flex items-center gap-2">
@@ -472,21 +488,27 @@ export default function TaskDetailPage() {
             )
           ) : (
             // Level1/Level2: Can edit date with confirmation
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={expectedDate}
-                onChange={(e) => setExpectedDate(e.target.value)}
-                className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:[color-scheme:dark]"
-              />
-              <button
-                onClick={handleSetExpectedCompletion}
-                disabled={settingDate || !expectedDate}
-                className="btn-primary whitespace-nowrap"
-              >
-                {settingDate ? 'Setting...' : 'Set Date'}
-              </button>
-            </div>
+            !task.routing_is_latest ? (
+              <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                <LockClosedIcon className="w-3 h-3" /> Superseded routing - Read only
+              </span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={expectedDate}
+                  onChange={(e) => setExpectedDate(e.target.value)}
+                  className="input dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:[color-scheme:dark]"
+                />
+                <button
+                  onClick={handleSetExpectedCompletion}
+                  disabled={settingDate || !expectedDate}
+                  className="btn-primary whitespace-nowrap"
+                >
+                  {settingDate ? 'Setting...' : 'Set Date'}
+                </button>
+              </div>
+            )
           )}
         </div>
       </div>
@@ -627,7 +649,7 @@ export default function TaskDetailPage() {
             setProofConfirm(null)
           }}
           onConfirm={handleConfirmProofUpload}
-          title="Submit Subtask Proof"
+          title="Submit Task Completion Proof"
           message="Are you sure you want to submit this proof? Once submitted, the subtask will be marked as completed automatically."
           confirmText="Submit"
           type="info"

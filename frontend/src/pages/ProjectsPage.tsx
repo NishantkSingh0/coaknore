@@ -131,10 +131,19 @@ export default function ProjectsPage() {
                   </td>
                   <td className="font-mono text-xs" title={project.po_number}>{project.po_number.length > 25 ? `${project.po_number.slice(0, 20)}...` : project.po_number}</td>                  
                   <td>{project.client_name}</td>
-                  <td><ProjectBadge status={project.status} /></td>
+                  <td>
+                    {project.active_task_status ? (
+                      <ProjectBadge status={project.active_task_status as ProjectStatus} />
+                    ) : (
+                      <ProjectBadge status={project.status} />
+                    )}
+                  </td>
                   <td>{fmtDate(project.delivery_date)}</td>
                   <td>
                     <span className="badge-gray">v{project.current_revision}</span>
+                    {project.active_department_name && (
+                      <span className="badge-blue ml-2">{project.active_department_name}</span>
+                    )}
                   </td>
                   <td className="text-gray-500">{fmtDate(project.created_at)}</td>
                 </tr>

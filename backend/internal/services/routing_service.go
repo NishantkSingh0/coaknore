@@ -47,15 +47,12 @@ func (s *RoutingService) CreateRouting(orgID, projectID, createdBy uuid.UUID, re
 		return nil, errors.New("routing must have at least one step")
 	}
 
-	// Enforce one-routing-per-project: if an active routing exists, reject creation
-	var existingCount int
-	s.db.QueryRow(`SELECT COUNT(*) FROM routings WHERE project_id = $1 AND status IN ('active','draft')`, projectID).Scan(&existingCount)
-	if existingCount > 0 {
-		return nil, errors.New("a routing already exists for this project — use UpdateRouting to modify it")
-	}
+	// Get the next version number for this project
+	var nextVersion int
+	s.db.QueryRow(`SELECT COALESCE(MAX(version), 0) + 1 FROM routings WHERE project_id = $1`, projectID).Scan(&nextVersion)
 
-	// Version is always 1 for first creation
-	version := 1
+	// Version is the next available number
+	version := nextVersion
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -70,16 +67,18 @@ func (s *RoutingService) CreateRouting(orgID, projectID, createdBy uuid.UUID, re
 		rID, rProjectID, rCreatedBy             uuid.UUID
 		rVersion                                int
 		rName, rDesc, rStatus, rRoutingType     sql.NullString
+		rIsLatest                               bool
 		rCreatedAt, rUpdatedAt                  interface{}
 	)
 
 	err = tx.QueryRow(`
-		INSERT INTO routings (project_id, version, name, description, status, routing_type, created_by)
-		VALUES ($1, $2, $3, $4, 'draft', 'standard', $5)
-		RETURNING id, project_id, version, name, description, status, routing_type, created_by, created_at, updated_at
+		INSERT INTO routings (project_id, version, name, description, status, routing_type, created_by, is_latest)
+		VALUES ($1, $2, $3, $4, 'draft', 'standard', $5, TRUE)
+		RETURNING id, project_id, version, name, description, status, routing_type, created_by, is_latest, created_at, updated_at
 	`, projectID, version, nullStr(req.Name), nullStr(req.Description), createdBy).Scan(
 		&rID, &rProjectID, &rVersion,
 		&rName, &rDesc, &rStatus, &rRoutingType, &rCreatedBy,
+		&rIsLatest,
 		&rCreatedAt, &rUpdatedAt,
 	)
 	if err != nil {
@@ -93,6 +92,7 @@ func (s *RoutingService) CreateRouting(orgID, projectID, createdBy uuid.UUID, re
 		Status:      models.RoutingStatus(rStatus.String),
 		RoutingType: rRoutingType.String,
 		CreatedBy:   rCreatedBy,
+		IsLatest:    rIsLatest,
 	}
 	if rName.Valid {
 		routing.Name = rName.String
@@ -157,31 +157,37 @@ func (s *RoutingService) CreateRouting(orgID, projectID, createdBy uuid.UUID, re
 	return routing, nil
 }
 
-// ── UpdateRouting ─────────────────────────────────────────────────────────────
-// Edits the steps of the existing (draft or active) routing for a project.
-// Records every change in routing_edit_timeline.
+// ── CreateNewRoutingVersion ───────────────────────────────────────────────────
+// Creates a new routing version instead of editing the existing one.
+// This is the new approach for routing modifications.
 
-type UpdateRoutingRequest struct {
+type CreateNewRoutingVersionRequest struct {
 	Name           string             `json:"name"`
 	Description    string             `json:"description"`
-	EditReason     string             `json:"edit_reason"`
+	ChangeReason   string             `json:"change_reason"` // Required: reason for creating new version
 	Steps          []RoutingStepInput `json:"steps"`
 }
 
-func (s *RoutingService) UpdateRouting(orgID, routingID, editorID uuid.UUID, req UpdateRoutingRequest, editorEmail, editorName string) (*models.Routing, error) {
-	if req.EditReason == "" {
-		return nil, errors.New("edit_reason is required when modifying routing")
+func (s *RoutingService) CreateNewRoutingVersion(orgID, previousRoutingID, creatorID uuid.UUID, req CreateNewRoutingVersionRequest, creatorEmail, creatorName string) (*models.Routing, error) {
+	if req.ChangeReason == "" {
+		return nil, errors.New("change_reason is required when creating a new routing version")
 	}
 	if len(req.Steps) == 0 {
 		return nil, errors.New("routing must have at least one step")
 	}
 
+	// Get previous routing details
 	var projectID uuid.UUID
-	var currentStatus models.RoutingStatus
-	err := s.db.QueryRow(`SELECT project_id, status FROM routings WHERE id = $1`, routingID).Scan(&projectID, &currentStatus)
+	var previousVersion int
+	var previousStatus models.RoutingStatus
+	err := s.db.QueryRow(`SELECT project_id, version, status FROM routings WHERE id = $1`, previousRoutingID).Scan(&projectID, &previousVersion, &previousStatus)
 	if err != nil {
-		return nil, errors.New("routing not found")
+		return nil, errors.New("previous routing not found")
 	}
+
+	// Get the next version number for this project
+	var nextVersion int
+	s.db.QueryRow(`SELECT COALESCE(MAX(version), 0) + 1 FROM routings WHERE project_id = $1`, projectID).Scan(&nextVersion)
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -189,18 +195,57 @@ func (s *RoutingService) UpdateRouting(orgID, routingID, editorID uuid.UUID, req
 	}
 	defer tx.Rollback()
 
-	// Update routing header
-	tx.Exec(`
-		UPDATE routings SET name = $1, description = $2, updated_at = NOW() WHERE id = $3
-	`, nullStr(req.Name), nullStr(req.Description), routingID)
+	// Mark previous routing as not latest and supersede it
+	_, err = tx.Exec(`
+		UPDATE routings SET is_latest = FALSE, status = 'superseded', updated_at = NOW() 
+		WHERE id = $1
+	`, previousRoutingID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to mark previous routing as superseded: %w", err)
+	}
 
-	// Delete existing steps and regenerate (simpler than diffing)
-	tx.Exec(`DELETE FROM routing_steps WHERE routing_id = $1`, routingID)
+	// ── Insert new routing header ────────────────────────────────────────────────
+	var (
+		rID, rProjectID, rCreatedBy             uuid.UUID
+		rVersion                                int
+		rName, rDesc, rStatus, rRoutingType     sql.NullString
+		rIsLatest                               bool
+		rCreatedAt, rUpdatedAt                  interface{}
+	)
 
-	var routing models.Routing
-	routing.ID = routingID
-	routing.ProjectID = projectID
+	err = tx.QueryRow(`
+		INSERT INTO routings (project_id, version, name, description, status, routing_type, created_by, parent_routing_id, is_latest, change_reason)
+		VALUES ($1, $2, $3, $4, 'draft', 'standard', $5, $6, TRUE, $7)
+		RETURNING id, project_id, version, name, description, status, routing_type, created_by, is_latest, created_at, updated_at
+	`, projectID, nextVersion, nullStr(req.Name), nullStr(req.Description), creatorID, previousRoutingID, req.ChangeReason).Scan(
+		&rID, &rProjectID, &rVersion,
+		&rName, &rDesc, &rStatus, &rRoutingType, &rCreatedBy,
+		&rIsLatest,
+		&rCreatedAt, &rUpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new routing version: %w", err)
+	}
 
+	routing := &models.Routing{
+		ID:              rID,
+		ProjectID:       rProjectID,
+		Version:         rVersion,
+		Status:          models.RoutingStatus(rStatus.String),
+		RoutingType:     rRoutingType.String,
+		CreatedBy:       rCreatedBy,
+		ParentRoutingID: &previousRoutingID,
+		IsLatest:        rIsLatest,
+		ChangeReason:    req.ChangeReason,
+	}
+	if rName.Valid {
+		routing.Name = rName.String
+	}
+	if rDesc.Valid {
+		routing.Description = rDesc.String
+	}
+
+	// ── Create routing steps ───────────────────────────────────────────────────────
 	for _, stepInput := range req.Steps {
 		if stepInput.DependencyPolicy == "" {
 			stepInput.DependencyPolicy = models.RequireAll
@@ -210,13 +255,13 @@ func (s *RoutingService) UpdateRouting(orgID, routingID, editorID uuid.UUID, req
 			INSERT INTO routing_steps (routing_id, step_order, name, dependency_policy)
 			VALUES ($1, $2, $3, $4)
 			RETURNING id
-		`, routingID, stepInput.StepOrder, nullStr(stepInput.Name), stepInput.DependencyPolicy).Scan(&stepID)
+		`, rID, stepInput.StepOrder, nullStr(stepInput.Name), stepInput.DependencyPolicy).Scan(&stepID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create routing step %d: %w", stepInput.StepOrder, err)
 		}
 
 		step := models.RoutingStep{
-			ID: stepID, RoutingID: routingID,
+			ID: stepID, RoutingID: rID,
 			StepOrder: stepInput.StepOrder, Name: stepInput.Name,
 			DependencyPolicy: stepInput.DependencyPolicy, IsActive: true,
 		}
@@ -233,24 +278,62 @@ func (s *RoutingService) UpdateRouting(orgID, routingID, editorID uuid.UUID, req
 		routing.Steps = append(routing.Steps, step)
 	}
 
-	// Record in edit timeline
+	// ── Record in routing edit timeline ───────────────────────────────────────────
 	tx.Exec(`
-		INSERT INTO routing_edit_timeline (routing_id, edited_by, editor_email, editor_name, edit_reason)
-		VALUES ($1, $2, $3, $4, $5)
-	`, routingID, editorID, editorEmail, editorName, req.EditReason)
+		INSERT INTO routing_edit_timeline (routing_id, previous_routing_id, new_routing_id, edited_by, editor_email, editor_name, edit_reason, change_type)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, 'new_version')
+	`, previousRoutingID, previousRoutingID, rID, creatorID, creatorEmail, creatorName, req.ChangeReason)
 
 	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 
+	// ── Handle Level3 task cleanup ─────────────────────────────────────────────────
+	// Remove tasks from the previous routing from Level3 MyTasks and UpcomingTasks
+	// This effectively "resets" the project for Level3 departments
+	go s.handleRoutingVersionChangeForLevel3(projectID, previousRoutingID, rID)
+
 	s.auditSvc.Log(AuditEntry{
-		OrgID: orgID, ProjectID: &projectID, ActorID: &editorID,
-		Action: models.AuditUpdated, EntityType: "routing", EntityID: &routingID,
-		EntityName: fmt.Sprintf("Routing updated by %s", editorEmail),
-		Metadata:   map[string]string{"edit_reason": req.EditReason},
+		OrgID: orgID, ProjectID: &projectID, ActorID: &creatorID,
+		Action: models.AuditCreated, EntityType: "routing_version", EntityID: &rID,
+		EntityName: fmt.Sprintf("New routing version %d created by %s with Reason: %s", nextVersion, creatorEmail, req.ChangeReason),
+		Metadata: map[string]string{
+			"previous_routing_id": previousRoutingID.String(),
+			"change_reason":        req.ChangeReason,
+		},
 	})
 
-	return s.GetRouting(routingID)
+	return s.GetRouting(rID)
+}
+
+// ── handleRoutingVersionChangeForLevel3 ─────────────────────────────────────────
+// Handles the cleanup of Level3 tasks when a new routing version is created.
+// This removes old tasks from MyTasks and UpcomingTasks, effectively resetting the project for Level3.
+
+func (s *RoutingService) handleRoutingVersionChangeForLevel3(projectID, previousRoutingID, newRoutingID uuid.UUID) {
+	// Mark tasks from previous routing as archived/historical
+	_, err := s.db.Exec(`
+		UPDATE department_tasks 
+		SET status = 'archived', 
+		    completed_at = NOW()
+		WHERE routing_id = $1 AND status NOT IN ('completed', 'archived')
+	`, previousRoutingID)
+	if err != nil {
+		fmt.Printf("Error archiving previous routing tasks: %v\n", err)
+	}
+
+	// Remove upcoming tasks for the previous routing
+	_, err = s.db.Exec(`
+		DELETE FROM upcoming_tasks 
+		WHERE routing_id = $1
+	`, previousRoutingID)
+	if err != nil {
+		fmt.Printf("Error removing previous routing upcoming tasks: %v\n", err)
+	}
+
+	// Generate new upcoming tasks for the new routing
+	// This will be done when the new routing is published
+	fmt.Printf("Routing version change handled: Previous routing %s archived, new routing %s ready for task generation\n", previousRoutingID, newRoutingID)
 }
 
 // ── GetEditTimeline ──────────────────────────────────────────────────────────
@@ -370,6 +453,15 @@ func (s *RoutingService) PublishRouting(orgID, routingID, publishedBy uuid.UUID)
 // ── Task generation ───────────────────────────────────────────────────────────
 
 func (s *RoutingService) generateTasksFromRouting(orgID, projectID, routingID, _ uuid.UUID) {
+	// Check if this is the latest routing version for the project
+	var isLatest bool
+	err := s.db.QueryRow(`SELECT is_latest FROM routings WHERE id = $1`, routingID).Scan(&isLatest)
+	if err != nil || !isLatest {
+		// Only generate tasks for the latest routing version
+		fmt.Printf("Skipping task generation for routing %s (not latest version)\n", routingID)
+		return
+	}
+
 	steps, err := s.GetRoutingSteps(routingID)
 	if err != nil {
 		return
@@ -382,36 +474,46 @@ func (s *RoutingService) generateTasksFromRouting(orgID, projectID, routingID, _
 	var pName string
 	s.db.QueryRow(`SELECT project_name FROM projects WHERE id = $1`, projectID).Scan(&pName)
 
-	// Only create tasks for the first step (step_order = 1)
-	// Subsequent steps will be activated when previous steps complete
-	firstStep := steps[0]
-	for _, dept := range firstStep.Departments {
-		var taskID uuid.UUID
-		err := s.db.QueryRow(`
-			INSERT INTO department_tasks (project_id, routing_id, routing_step_id, department_id, status, routed_to_dept_at)
-			VALUES ($1, $2, $3, $4, 'on_hold', NOW())
-			ON CONFLICT DO NOTHING
-			RETURNING id
-		`, projectID, routingID, firstStep.ID, dept.ID).Scan(&taskID)
-		if err != nil {
-			continue
-		}
-		go s.notifSvc.NotifyDepartment(orgID, dept.ID, models.NotifTaskAssigned,
-			"New Task Assigned",
-			fmt.Sprintf("You have a new task for project: %s", pName),
-			&projectID, "task", &taskID,
-		)
-	}
-
-	// Create upcoming tasks for all subsequent steps (step_order > 1)
-	for i := 1; i < len(steps); i++ {
-		step := steps[i]
+	// Sequential routing flow for Level3:
+	// - First step: create tasks with 'on_hold' status
+	// - Other steps: create upcoming_tasks entries
+	for _, step := range steps {
 		for _, dept := range step.Departments {
-			s.db.Exec(`
-				INSERT INTO upcoming_tasks (project_id, routing_id, routing_step_id, department_id, step_order)
-				VALUES ($1, $2, $3, $4, $5)
-				ON CONFLICT DO NOTHING
-			`, projectID, routingID, step.ID, dept.ID, step.StepOrder)
+			if step.StepOrder == 1 {
+				// First step: create tasks with 'on_hold' status
+				var taskID uuid.UUID
+				err := s.db.QueryRow(`
+					INSERT INTO department_tasks (project_id, routing_id, routing_step_id, department_id, status, routed_to_dept_at)
+					VALUES ($1, $2, $3, $4, 'on_hold', NOW())
+					ON CONFLICT DO NOTHING
+					RETURNING id
+				`, projectID, routingID, step.ID, dept.ID).Scan(&taskID)
+				if err != nil {
+					continue
+				}
+				// Notify first step departments
+				go s.notifSvc.NotifyDepartment(orgID, dept.ID, models.NotifTaskAssigned,
+					"New Task Assigned",
+					fmt.Sprintf("You have a new task for project: %s. Please set expected completion date to start.", pName),
+					&projectID, "task", &taskID,
+				)
+			} else {
+				// Other steps: create upcoming_tasks entries
+				_, err := s.db.Exec(`
+					INSERT INTO upcoming_tasks (project_id, routing_id, routing_step_id, department_id, step_order)
+					VALUES ($1, $2, $3, $4, $5)
+					ON CONFLICT DO NOTHING
+				`, projectID, routingID, step.ID, dept.ID, step.StepOrder)
+				if err != nil {
+					fmt.Printf("Error creating upcoming task: %v\n", err)
+				}
+				// Notify upcoming departments
+				go s.notifSvc.NotifyDepartment(orgID, dept.ID, models.NotifTaskAssigned,
+					"Upcoming Project",
+					fmt.Sprintf("Project %s is coming soon to your department. You will be notified when it's your turn.", pName),
+					&projectID, "project", &projectID,
+				)
+			}
 		}
 	}
 }
@@ -420,13 +522,14 @@ func (s *RoutingService) generateTasksFromRouting(orgID, projectID, routingID, _
 
 func (s *RoutingService) GetRouting(id uuid.UUID) (*models.Routing, error) {
 	var r models.Routing
-	var rName, rDesc, rParentID, rCreatedByName sql.NullString
+	var rName, rDesc, rParentID, rCreatedByName, rChangeReason sql.NullString
 	var rPubAt sql.NullTime
 
 	err := s.db.QueryRow(`
 		SELECT r.id, r.project_id, r.version,
 		       r.name, r.description, r.status,
 		       r.parent_routing_id, r.routing_type, r.created_by, r.published_at,
+		       r.is_latest, r.change_reason,
 		       r.created_at, r.updated_at,
 		       COALESCE(CONCAT(e.first_name, ' ', e.last_name), '') AS created_by_name
 		FROM routings r
@@ -436,6 +539,7 @@ func (s *RoutingService) GetRouting(id uuid.UUID) (*models.Routing, error) {
 		&r.ID, &r.ProjectID, &r.Version,
 		&rName, &rDesc, &r.Status,
 		&rParentID, &r.RoutingType, &r.CreatedBy, &rPubAt,
+		&r.IsLatest, &rChangeReason,
 		&r.CreatedAt, &r.UpdatedAt, &rCreatedByName,
 	)
 	if err == sql.ErrNoRows {
@@ -460,6 +564,9 @@ func (s *RoutingService) GetRouting(id uuid.UUID) (*models.Routing, error) {
 	}
 	if rCreatedByName.Valid {
 		r.CreatedByName = rCreatedByName.String
+	}
+	if rChangeReason.Valid {
+		r.ChangeReason = rChangeReason.String
 	}
 
 	r.Steps, _ = s.GetRoutingSteps(r.ID)
@@ -517,7 +624,8 @@ func (s *RoutingService) ListProjectRoutings(projectID uuid.UUID) ([]models.Rout
 		SELECT r.id, r.project_id, r.version,
 		       COALESCE(r.name, '') AS name,
 		       r.status, r.routing_type, r.created_by,
-		       r.published_at, r.created_at, r.updated_at,
+		       r.published_at, r.is_latest, r.change_reason, r.parent_routing_id,
+		       r.created_at, r.updated_at,
 		       COALESCE(CONCAT(e.first_name, ' ', e.last_name), '') AS created_by_name
 		FROM routings r
 		LEFT JOIN employees e ON e.id = r.created_by
@@ -533,17 +641,25 @@ func (s *RoutingService) ListProjectRoutings(projectID uuid.UUID) ([]models.Rout
 	for rows.Next() {
 		var r models.Routing
 		var rPubAt sql.NullTime
-		var rCreatedByName sql.NullString
+		var rCreatedByName, rParentID, rChangeReason sql.NullString
 		rows.Scan(
 			&r.ID, &r.ProjectID, &r.Version,
 			&r.Name, &r.Status, &r.RoutingType, &r.CreatedBy,
-			&rPubAt, &r.CreatedAt, &r.UpdatedAt, &rCreatedByName,
+			&rPubAt, &r.IsLatest, &rChangeReason, &rParentID,
+			&r.CreatedAt, &r.UpdatedAt, &rCreatedByName,
 		)
 		if rPubAt.Valid {
 			r.PublishedAt = &rPubAt.Time
 		}
 		if rCreatedByName.Valid {
 			r.CreatedByName = rCreatedByName.String
+		}
+		if rParentID.Valid {
+			pid, _ := uuid.Parse(rParentID.String)
+			r.ParentRoutingID = &pid
+		}
+		if rChangeReason.Valid {
+			r.ChangeReason = rChangeReason.String
 		}
 		r.Steps, _ = s.GetRoutingSteps(r.ID)
 		routings = append(routings, r)
@@ -714,7 +830,7 @@ func (s *RoutingService) ActivateNextStep(orgID, projectID, routingID uuid.UUID,
 
 		go s.notifSvc.NotifyDepartment(orgID, dept.ID, models.NotifTaskAssigned,
 			"New Task Activated",
-			fmt.Sprintf("Your department has a new task for: %s", pName),
+			fmt.Sprintf("Your department has a new task for: %s. Please set expected completion date to start.", pName),
 			&projectID, "task", &taskID,
 		)
 	}
@@ -778,10 +894,11 @@ func (s *RoutingService) GetUpcomingTasksForDepartment(departmentID uuid.UUID) (
 		JOIN projects p ON p.id = ut.project_id
 		JOIN routing_steps rs ON rs.id = ut.routing_step_id
 		JOIN departments d ON d.id = ut.department_id
+		JOIN routings r ON r.id = ut.routing_id
 		LEFT JOIN department_tasks dt ON dt.routing_id = ut.routing_id 
 			AND dt.routing_step_id = (SELECT rs2.id FROM routing_steps rs2 WHERE rs2.routing_id = ut.routing_id AND rs2.step_order = ut.step_order - 1 LIMIT 1)
 		LEFT JOIN current_step cs ON cs.routing_id = ut.routing_id
-		WHERE ut.department_id = $1
+		WHERE ut.department_id = $1 AND r.is_latest = TRUE
 		ORDER BY ut.step_order ASC, ut.created_at ASC
 	`, departmentID)
 	if err != nil {

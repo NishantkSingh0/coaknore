@@ -19,6 +19,7 @@ const COLUMNS: { status: TaskStatus; label: string; description: string; color: 
 
 export default function TaskBoard({ projectId }: { projectId: string }) {
   const { isLayerThree } = useAuth()
+  const [expandedRoutings, setExpandedRoutings] = useState<Set<string>>(new Set())
 
   const { data: tasks, loading } = useAsync(
     () => taskApi.getProjectTasks(projectId),
@@ -36,24 +37,122 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
     </div>
   }
 
-  // Get active routing to determine all departments in the workflow
-  const activeRouting = routings?.find(r => r.status === 'active')
-  
-  // Collect all departments from routing steps
-  const routingDepartments = new Map<string, { id: string; name: string }>()
-  if (activeRouting) {
-    activeRouting.steps.forEach(step => {
-      step.departments.forEach(dept => {
-        if (!routingDepartments.has(dept.name)) {
-          routingDepartments.set(dept.name, { id: dept.id, name: dept.name })
-        }
-      })
+  // Group tasks by routing_id
+  const tasksByRouting = new Map<string, DepartmentTask[]>()
+  ;(tasks || []).forEach((t) => {
+    const routingId = t.routing_id || 'none'
+    if (!tasksByRouting.has(routingId)) {
+      tasksByRouting.set(routingId, [])
+    }
+    tasksByRouting.get(routingId)!.push(t)
+  })
+
+  // Sort routings by version descending (latest first)
+  const sortedRoutings = (routings || []).sort((a, b) => b.version - a.version)
+
+  // Expand latest routing by default
+  if (expandedRoutings.size === 0 && sortedRoutings.length > 0) {
+    const latestRouting = sortedRoutings.find(r => r.is_latest)
+    if (latestRouting) {
+      setExpandedRoutings(new Set([latestRouting.id]))
+    }
+  }
+
+  const toggleRouting = (routingId: string) => {
+    setExpandedRoutings(prev => {
+      const next = new Set(prev)
+      if (next.has(routingId)) {
+        next.delete(routingId)
+      } else {
+        next.add(routingId)
+      }
+      return next
     })
   }
 
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-gray-900 dark:text-gray-100">Task Board</h3>
+        <span className="text-sm text-gray-500 dark:text-gray-400">{tasks?.length || 0} tasks total</span>
+      </div>
+
+      {(!routings || routings.length === 0) && (
+        <div className="card p-8 text-center text-gray-400 dark:text-gray-500">
+          <p className="text-sm">No routings yet. Create a routing to generate tasks.</p>
+        </div>
+      )}
+
+      {sortedRoutings.map((routing) => {
+        const routingTasks = tasksByRouting.get(routing.id) || []
+        const isExpanded = expandedRoutings.has(routing.id)
+
+        return (
+          <div key={routing.id} className="card">
+            <div
+              className="card-header cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => toggleRouting(routing.id)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
+                    v{routing.version}{routing.name ? ` — ${routing.name}` : ''}
+                  </span>
+                  {routing.is_latest && (
+                    <span className="badge-green text-xs">Latest</span>
+                  )}
+                  <span className={`badge text-xs ${
+                    routing.status === 'active' ? 'badge-green' :
+                    routing.status === 'draft' ? 'badge-blue' : 
+                    routing.status === 'superseded' ? 'badge-orange' : 'badge-gray'
+                  }`}>
+                    {routing.status}
+                  </span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {routingTasks.length} tasks
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {routing.change_reason && (
+                    <span className="text-xs text-gray-400 dark:text-gray-500 max-w-xs truncate">
+                      {routing.change_reason}
+                    </span>
+                  )}
+                  <ClockIcon className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </div>
+              </div>
+            </div>
+
+            {isExpanded && (
+              <div className="card-body">
+                {routingTasks.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400 dark:text-gray-500">
+                    <p className="text-sm">No routing is published for this routing version.</p>
+                  </div>
+                ) : (
+                  <RoutingTaskBoard routing={routing} tasks={routingTasks} />
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function RoutingTaskBoard({ routing, tasks }: { routing: Routing; tasks: DepartmentTask[] }) {
+  // Collect all departments from routing steps
+  const routingDepartments = new Map<string, { id: string; name: string }>()
+  routing.steps.forEach(step => {
+    step.departments.forEach(dept => {
+      if (!routingDepartments.has(dept.name)) {
+        routingDepartments.set(dept.name, { id: dept.id, name: dept.name })
+      }
+    })
+  })
+
   // Preserve department order as they first appear in the routing, then tasks.
-  // Each department gets a fixed row, regardless of which status column
-  // its task currently sits in.
   const departmentOrder: string[] = []
   const taskByDept = new Map<string, DepartmentTask>()
   
@@ -64,78 +163,63 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
     }
   })
   
-  // Then add departments from existing tasks (in case routing is not set yet)
-  ;(tasks || []).forEach((t) => {
+  // Then add departments from existing tasks
+  tasks.forEach((t) => {
     const key = t.department_name || 'Unknown'
     if (!departmentOrder.includes(key)) {
       departmentOrder.push(key)
     }
-    // If a department somehow has multiple tasks, keep the first one
-    // for row placement (adjust here if multiple tasks per dept/row is needed).
     if (!taskByDept.has(key)) {
       taskByDept.set(key, t)
     }
   })
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-100">Task Board</h3>
-        <span className="text-sm text-gray-500 dark:text-gray-400">{tasks?.length || 0} tasks total</span>
+    <div className="overflow-x-auto pb-2">
+      <div
+        className="grid gap-x-3 min-w-[900px]"
+        style={{ gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(0, 1fr))` }}
+      >
+        {/* Header row */}
+        {COLUMNS.map((col) => {
+          const count = departmentOrder.filter(
+            (dep) => taskByDept.get(dep)?.status === col.status
+          ).length
+          return (
+            <div
+              key={col.status}
+              title={col.description}
+              className={`rounded-lg border p-2 mb-2 ${col.color} flex items-center justify-between cursor-default`}
+            >
+              <span className="text-xs font-semibold text-gray-600 dark:text-gray-200">
+                {col.label}
+              </span>
+              <span className="text-xs bg-white/80 dark:bg-gray-700/70 text-gray-500 dark:text-gray-200 rounded-full px-2 py-0.5">
+                {count}
+              </span>
+            </div>
+          )
+        })}
+
+        {/* One row per department, in stable order */}
+        {departmentOrder.map((dep) => {
+          const task = taskByDept.get(dep)
+          return COLUMNS.map((col) => (
+            <div
+              key={`${dep}-${col.status}`}
+              className={`py-1 px-2 ${col.bg}`}
+            >
+              {task && task.status === col.status && <TaskCard task={task} />}
+              {!task && col.status === 'pending' && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-gray-900 dark:text-gray-100">
+                  <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">{dep}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-400">Pending Project Assignment</p>
+                </div>
+              )}
+            </div>
+          ))
+        })}
       </div>
-
-      {tasks && tasks.length === 0 ? (
-        <div className="card p-8 text-center text-gray-400 dark:text-gray-500">
-          <p className="text-sm">No tasks yet. Publish a routing to generate tasks.</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto pb-2">
-          <div
-            className="grid gap-x-3 min-w-[900px]"
-            style={{ gridTemplateColumns: `repeat(${COLUMNS.length}, minmax(0, 1fr))` }}
-          >
-            {/* Header row */}
-            {COLUMNS.map((col) => {
-              const count = departmentOrder.filter(
-                (dep) => taskByDept.get(dep)?.status === col.status
-              ).length
-              return (
-                <div
-                  key={col.status}
-                  title={col.description}
-                  className={`rounded-lg border p-2 mb-2 ${col.color} flex items-center justify-between cursor-default`}
-                >
-                  <span className="text-xs font-semibold text-gray-600 dark:text-gray-200">
-                    {col.label}
-                  </span>
-                  <span className="text-xs bg-white/80 dark:bg-gray-700/70 text-gray-500 dark:text-gray-200 rounded-full px-2 py-0.5">
-                    {count}
-                  </span>
-                </div>
-              )
-            })}
-
-            {/* One row per department, in stable order */}
-            {departmentOrder.map((dep) => {
-              const task = taskByDept.get(dep)
-              return COLUMNS.map((col) => (
-                <div
-                  key={`${dep}-${col.status}`}
-                  className={`py-1 px-2 ${col.bg}`}
-                >
-                  {task && task.status === col.status && <TaskCard task={task} />}
-                  {!task && col.status === 'pending' && (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 text-gray-900 dark:text-gray-100">
-                      <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">{dep}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-400">Pending Project Assignment</p>
-                    </div>
-                  )}
-                </div>
-              ))
-            })}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

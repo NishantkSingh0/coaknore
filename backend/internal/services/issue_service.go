@@ -49,6 +49,19 @@ func (s *IssueService) RaiseIssue(orgID, projectID, deptID, raisedBy uuid.UUID, 
 		}
 		taskID = id
 
+		// Check if task belongs to a superseded routing
+		var routingIsLatest bool
+		s.db.QueryRow(`
+			SELECT COALESCE(r.is_latest, TRUE) as routing_is_latest
+			FROM department_tasks t
+			LEFT JOIN routings r ON r.id = t.routing_id
+			WHERE t.id = $1
+		`, id).Scan(&routingIsLatest)
+		
+		if !routingIsLatest {
+			return nil, errors.New("cannot raise issues for tasks from superseded routing versions")
+		}
+
 		// Set task to issue_hold
 		s.db.Exec(`UPDATE department_tasks SET status = 'issue_hold', updated_at = NOW() WHERE id = $1`, id)
 	}

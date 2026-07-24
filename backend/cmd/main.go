@@ -199,6 +199,7 @@ func main() {
 			// Routing builder
 			r.Post("/api/projects/{projectId}/routings", routingHandler.CreateRouting)
 			r.Put("/api/routings/{id}", routingHandler.UpdateRouting)
+			r.Post("/api/routings/{id}/new-version", routingHandler.CreateNewRoutingVersion)
 			r.Post("/api/routings/{id}/publish", routingHandler.PublishRouting)
 			r.Get("/api/routing-templates", routingHandler.GetTemplates)
 

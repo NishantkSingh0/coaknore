@@ -240,6 +240,13 @@ export const routingApi = {
     const res = await api.put<ApiResponse<Routing>>(`/routings/${routingId}`, data)
     return unwrap(res)
   },
+  createNewVersion: async (routingId: string, data: {
+    name?: string; description?: string; change_reason: string;
+    steps: Array<{ step_order: number; name?: string; dependency_policy: DependencyPolicy; department_ids: string[] }>
+  }) => {
+    const res = await api.post<ApiResponse<Routing>>(`/routings/${routingId}/new-version`, data)
+    return unwrap(res)
+  },
   publish: async (id: string) => {
     const res = await api.post<ApiResponse<Routing>>(`/routings/${id}/publish`)
     return unwrap(res)

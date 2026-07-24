@@ -338,7 +338,7 @@ export default function EmployeesPage() {
             setToggleConfirm(null)
             await handleToggle(id, active)
           }}
-          title={toggleConfirm.active ? 'Enable Employee' : 'Disable Employee'}
+          title={toggleConfirm.active ? `Enable ${toggleConfirm.name}` : `Disable ${toggleConfirm.name}`}
           message={
             toggleConfirm.active
               ? `Are you sure you want to enable ${toggleConfirm.name}? They will regain access to the system.`

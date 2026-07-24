@@ -452,6 +452,80 @@ func (s *ProjectService) ListProjects(orgID uuid.UUID, status, search string, pa
 		}
 		projects = append(projects, p)
 	}
+
+	// Fetch active task status and department name for each project
+	for i := range projects {
+		// Get active routing ID (is_latest = TRUE, not superseded)
+		var activeRoutingID uuid.UUID
+		err := s.db.QueryRow(`
+			SELECT id FROM routings 
+			WHERE project_id = $1 AND is_latest = TRUE AND status != 'superseded'
+			LIMIT 1
+		`, projects[i].ID).Scan(&activeRoutingID)
+		
+		if err != nil {
+			continue
+		}
+		
+		// Priority 1: Check for issue_hold
+		var deptName sql.NullString
+		err = s.db.QueryRow(`
+			SELECT d.name FROM department_tasks dt
+			JOIN departments d ON d.id = dt.department_id
+			WHERE dt.project_id = $1 AND dt.routing_id = $2 AND dt.status = 'issue_hold'
+			LIMIT 1
+		`, projects[i].ID, activeRoutingID).Scan(&deptName)
+		
+		if err == nil && deptName.Valid {
+			projects[i].ActiveTaskStatus = "issue_hold"
+			projects[i].ActiveDepartmentName = deptName.String
+			continue
+		}
+		
+		// Priority 2: Check for on_hold
+		err = s.db.QueryRow(`
+			SELECT d.name FROM department_tasks dt
+			JOIN departments d ON d.id = dt.department_id
+			WHERE dt.project_id = $1 AND dt.routing_id = $2 AND dt.status = 'on_hold'
+			LIMIT 1
+		`, projects[i].ID, activeRoutingID).Scan(&deptName)
+		
+		if err == nil && deptName.Valid {
+			projects[i].ActiveTaskStatus = "on_hold"
+			projects[i].ActiveDepartmentName = deptName.String
+			continue
+		}
+		
+		// Priority 3: Check for in_progress
+		err = s.db.QueryRow(`
+			SELECT d.name FROM department_tasks dt
+			JOIN departments d ON d.id = dt.department_id
+			WHERE dt.project_id = $1 AND dt.routing_id = $2 AND dt.status = 'in_progress'
+			LIMIT 1
+		`, projects[i].ID, activeRoutingID).Scan(&deptName)
+		
+		if err == nil && deptName.Valid {
+			projects[i].ActiveTaskStatus = "in_progress"
+			projects[i].ActiveDepartmentName = deptName.String
+			continue
+		}
+		
+		// Priority 4: Check if all completed
+		var allCompleted bool
+		s.db.QueryRow(`
+			SELECT NOT EXISTS (
+				SELECT 1 FROM department_tasks dt
+				WHERE dt.project_id = $1 AND dt.routing_id = $2
+				AND dt.status NOT IN ('completed', 'archived')
+			)
+		`, projects[i].ID, activeRoutingID).Scan(&allCompleted)
+		
+		if allCompleted {
+			projects[i].ActiveTaskStatus = "completed"
+			projects[i].ActiveDepartmentName = "All Departments"
+		}
+	}
+
 	return projects, total, nil
 }
 

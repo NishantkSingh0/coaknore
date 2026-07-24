@@ -43,6 +43,11 @@ func (h *RoutingHandler) CreateRouting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *RoutingHandler) UpdateRouting(w http.ResponseWriter, r *http.Request) {
+	// This endpoint is deprecated - use CreateNewRoutingVersion instead
+	utils.BadRequest(w, "UpdateRouting is deprecated. Use CreateNewRoutingVersion endpoint instead.")
+}
+
+func (h *RoutingHandler) CreateNewRoutingVersion(w http.ResponseWriter, r *http.Request) {
 	orgID := middleware.GetOrgID(r)
 	empID := middleware.GetEmployeeID(r)
 	routingID, err := uuid.Parse(chi.URLParam(r, "id"))
@@ -51,22 +56,22 @@ func (h *RoutingHandler) UpdateRouting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req services.UpdateRoutingRequest
+	var req services.CreateNewRoutingVersionRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		utils.BadRequest(w, "Invalid request body")
 		return
 	}
 
-	// Retrieve editor info from token context
-	editorEmail := middleware.GetEditorEmail(r)
-	editorName := middleware.GetEditorName(r)
+	// Retrieve creator info from token context
+	creatorEmail := middleware.GetEditorEmail(r)
+	creatorName := middleware.GetEditorName(r)
 
-	routing, err := h.routingSvc.UpdateRouting(orgID, routingID, empID, req, editorEmail, editorName)
+	routing, err := h.routingSvc.CreateNewRoutingVersion(orgID, routingID, empID, req, creatorEmail, creatorName)
 	if err != nil {
 		utils.BadRequest(w, err.Error())
 		return
 	}
-	utils.Success(w, routing)
+	utils.Created(w, routing)
 }
 
 func (h *RoutingHandler) GetEditTimeline(w http.ResponseWriter, r *http.Request) {

@@ -32,6 +32,7 @@ func (s *TaskService) GetTask(id uuid.UUID) (*models.DepartmentTask, error) {
 	var expectedCompletion, routedAt sql.NullTime
 	var completionLocked bool
 	var deptName, projName sql.NullString
+	var routingIsLatest bool
 
 	err := s.db.QueryRow(`
 		SELECT t.id, t.project_id, t.routing_id, t.routing_step_id, t.department_id,
@@ -39,10 +40,12 @@ func (s *TaskService) GetTask(id uuid.UUID) (*models.DepartmentTask, error) {
 		       t.start_date, t.due_date, t.dates_frozen, t.started_at, t.completed_at,
 		       t.expected_completion_date, t.completion_date_locked, t.routed_to_dept_at,
 		       t.created_at, t.updated_at, COALESCE(d.name,'') as dept_name,
-		       COALESCE(p.project_name,'') as project_name
+		       COALESCE(p.project_name,'') as project_name,
+		       COALESCE(r.is_latest, TRUE) as routing_is_latest
 		FROM department_tasks t
 		LEFT JOIN departments d ON d.id = t.department_id
 		LEFT JOIN projects p ON p.id = t.project_id
+		LEFT JOIN routings r ON r.id = t.routing_id
 		WHERE t.id = $1
 	`, id).Scan(
 		&t.ID, &t.ProjectID, &t.RoutingID, &t.RoutingStepID, &t.DepartmentID,
@@ -50,6 +53,7 @@ func (s *TaskService) GetTask(id uuid.UUID) (*models.DepartmentTask, error) {
 		&startDate, &dueDate, &t.DatesFrozen, &startedAt, &completedAt,
 		&expectedCompletion, &completionLocked, &routedAt,
 		&t.CreatedAt, &t.UpdatedAt, &deptName, &projName,
+		&routingIsLatest,
 	)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("task not found")
@@ -89,6 +93,7 @@ func (s *TaskService) GetTask(id uuid.UUID) (*models.DepartmentTask, error) {
 	if routedAt.Valid {
 		t.RoutedToDeptAt = &routedAt.Time
 	}
+	t.RoutingIsLatest = routingIsLatest
 
 	t.AssignedEmployees, _ = s.getTaskEmployees(id)
 	t.Subtasks, _ = s.GetSubtasks(id)
@@ -101,9 +106,11 @@ func (s *TaskService) GetProjectTasks(projectID uuid.UUID, deptID *uuid.UUID) ([
 		SELECT t.id, t.project_id, t.routing_id, t.routing_step_id, t.department_id,
 		       COALESCE(t.title,''), t.priority, t.status,
 		       t.start_date, t.due_date, t.dates_frozen, t.started_at, t.completed_at,
-		       t.created_at, t.updated_at, COALESCE(d.name,'') as dept_name
+		       t.created_at, t.updated_at, COALESCE(d.name,'') as dept_name,
+		       COALESCE(r.is_latest, TRUE) as routing_is_latest
 		FROM department_tasks t
 		LEFT JOIN departments d ON d.id = t.department_id
+		LEFT JOIN routings r ON r.id = t.routing_id
 		WHERE t.project_id = $1
 	`
 	args := []interface{}{projectID}
@@ -123,11 +130,13 @@ func (s *TaskService) GetProjectTasks(projectID uuid.UUID, deptID *uuid.UUID) ([
 	for rows.Next() {
 		var t models.DepartmentTask
 		var startDate, dueDate, startedAt, completedAt sql.NullTime
+		var routingIsLatest bool
 		rows.Scan(
 			&t.ID, &t.ProjectID, &t.RoutingID, &t.RoutingStepID, &t.DepartmentID,
 			&t.Title, &t.Priority, &t.Status,
 			&startDate, &dueDate, &t.DatesFrozen, &startedAt, &completedAt,
 			&t.CreatedAt, &t.UpdatedAt, &t.DepartmentName,
+			&routingIsLatest,
 		)
 		if startDate.Valid {
 			t.StartDate = &startDate.Time
@@ -141,6 +150,7 @@ func (s *TaskService) GetProjectTasks(projectID uuid.UUID, deptID *uuid.UUID) ([
 		if completedAt.Valid {
 			t.CompletedAt = &completedAt.Time
 		}
+		t.RoutingIsLatest = routingIsLatest
 		tasks = append(tasks, t)
 	}
 	return tasks, nil
@@ -223,6 +233,9 @@ func (s *TaskService) UpdateTaskStatus(orgID, taskID, actorID uuid.UUID, status 
 		fmt.Sprintf("Task in %s changed to %s", task.DepartmentName, status),
 		&task.ProjectID, "task", &taskID)
 
+	// Update project status based on active department status
+	go s.updateProjectStatusBasedOnActiveTask(task.ProjectID, taskID, status)
+
 	// If completed, evaluate routing gate
 	if status == models.TaskCompleted {
 		go s.evaluateAndAdvanceRouting(orgID, task, actorID)
@@ -260,6 +273,54 @@ func (s *TaskService) evaluateAndAdvanceRouting(orgID uuid.UUID, task *models.De
 	}
 
 	s.routingSvc.ActivateNextStep(orgID, task.ProjectID, task.RoutingID, nextStep, actorID)
+}
+
+// updateProjectStatusBasedOnActiveTask updates project status based on the active department's task status
+func (s *TaskService) updateProjectStatusBasedOnActiveTask(projectID, taskID uuid.UUID, newStatus models.TaskStatus) {
+	// Get the current active task for this project (the one with the lowest step_order that's not completed)
+	var activeTaskStatus sql.NullString
+	var activeTaskID uuid.UUID
+	err := s.db.QueryRow(`
+		SELECT dt.status, dt.id
+		FROM department_tasks dt
+		JOIN routing_steps rs ON rs.id = dt.routing_step_id
+		WHERE dt.project_id = $1
+		AND dt.routing_id = (SELECT id FROM routings WHERE project_id = $1 AND is_latest = TRUE)
+		AND dt.status NOT IN ('completed', 'archived')
+		ORDER BY rs.step_order ASC
+		LIMIT 1
+	`, projectID).Scan(&activeTaskStatus, &activeTaskID)
+
+	if err != nil {
+		// No active tasks found, project might be completed
+		return
+	}
+
+	// Only update project status if this is the active task
+	if activeTaskID != taskID {
+		return
+	}
+
+	// Map task status to project status
+	var projectStatus models.ProjectStatus
+	switch activeTaskStatus.String {
+	case "on_hold":
+		projectStatus = models.ProjectOnHold
+	case "in_progress":
+		projectStatus = models.ProjectInProgress
+	case "issue_hold":
+		projectStatus = models.ProjectOnHold // Keep as on_hold for issue_hold
+	case "pending":
+		projectStatus = models.ProjectOnHold
+	default:
+		return // Don't update for other statuses
+	}
+
+	s.db.Exec(`
+		UPDATE projects
+		SET status = $1, updated_at = NOW()
+		WHERE id = $2
+	`, projectStatus, projectID)
 }
 
 func (s *TaskService) AssignEmployees(taskID uuid.UUID, employeeIDs []string) error {
@@ -320,6 +381,15 @@ type CreateSubtaskRequest struct {
 }
 
 func (s *TaskService) CreateSubtask(taskID uuid.UUID, req CreateSubtaskRequest) (*models.Subtask, error) {
+	// Check if task belongs to a superseded routing
+	task, err := s.GetTask(taskID)
+	if err != nil {
+		return nil, err
+	}
+	if !task.RoutingIsLatest {
+		return nil, errors.New("cannot add subtasks to tasks from superseded routing versions")
+	}
+
 	st := &models.Subtask{}
 	var assignedTo interface{}
 	if req.AssignedTo != "" {
@@ -331,7 +401,7 @@ func (s *TaskService) CreateSubtask(taskID uuid.UUID, req CreateSubtaskRequest) 
 	}
 
 	var assigneeID, stDesc, stNotes sql.NullString
-	err := s.db.QueryRow(`
+	err = s.db.QueryRow(`
 		INSERT INTO subtasks (task_id, title, description, is_required, assigned_to, sort_order)
 		VALUES ($1,$2,$3,$4,$5,$6)
 		RETURNING id, task_id, title, description, is_required, status, assigned_to, notes, sort_order, created_at, updated_at
@@ -352,20 +422,22 @@ func (s *TaskService) CreateSubtask(taskID uuid.UUID, req CreateSubtaskRequest) 
 	if stNotes.Valid {
 		st.Notes = stNotes.String
 	}
-	if req.IsRequired {
-		_, err = s.db.Exec(`
-			UPDATE department_tasks
-			SET status = 'in_progress',
-				completed_at = NULL,
-				updated_at = NOW()
-			WHERE id = $1
-			AND status = 'completed'
-		`, taskID)
+	
+	// When any subtask is created, if the task was completed, change it to in_progress
+	// This ensures that new work resets the task status
+	_, err = s.db.Exec(`
+		UPDATE department_tasks
+		SET status = 'in_progress',
+			completed_at = NULL,
+			updated_at = NOW()
+		WHERE id = $1
+		AND status = 'completed'
+	`, taskID)
 
-		if err != nil {
-			return nil, err
-		}
+	if err != nil {
+		return nil, err
 	}
+	
 	return st, nil
 }
 
@@ -489,7 +561,7 @@ func (s *TaskService) checkNMinusOneCompletion(orgID, taskID uuid.UUID, task *mo
 	// If all non-IQC tasks are completed and IQC is not completed, send notification
 	if totalSubtasks > 0 && completedSubtasks == totalSubtasks-1 && !iqcCompleted {
 		notificationTitle := fmt.Sprintf("%s Department is Completed Their Work", task.DepartmentName)
-		notificationBody := fmt.Sprintf("%s Department is Completed Their Work.. Your IQC Required.. Please Have a Look over %s Department", task.DepartmentName, task.DepartmentName)
+		notificationBody := fmt.Sprintf("Your IQC Required.. Please Have a Look over %s Department", task.DepartmentName)
 		
 		// Notify Admin and Layer2
 		go s.notifSvc.NotifyLayer(orgID, []models.LayerType{models.LayerSuperAdmin, models.LayerTwo}, 
@@ -507,6 +579,9 @@ func (s *TaskService) SetExpectedCompletionDate(orgID, taskID, actorID uuid.UUID
 	task, err := s.GetTask(taskID)
 	if err != nil {
 		return nil, err
+	}
+	if !task.RoutingIsLatest {
+		return nil, errors.New("cannot modify tasks from superseded routing versions")
 	}
 	if task.CompletionDateLocked && !overrideLock {
 		return nil, errors.New("expected completion date is locked and cannot be changed")
@@ -598,17 +673,24 @@ func (s *TaskService) GetDepartmentTasks(deptID uuid.UUID, status string, page, 
 	where := "WHERE " + joinConditions(conditions, " AND ")
 
 	var total int
-	s.db.QueryRow(`SELECT COUNT(*) FROM department_tasks t `+where, args...).Scan(&total)
+	s.db.QueryRow(`
+		SELECT COUNT(*) FROM department_tasks t
+		LEFT JOIN routings r ON r.id = t.routing_id
+		`+where+` AND (r.is_latest = TRUE OR r.id IS NULL)
+	`, args...).Scan(&total)
 
 	query := fmt.Sprintf(`
 		SELECT t.id, t.project_id, t.routing_id, t.routing_step_id, t.department_id,
 		       COALESCE(t.title,''), t.priority, t.status,
 		       t.start_date, t.due_date, t.dates_frozen, t.started_at, t.completed_at,
+		       t.expected_completion_date, t.completion_date_locked, t.routed_to_dept_at,
 		       t.created_at, t.updated_at,
-		       COALESCE(p.project_name,'') as project_name
+		       COALESCE(p.project_name,'') as project_name,
+		       COALESCE(r.is_latest, TRUE) as routing_is_latest
 		FROM department_tasks t
 		LEFT JOIN projects p ON p.id = t.project_id
-		%s
+		LEFT JOIN routings r ON r.id = t.routing_id
+		%s AND (r.is_latest = TRUE OR r.id IS NULL)
 		ORDER BY t.created_at DESC
 		LIMIT $%d OFFSET $%d
 	`, where, argIdx, argIdx+1)
@@ -624,13 +706,18 @@ func (s *TaskService) GetDepartmentTasks(deptID uuid.UUID, status string, page, 
 	for rows.Next() {
 		var t models.DepartmentTask
 		var startDate, dueDate, startedAt, completedAt sql.NullTime
+		var expectedCompletion, routedAt sql.NullTime
+		var completionLocked bool
 		var projName sql.NullString
+		var routingIsLatest bool
 
 		rows.Scan(
 			&t.ID, &t.ProjectID, &t.RoutingID, &t.RoutingStepID, &t.DepartmentID,
 			&t.Title, &t.Priority, &t.Status,
 			&startDate, &dueDate, &t.DatesFrozen, &startedAt, &completedAt,
+			&expectedCompletion, &completionLocked, &routedAt,
 			&t.CreatedAt, &t.UpdatedAt, &projName,
+			&routingIsLatest,
 		)
 		if startDate.Valid {
 			t.StartDate = &startDate.Time
@@ -638,9 +725,17 @@ func (s *TaskService) GetDepartmentTasks(deptID uuid.UUID, status string, page, 
 		if dueDate.Valid {
 			t.DueDate = &dueDate.Time
 		}
-		if projName.Valid {
-			t.Title = projName.String
+		if expectedCompletion.Valid {
+			t.ExpectedCompletionDate = &expectedCompletion.Time
 		}
+		t.CompletionDateLocked = completionLocked
+		if routedAt.Valid {
+			t.RoutedToDeptAt = &routedAt.Time
+		}
+		if projName.Valid {
+			t.ProjectName = projName.String
+		}
+		t.RoutingIsLatest = routingIsLatest
 		tasks = append(tasks, t)
 	}
 	return tasks, total, nil

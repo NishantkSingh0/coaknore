@@ -95,6 +95,8 @@ export interface Project {
   archived_at?: string
   created_at: string
   updated_at: string
+  active_task_status?: string
+  active_department_name?: string
 }
 
 export interface ProjectRevision {
@@ -138,6 +140,8 @@ export interface Routing {
   created_by: string
   created_by_name?: string
   published_at?: string
+  is_latest: boolean
+  change_reason?: string
   steps: RoutingStep[]
   created_at: string
   updated_at: string
@@ -165,6 +169,7 @@ export interface DepartmentTask {
   completed_at?: string
   assigned_employees?: Employee[]
   subtasks?: Subtask[]
+  routing_is_latest?: boolean
   created_at: string
   updated_at: string
 }

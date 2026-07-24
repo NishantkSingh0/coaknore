@@ -272,6 +272,8 @@ type Project struct {
 	ArchivedAt        *time.Time    `json:"archived_at,omitempty"`
 	CreatedAt         time.Time     `json:"created_at"`
 	UpdatedAt         time.Time     `json:"updated_at"`
+	ActiveTaskStatus  string        `json:"active_task_status,omitempty"`
+	ActiveDepartmentName string       `json:"active_department_name,omitempty"`
 }
 
 type ProjectRevision struct {
@@ -304,6 +306,8 @@ type Routing struct {
 	CreatedBy       uuid.UUID     `json:"created_by"`
 	CreatedByName   string        `json:"created_by_name,omitempty"`
 	PublishedAt     *time.Time    `json:"published_at,omitempty"`
+	IsLatest        bool          `json:"is_latest"`
+	ChangeReason    string        `json:"change_reason,omitempty"`
 	Steps           []RoutingStep `json:"steps,omitempty"`
 	CreatedAt       time.Time     `json:"created_at"`
 	UpdatedAt       time.Time     `json:"updated_at"`
@@ -343,6 +347,7 @@ type DepartmentTask struct {
 	CompletedAt            *time.Time `json:"completed_at,omitempty"`
 	AssignedEmployees      []Employee `json:"assigned_employees,omitempty"`
 	Subtasks               []Subtask  `json:"subtasks,omitempty"`
+	RoutingIsLatest        bool       `json:"routing_is_latest,omitempty"`
 	CreatedAt              time.Time  `json:"created_at"`
 	UpdatedAt              time.Time  `json:"updated_at"`
 }
@@ -560,14 +565,17 @@ type RoutingTemplate struct {
 }
 
 type RoutingEditTimeline struct {
-	ID             uuid.UUID `json:"id"`
-	RoutingID      uuid.UUID `json:"routing_id"`
-	EditedBy       uuid.UUID `json:"edited_by"`
-	EditorEmail    string    `json:"editor_email"`
-	EditorName     string    `json:"editor_name"`
-	EditReason     string    `json:"edit_reason"`
-	ChangesSummary string    `json:"changes_summary,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
+	ID                uuid.UUID  `json:"id"`
+	RoutingID         uuid.UUID  `json:"routing_id"`
+	PreviousRoutingID *uuid.UUID `json:"previous_routing_id,omitempty"`
+	NewRoutingID      *uuid.UUID `json:"new_routing_id,omitempty"`
+	EditedBy          uuid.UUID  `json:"edited_by"`
+	EditorEmail       string     `json:"editor_email"`
+	EditorName        string     `json:"editor_name"`
+	EditReason        string     `json:"edit_reason"`
+	ChangeType        string     `json:"change_type"` // 'edit', 'new_version', 'supersede'
+	ChangesSummary    string     `json:"changes_summary,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
 }
 
 type UpcomingTask struct {

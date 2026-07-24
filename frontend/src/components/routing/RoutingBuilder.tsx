@@ -1,9 +1,5 @@
 import { useState, type DragEvent } from 'react'
-import {
-  PlusIcon, TrashIcon, CheckIcon, PlayIcon,
-  PencilIcon, ClockIcon, ExclamationTriangleIcon,
-  Bars3Icon, ChevronUpIcon, ChevronDownIcon,
-} from '@heroicons/react/24/outline'
+import { PlusIcon, TrashIcon, CheckIcon, PlayIcon, ClockIcon, ExclamationTriangleIcon, Bars3Icon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import { routingApi, orgApi } from '../../services/api'
 import { useAsync } from '../../hooks/useAsync'
 import { useAuth } from '../../context/AuthContext'
@@ -235,16 +231,16 @@ export default function RoutingBuilder({
     }
     setSaving(true)
     try {
-      await routingApi.update(editingRoutingId, {
+      await routingApi.createNewVersion(editingRoutingId, {
         name: routingName,
-        edit_reason: pendingEditReason,
+        change_reason: pendingEditReason,
         steps: steps.map((s) => ({
           step_order: s.stepOrder,
           dependency_policy: s.requireAll ? 'require_all' : 'require_any',
           department_ids: s.departmentIds,
         })),
       })
-      toast.success('Routing updated')
+      toast.success('New routing version created')
       setMode('idle')
       setEditingRoutingId(null)
       setPendingEditReason('')
@@ -254,7 +250,7 @@ export default function RoutingBuilder({
     } catch (err: unknown) {
       toast.error(
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        'Failed to update routing'
+        'Failed to create new routing version'
       )
     } finally {
       setSaving(false)
@@ -463,7 +459,7 @@ export default function RoutingBuilder({
           disabled={saving}
           className="btn-primary btn-sm"
         >
-          {saving ? 'Saving...' : mode === 'edit' ? 'Update' : 'Save'}
+          {saving ? 'Saving...' : mode === 'edit' ? 'Create New Version' : 'Save'}
         </button>
         <button onClick={cancel} className="btn-ghost btn-sm">Cancel</button>
       </div>
@@ -478,7 +474,7 @@ export default function RoutingBuilder({
           <div className="card-header">
             <h3 className="font-semibold">Routing Versions</h3>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {routings.map((r) => (
               <RoutingVersionRow
                 key={r.id}
@@ -542,26 +538,26 @@ export default function RoutingBuilder({
       <Modal
         open={editWarningOpen}
         onClose={() => setEditWarningOpen(false)}
-        title="Warning: Editing Active Routing"
+        title="Create New Routing Version"
         footer={
           <>
             <button onClick={() => setEditWarningOpen(false)} className="btn-secondary">Cancel</button>
-            <button onClick={confirmEdit} className="btn-danger">Proceed with Edit</button>
+            <button onClick={confirmEdit} className="btn-primary">Create New Version</button>
           </>
         }
       >
         <div className="space-y-4">
-          <div className="flex gap-3 p-4 bg-orange-50 dark:bg-orange-900 border border-orange-200 rounded-xl">
-            <ExclamationTriangleIcon className="w-6 h-6 text-orange-500 flex-shrink-0 mt-0.5" />
+          <div className="flex gap-3 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-500 rounded-xl">
+            <ExclamationTriangleIcon className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-orange-800 dark:text-orange-200">Routing modifications affect downstream departments</p>
-              <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">
-                Editing the routing can disrupt tasks currently in progress. Only modify when absolutely necessary. All changes are recorded in the routing edit timeline.
+              <p className="text-sm font-semibold text-blue-800 dark:text-blue-400">Creating a new routing version</p>
+              <p className="text-sm text-blue-700 dark:text-blue-600 mt-1">
+                Use this only when necessary to maintain project data quality.
               </p>
             </div>
           </div>
           <div>
-            <label className="label">Reason for editing <span className="text-red-500">*</span></label>
+            <label className="label">Reason for creating new version <span className="text-red-500">*</span></label>
             <textarea
               value={pendingEditReason}
               onChange={(e) => setPendingEditReason(e.target.value)}
@@ -599,10 +595,10 @@ export default function RoutingBuilder({
       </Modal>
 
       {/* Timeline modal */}
-      <Modal
+      {/* <Modal
         open={timelineOpen}
         onClose={() => setTimelineOpen(false)}
-        title="Routing Edit Timeline"
+        title="Routing Timeline"
         footer={<button onClick={() => setTimelineOpen(false)} className="btn-secondary">Close</button>}
       >
         {timeline.length === 0 ? (
@@ -626,7 +622,7 @@ export default function RoutingBuilder({
             ))}
           </div>
         )}
-      </Modal>
+      </Modal> */}
     </div>
   )
 }
@@ -658,10 +654,14 @@ function RoutingVersionRow({
             <span className="font-medium text-sm">
               v{routing.version}{routing.name ? ` — ${routing.name}` : ''}
             </span>
+            {routing.is_latest && (
+              <span className="badge-green text-xs">Latest</span>
+            )}
             <span className={clsx(
               'badge text-xs',
               routing.status === 'active' ? 'badge-green' :
-              routing.status === 'draft' ? 'badge-blue' : 'badge-gray'
+              routing.status === 'draft' ? 'badge-blue' : 
+              routing.status === 'superseded' ? 'badge-orange' : 'badge-gray'
             )}>
               {routing.status}
             </span>
@@ -670,6 +670,11 @@ function RoutingVersionRow({
             By {routing.created_by_name} · {fmtDateTime(routing.created_at)}
             {routing.published_at && ` · Published ${fmtDateTime(routing.published_at)}`}
           </p>
+          {routing.change_reason && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+              Reason: {routing.change_reason}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
           <button
@@ -681,15 +686,15 @@ function RoutingVersionRow({
           >
             {viewing ? "Hide Routing" : "View Routing"}
           </button>
-          <button onClick={onTimeline} className="btn-secondary btn-sm" title="Edit Timeline">
+          {/* <button onClick={onTimeline} className="btn-secondary btn-sm" title="Edit Timeline">
             <ClockIcon className="w-3.5 h-3.5" />
-          </button>
-          {canEdit && (routing.status === 'draft' || routing.status === 'active') && (
-            <button onClick={onEdit} className="btn-secondary btn-sm" title="Edit routing">
-              <PencilIcon className="w-3.5 h-3.5" />
+          </button> */}
+          {canEdit && routing.is_latest && (routing.status === 'draft' || routing.status === 'active') && (
+            <button onClick={onEdit} className="btn-secondary btn-sm" title="Create new version">
+              <PlusIcon className="w-3.5 h-3.5" />
             </button>
           )}
-          {canEdit && routing.status === 'draft' && (
+          {canEdit && routing.is_latest && routing.status === 'draft' && (
             <button onClick={onPublish} disabled={publishing} className="btn-primary btn-sm">
               <PlayIcon className="w-3.5 h-3.5" />
               {publishing ? 'Publishing...' : 'Publish'}

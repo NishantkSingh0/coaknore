@@ -30,7 +30,7 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
     },
     {
       title: 'IQC',
-      description: 'Initial Quality Check - inspection of materials and components before use'
+      description: 'Internal Quality Check - inspection of materials and components before use'
     }
   ],
   stone: [
@@ -76,7 +76,7 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
     },
     {
       title: 'IQC',
-      description: 'Initial Quality Check - inspection of stone materials before processing'
+      description: 'Internal Quality Check - inspection of stone materials before processing'
     }
   ],
   polishing: [
@@ -118,7 +118,7 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
     },
     {
       title: 'IQC',
-      description: 'Initial Quality Check - inspection of materials before polishing process'
+      description: 'Internal Quality Check - inspection of materials before polishing process'
     }
   ],
   metal: [
@@ -168,7 +168,7 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
     },
     {
       title: 'IQC',
-      description: 'Initial Quality Check - inspection of metal materials before processing'
+      description: 'Internal Quality Check - inspection of metal materials before processing'
     }
   ],
   carpentry: [
@@ -198,7 +198,37 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
     },
     {
       title: 'IQC',
-      description: 'Initial Quality Check - inspection of wood materials before processing'
+      description: 'Internal Quality Check - inspection of wood materials before processing'
+    }
+  ],
+  assembly: [
+    {
+      title: 'Design Check',
+      description: 'Verify that the assembled product matches the approved design and dimensions.'
+    },
+    {
+      title: 'Hardware Check',
+      description: 'Verify that all required hardware and fittings are available and defect-free.'
+    },
+    {
+      title: 'Texture Check',
+      description: 'Inspect the surface finish and texture for consistency and quality.'
+    },
+    {
+      title: 'Finishing Check',
+      description: 'Ensure all finishing work is complete and meets quality standards.'
+    },
+    {
+      title: 'Material Check',
+      description: 'Confirm that all materials and components match the project specifications.'
+    },
+    {
+      title: 'FQC',
+      description: 'Perform a final quality inspection before product approval.'
+    },
+    {
+      title: 'Packaging & Dispatch',
+      description: 'Package the completed product securely for storage or shipment.'
     }
   ],
   design: [
@@ -256,7 +286,7 @@ export const DEPARTMENT_SUBTASKS: Record<string, PredefinedSubtask[]> = {
     },
     {
       title: 'IQC',
-      description: 'Initial Quality Check - inspection of wood materials before processing'
+      description: 'Internal Quality Check - inspection of wood materials before processing'
     }
   ]
 }
@@ -298,6 +328,14 @@ const DEPARTMENT_ALIASES: Record<string, string[]> = {
     'drawing',
     'drafting',
     'cad'
+  ],
+  assembly: [
+    'assembly',
+    'assemble',
+    'assem',
+    'asambli',
+    'assambali',
+    'assambaly'
   ]
 }
 
