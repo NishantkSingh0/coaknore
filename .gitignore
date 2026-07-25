@@ -53,4 +53,5 @@ Thumbs.db
 # Uploads (development only)
 /uploads/
 
-*.md
+# Allow README.md
+!README.md
