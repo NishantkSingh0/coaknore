@@ -145,6 +145,7 @@ func main() {
 		r.Get("/api/notifications/count", notifHandler.GetUnreadCount)
 		r.Patch("/api/notifications/{id}/read", notifHandler.MarkRead)
 		r.Post("/api/notifications/read-all", notifHandler.MarkAllRead)
+		r.Delete("/api/notifications/read", notifHandler.DeleteReadNotifications)
 
 		// Search (all layers)
 		r.Get("/api/search", searchHandler.Search)

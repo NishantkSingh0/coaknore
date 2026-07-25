@@ -407,6 +407,16 @@ func (h *NotificationHandler) GetUnreadCount(w http.ResponseWriter, r *http.Requ
 	utils.Success(w, map[string]int{"count": count})
 }
 
+func (h *NotificationHandler) DeleteReadNotifications(w http.ResponseWriter, r *http.Request) {
+	empID := middleware.GetEmployeeID(r)
+	err := h.notifSvc.DeleteReadNotifications(empID)
+	if err != nil {
+		utils.InternalError(w, err.Error())
+		return
+	}
+	utils.Success(w, map[string]string{"message": "Read notifications deleted"})
+}
+
 // ============================================================
 // SEARCH HANDLER
 // ============================================================

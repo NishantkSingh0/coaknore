@@ -28,6 +28,7 @@ import { useAsync } from '../hooks/useAsync'
 import { fmtRelative } from '../utils/helpers'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
+import ConfirmationModal from '../components/ui/ConfirmationModal'
 
 // Icon components per notification type — outline style, no background,
 // colored to match the row's priority tint.
@@ -132,6 +133,7 @@ const PRIORITY_META: Record<Priority, {
 export default function NotificationsPage() {
   const [unreadOnly, setUnreadOnly] = useState(false)
   const [page, setPage] = useState(1)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
   const { data, loading, refetch } = useAsync(
     () => notifApi.list({ page, page_size: 30, unread: unreadOnly }),
@@ -149,22 +151,36 @@ export default function NotificationsPage() {
     refetch()
   }
 
+  const deleteReadNotifications = async () => {
+    await notifApi.deleteRead()
+    toast.success('Readed notifications deleted')
+    refetch()
+    setDeleteModalOpen(false)
+  }
+
   return (
     <div className="max-w-4xl mt-5 mx-auto space-y-6">
       <div className="page-header">
         <h1 className="page-title">Notifications</h1>
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-brand-400  cursor-pointer">
-            <input
-              type="checkbox"
-              checked={unreadOnly}
-              onChange={(e) => { setUnreadOnly(e.target.checked); setPage(1) }}
-              className="w-4 h-4 text-brand-600 rounded"
-            />
-            Unread only
-          </label>
-          <button onClick={markAllRead} className="btn-secondary btn-sm">
-            <CheckIcon className="w-4 h-4" /> Mark all read
+          <button
+            onClick={() => {
+              setUnreadOnly(!unreadOnly)
+              setPage(1)
+            }}
+            className="flex items-center gap-2 text-sm text-gray-600 dark:text-brand-400 hover:text-brand-600 dark:hover:text-brand-300 transition-colors"
+          >
+            {unreadOnly ? (
+              <CheckCircleIcon className="w-5 h-5 text-brand-600" />
+            ) : (
+              <div className="w-5 h-5 rounded-full border-2 border-gray-400 dark:border-gray-500" />
+            )}
+
+            <span>Unread only</span>
+          </button>
+
+          <button onClick={() => setDeleteModalOpen(true)} className="btn-secondary btn-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300">
+            <XCircleIcon className="w-4 h-4" /> Delete read
           </button>
         </div>
       </div>
@@ -295,6 +311,17 @@ export default function NotificationsPage() {
           <button onClick={() => setPage((p) => p + 1)} disabled={page >= data.total_pages} className="btn-secondary btn-sm">Next</button>
         </div>
       )}
+
+      <ConfirmationModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={deleteReadNotifications}
+        title="Delete Read Notifications"
+        message="Are you sure have Carefully Readed all Notifications and Acted on them??"
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        type="danger"
+      />
     </div>
   )
 }

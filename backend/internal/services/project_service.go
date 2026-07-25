@@ -23,12 +23,14 @@ func NewProjectService(db *sql.DB, audit *AuditService, notif *NotificationServi
 }
 
 type CreateProjectRequest struct {
-	PONumber          string `json:"po_number"`
-	ProjectName       string `json:"project_name"`
-	ClientName        string `json:"client_name"`
-	ClientEmail       string `json:"client_email"`
-	ClientPhone       string `json:"client_phone"`
-	ClientAddress     string `json:"client_address"`
+	PONumber          string  `json:"po_number"`
+	ProjectName       string  `json:"project_name"`
+	ClientName        string  `json:"client_name"`
+	ClientEmail       string  `json:"client_email"`
+	ClientPhone       string  `json:"client_phone"`
+	ClientAddress     string  `json:"client_address"`
+	ClientGSTNum      string  `json:"client_gst_num"`
+	Rate              float64 `json:"rate"`
 	Quantity          int    `json:"quantity"`
 	Specifications    string `json:"specifications"`
 	MaterialDetails   string `json:"material_details"`
@@ -67,33 +69,34 @@ func (s *ProjectService) CreateProject(orgID, createdBy uuid.UUID, req CreatePro
 
 	p := &models.Project{}
 	var (
-		clientEmail, clientPhone, clientAddr sql.NullString
+		clientEmail, clientPhone, clientAddr, clientGSTNum sql.NullString
 		deliveryAddr                         sql.NullString
 		coverImg, cadURL                     sql.NullString
 		jobCards, renderURL                  sql.NullString
 		delivDate                            sql.NullTime
 		drawFileID                           sql.NullString
+		rate                                 sql.NullFloat64
 	)
 
 	err := s.db.QueryRow(`
 		INSERT INTO projects (
 			organization_id, po_number, project_name, client_name,
-			client_email, client_phone, client_address, quantity,
+			client_email, client_phone, client_address, client_gst_num, rate, quantity,
 			specifications, material_details, upholstery_details,
 			delivery_date, delivery_address, cover_image_url, cad_files_url,
 			job_cards_url, render_files_url, drawing_file_id, status, created_by
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'created',$19
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'created',$20
 		)
 		RETURNING id, organization_id, po_number, project_name, client_name,
-			client_email, client_phone, client_address, quantity,
+			client_email, client_phone, client_address, client_gst_num, rate, quantity,
 			specifications, material_details, upholstery_details,
 			delivery_date, delivery_address,
 			cover_image_url, cad_files_url, job_cards_url, render_files_url,
 			drawing_file_id, status, created_by, current_revision, created_at, updated_at
 	`,
 		orgID, req.PONumber, req.ProjectName, req.ClientName,
-		nullStr(req.ClientEmail), nullStr(req.ClientPhone), nullStr(req.ClientAddress), req.Quantity,
+		nullStr(req.ClientEmail), nullStr(req.ClientPhone), nullStr(req.ClientAddress), nullStr(req.ClientGSTNum), nullFloat64(req.Rate), req.Quantity,
 		req.Specifications, req.MaterialDetails, req.UpholsteryDetails,
 		deliveryDate, nullStr(req.DeliveryAddress),
 		nullStr(req.CoverImageURL), nullStr(req.CADFilesURL),
@@ -101,7 +104,7 @@ func (s *ProjectService) CreateProject(orgID, createdBy uuid.UUID, req CreatePro
 		drawingFileID, createdBy,
 	).Scan(
 		&p.ID, &p.OrganizationID, &p.PONumber, &p.ProjectName, &p.ClientName,
-		&clientEmail, &clientPhone, &clientAddr, &p.Quantity,
+		&clientEmail, &clientPhone, &clientAddr, &clientGSTNum, &rate, &p.Quantity,
 		&p.Specifications, &p.MaterialDetails, &p.UpholsteryDetails,
 		&delivDate, &deliveryAddr,
 		&coverImg, &cadURL, &jobCards, &renderURL,
@@ -111,7 +114,7 @@ func (s *ProjectService) CreateProject(orgID, createdBy uuid.UUID, req CreatePro
 		return nil, fmt.Errorf("failed to create project: %w", err)
 	}
 
-	scanNullableProjectFields(p, clientEmail, clientPhone, clientAddr,
+	scanNullableProjectFields(p, clientEmail, clientPhone, clientAddr, clientGSTNum, rate,
 		delivDate, deliveryAddr, coverImg, cadURL, jobCards, renderURL, drawFileID)
 
 	s.auditSvc.Log(AuditEntry{
@@ -156,28 +159,30 @@ func (s *ProjectService) UpdateProject(orgID, updatedBy, projectID uuid.UUID, re
 
 	p := &models.Project{}
 	var (
-		clientEmail, clientPhone, clientAddr sql.NullString
+		clientEmail, clientPhone, clientAddr, clientGSTNum sql.NullString
 		deliveryAddr                         sql.NullString
 		coverImg, cadURL                     sql.NullString
 		jobCards, renderURL                  sql.NullString
 		delivDate                            sql.NullTime
 		drawFileID                           sql.NullString
+		rate                                 sql.NullFloat64
 	)
 
 	err = s.db.QueryRow(`
 		UPDATE projects SET
 			po_number = $1, project_name = $2, client_name = $3,
 			client_email = $4, client_phone = $5, client_address = $6,
-			quantity = $7, specifications = $8,
-			material_details = $9, upholstery_details = $10,
-			delivery_date = $11, delivery_address = $12,
-			cover_image_url = $13, cad_files_url = $14,
-			job_cards_url = $15, render_files_url = $16,
-			drawing_file_id = $17,
+			client_gst_num = $7, rate = $8,
+			quantity = $9, specifications = $10,
+			material_details = $11, upholstery_details = $12,
+			delivery_date = $13, delivery_address = $14,
+			cover_image_url = $15, cad_files_url = $16,
+			job_cards_url = $17, render_files_url = $18,
+			drawing_file_id = $19,
 			current_revision = current_revision + 1, updated_at = NOW()
-		WHERE id = $18
+		WHERE id = $20
 		RETURNING id, organization_id, po_number, project_name, client_name,
-			client_email, client_phone, client_address, quantity,
+			client_email, client_phone, client_address, client_gst_num, rate, quantity,
 			specifications, material_details, upholstery_details,
 			delivery_date, delivery_address,
 			cover_image_url, cad_files_url, job_cards_url, render_files_url,
@@ -185,6 +190,7 @@ func (s *ProjectService) UpdateProject(orgID, updatedBy, projectID uuid.UUID, re
 	`,
 		req.PONumber, req.ProjectName, req.ClientName,
 		nullStr(req.ClientEmail), nullStr(req.ClientPhone), nullStr(req.ClientAddress),
+		nullStr(req.ClientGSTNum), nullFloat64(req.Rate),
 		req.Quantity, req.Specifications,
 		req.MaterialDetails, req.UpholsteryDetails,
 		deliveryDate, nullStr(req.DeliveryAddress),
@@ -194,7 +200,7 @@ func (s *ProjectService) UpdateProject(orgID, updatedBy, projectID uuid.UUID, re
 		projectID,
 	).Scan(
 		&p.ID, &p.OrganizationID, &p.PONumber, &p.ProjectName, &p.ClientName,
-		&clientEmail, &clientPhone, &clientAddr, &p.Quantity,
+		&clientEmail, &clientPhone, &clientAddr, &clientGSTNum, &rate, &p.Quantity,
 		&p.Specifications, &p.MaterialDetails, &p.UpholsteryDetails,
 		&delivDate, &deliveryAddr,
 		&coverImg, &cadURL, &jobCards, &renderURL,
@@ -203,7 +209,7 @@ func (s *ProjectService) UpdateProject(orgID, updatedBy, projectID uuid.UUID, re
 	if err != nil {
 		return nil, fmt.Errorf("failed to update project: %w", err)
 	}
-	scanNullableProjectFields(p, clientEmail, clientPhone, clientAddr,
+	scanNullableProjectFields(p, clientEmail, clientPhone, clientAddr, clientGSTNum, rate,
 		delivDate, deliveryAddr, coverImg, cadURL, jobCards, renderURL, drawFileID)
 
 	prevBytes, _ := json.Marshal(current)
@@ -242,7 +248,7 @@ func (s *ProjectService) AttachDrawingFile(projectID, fileID uuid.UUID) error {
 func (s *ProjectService) GetProject(id uuid.UUID) (*models.Project, error) {
 	p := &models.Project{}
 	var (
-		clientEmail, clientPhone, clientAddr sql.NullString
+		clientEmail, clientPhone, clientAddr, clientGSTNum sql.NullString
 		deliveryAddr                         sql.NullString
 		coverImg, cadURL                     sql.NullString
 		jobCards, renderURL                  sql.NullString
@@ -252,11 +258,12 @@ func (s *ProjectService) GetProject(id uuid.UUID) (*models.Project, error) {
 		drawFileID                           sql.NullString
 		drawFileURL                          sql.NullString
 		drawFileOriginalName                 sql.NullString
+		rate                                 sql.NullFloat64
 	)
 
 	err := s.db.QueryRow(`
 		SELECT p.id, p.organization_id, p.po_number, p.project_name, p.client_name,
-			p.client_email, p.client_phone, p.client_address, p.quantity,
+			p.client_email, p.client_phone, p.client_address, p.client_gst_num, p.rate, p.quantity,
 			p.specifications, p.material_details, p.upholstery_details,
 			p.delivery_date, p.delivery_address,
 			p.cover_image_url, p.cad_files_url, p.job_cards_url, p.render_files_url,
@@ -270,7 +277,7 @@ func (s *ProjectService) GetProject(id uuid.UUID) (*models.Project, error) {
 		WHERE p.id = $1
 	`, id).Scan(
 		&p.ID, &p.OrganizationID, &p.PONumber, &p.ProjectName, &p.ClientName,
-		&clientEmail, &clientPhone, &clientAddr, &p.Quantity,
+		&clientEmail, &clientPhone, &clientAddr, &clientGSTNum, &rate, &p.Quantity,
 		&p.Specifications, &p.MaterialDetails, &p.UpholsteryDetails,
 		&delivDate, &deliveryAddr,
 		&coverImg, &cadURL, &jobCards, &renderURL,
@@ -285,7 +292,7 @@ func (s *ProjectService) GetProject(id uuid.UUID) (*models.Project, error) {
 		return nil, err
 	}
 
-	scanNullableProjectFields(p, clientEmail, clientPhone, clientAddr,
+	scanNullableProjectFields(p, clientEmail, clientPhone, clientAddr, clientGSTNum, rate,
 		delivDate, deliveryAddr, coverImg, cadURL, jobCards, renderURL, drawFileID)
 
 	if completedAt.Valid {
@@ -404,6 +411,7 @@ func (s *ProjectService) ListProjects(orgID uuid.UUID, status, search string, pa
 
 	query := fmt.Sprintf(`
 		SELECT p.id, p.organization_id, p.po_number, p.project_name, p.client_name,
+			p.client_gst_num, p.rate,
 			p.status, p.created_by, p.current_revision, p.delivery_date,
 			p.cover_image_url, p.drawing_file_id, p.created_at, p.updated_at,
 			COALESCE(CONCAT(e.first_name, ' ', e.last_name), '') as created_by_name,
@@ -427,11 +435,13 @@ func (s *ProjectService) ListProjects(orgID uuid.UUID, status, search string, pa
 	for rows.Next() {
 		var p models.Project
 		var delivDate sql.NullTime
-		var coverImg, createdByName sql.NullString
+		var coverImg, createdByName, clientGSTNum sql.NullString
 		var drawFileID, drawFileURL sql.NullString
+		var rate sql.NullFloat64
 
 		rows.Scan(
 			&p.ID, &p.OrganizationID, &p.PONumber, &p.ProjectName, &p.ClientName,
+			&clientGSTNum, &rate,
 			&p.Status, &p.CreatedBy, &p.CurrentRevision, &delivDate,
 			&coverImg, &drawFileID, &p.CreatedAt, &p.UpdatedAt, &createdByName,
 			&drawFileURL,
@@ -444,6 +454,12 @@ func (s *ProjectService) ListProjects(orgID uuid.UUID, status, search string, pa
 		}
 		if createdByName.Valid {
 			p.CreatedByName = createdByName.String
+		}
+		if clientGSTNum.Valid {
+			p.ClientGSTNum = clientGSTNum.String
+		}
+		if rate.Valid {
+			p.Rate = rate.Float64
 		}
 		if drawFileID.Valid {
 			fid, _ := uuid.Parse(drawFileID.String)
@@ -589,7 +605,8 @@ func (s *ProjectService) GetProjectRevisions(projectID uuid.UUID) ([]models.Proj
 }
 
 func scanNullableProjectFields(p *models.Project,
-	clientEmail, clientPhone, clientAddr sql.NullString,
+	clientEmail, clientPhone, clientAddr, clientGSTNum sql.NullString,
+	rate sql.NullFloat64,
 	delivDate sql.NullTime, deliveryAddr sql.NullString,
 	coverImg, cadURL, jobCards, renderURL, drawFileID sql.NullString,
 ) {
@@ -601,6 +618,12 @@ func scanNullableProjectFields(p *models.Project,
 	}
 	if clientAddr.Valid {
 		p.ClientAddress = clientAddr.String
+	}
+	if clientGSTNum.Valid {
+		p.ClientGSTNum = clientGSTNum.String
+	}
+	if rate.Valid {
+		p.Rate = rate.Float64
 	}
 	if delivDate.Valid {
 		p.DeliveryDate = &delivDate.Time

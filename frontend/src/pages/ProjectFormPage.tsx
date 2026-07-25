@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { projectApi } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import ConfirmationModal from '../components/ui/ConfirmationModal'
 
@@ -13,6 +14,8 @@ type FormValues = {
   client_email: string
   client_phone: string
   client_address: string
+  client_gst_num: string
+  rate: number
   quantity: number
   specifications: string
   material_details: string
@@ -29,6 +32,7 @@ type FormValues = {
 export default function ProjectFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { isAdmin, isLayerTwo } = useAuth()
   const isEdit = Boolean(id)
   const [loading, setLoading] = useState(false)
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null)
@@ -62,6 +66,8 @@ export default function ProjectFormPage() {
           client_email: p.client_email || '',
           client_phone: p.client_phone || '',
           client_address: p.client_address || '',
+          client_gst_num: p.client_gst_num || '',
+          rate: p.rate || 0,
           quantity: p.quantity,
           specifications: p.specifications || '',
           material_details: p.material_details || '',
@@ -101,6 +107,8 @@ export default function ProjectFormPage() {
         client_email: values.client_email.trim(),
         client_phone: values.client_phone.trim(),
         client_address: values.client_address.trim(),
+        client_gst_num: values.client_gst_num.trim(),
+        rate: Number(values.rate) || 0,
         quantity: Number(values.quantity) || 1,
         specifications: values.specifications,
         material_details: values.material_details,
@@ -269,6 +277,12 @@ export default function ProjectFormPage() {
             <Field label="Delivery Date" name="delivery_date" type="date" />
             <TextArea label="Client Address"   name="client_address"   rows={2} />
             <TextArea label="Delivery Address" name="delivery_address" rows={2} />
+            {(isAdmin || isLayerTwo) && (
+              <>
+                <Field label="Client GST Number" name="client_gst_num" placeholder="GSTIN" />
+                <Field label="Rate (₹)" name="rate" type="number" placeholder="0.00" />
+              </>
+            )}
           </div>
         </div>
 

@@ -252,6 +252,8 @@ type Project struct {
 	ClientEmail       string        `json:"client_email,omitempty"`
 	ClientPhone       string        `json:"client_phone,omitempty"`
 	ClientAddress     string        `json:"client_address,omitempty"`
+	ClientGSTNum      string        `json:"client_gst_num,omitempty"`
+	Rate              float64       `json:"rate,omitempty"`
 	Quantity          int           `json:"quantity"`
 	Specifications    string        `json:"specifications,omitempty"`
 	MaterialDetails   string        `json:"material_details,omitempty"`

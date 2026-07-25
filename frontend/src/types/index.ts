@@ -75,6 +75,8 @@ export interface Project {
   client_email?: string
   client_phone?: string
   client_address?: string
+  client_gst_num?: string
+  rate?: number
   quantity: number
   specifications?: string
   material_details?: string

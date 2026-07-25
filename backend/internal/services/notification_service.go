@@ -178,3 +178,10 @@ func (s *NotificationService) GetUnreadCount(employeeID uuid.UUID) int {
 	s.db.QueryRow(`SELECT COUNT(*) FROM notifications WHERE recipient_id = $1 AND is_read = FALSE`, employeeID).Scan(&count)
 	return count
 }
+
+func (s *NotificationService) DeleteReadNotifications(employeeID uuid.UUID) error {
+	_, err := s.db.Exec(`
+		DELETE FROM notifications WHERE recipient_id = $1 AND is_read = TRUE
+	`, employeeID)
+	return err
+}

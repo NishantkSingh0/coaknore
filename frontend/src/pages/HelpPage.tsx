@@ -1357,7 +1357,7 @@ export default function HelpPage() {
       <div className="rounded-2xl bg-gray-200 dark:bg-gray-800 px-6 py-8 text-center space-y-3">
         <p className="text-xl font-bold text-gray-800 dark:text-white">Still have a question?</p>
         <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-          If something isn't covered here, reach out to your Admin directly or raise a Query to the relevant person on the platform.
+          If something isn't covered here, reach out to your Admin directly or raise a Query to relevant person mentioned below.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <a

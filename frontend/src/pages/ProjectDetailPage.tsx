@@ -224,6 +224,10 @@ export default function ProjectDetailPage() {
                   ['Created By', project.created_by_name],
                   ['Created', fmtDateTime(project.created_at)],
                   ['Last Updated', fmtDateTime(project.updated_at)],
+                  ...(isAdmin || isLayerTwo ? [
+                    ['Client GST Number', project.client_gst_num || '—'],
+                    ['Rate', project.rate ? `₹${project.rate.toFixed(2)}` : '—'],
+                  ] : []),
                 ].map(([label, value]) => (
                   <div key={label as string}>
                     <p className="text-sm font-semibold text-gray-500 dark:text-gray-200">{label}</p>

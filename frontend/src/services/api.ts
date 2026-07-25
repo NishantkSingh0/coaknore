@@ -494,6 +494,9 @@ export const notifApi = {
   markAllRead: async () => {
     await api.post('/notifications/read-all')
   },
+  deleteRead: async () => {
+    await api.delete('/notifications/read')
+  },
 }
 
 // ============================================================

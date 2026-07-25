@@ -21,7 +21,7 @@ const STATUS_OPTIONS: { label: string; value: ProjectStatus | '' }[] = [
 ]
 
 export default function ProjectsPage() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, isLayerTwo } = useAuth()
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const { openPreview } = usePreviewModal()
@@ -90,6 +90,8 @@ export default function ProjectsPage() {
                 <th>Project</th>
                 <th>PO Number</th>
                 <th>Client</th>
+                {(isAdmin || isLayerTwo) && <th>Rate</th>}
+                {(isAdmin || isLayerTwo) && <th>GST Num</th>}
                 <th>Status</th>
                 <th>Delivery</th>
                 <th>Revision</th>
@@ -98,14 +100,14 @@ export default function ProjectsPage() {
             </thead>
             <tbody>
               {data?.data?.length === 0 && (
-                <tr><td colSpan={8} className="text-center py-12 text-gray-400">No projects found</td></tr>
+                <tr><td colSpan={isAdmin || isLayerTwo ? 10 : 8} className="text-center py-12 text-gray-400">No projects found</td></tr>
               )}
               {data?.data?.map((project) => (
                 <tr
                   key={project.id}
                   className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   onClick={() => navigate(`/projects/${project.id}`)}
-                >                  
+                >
                   <td className="font-medium text-brand-700">
                     {project.project_name}
 
@@ -129,8 +131,10 @@ export default function ProjectsPage() {
                       </div>
                     )}
                   </td>
-                  <td className="font-mono text-xs" title={project.po_number}>{project.po_number.length > 25 ? `${project.po_number.slice(0, 20)}...` : project.po_number}</td>                  
+                  <td className="font-mono text-xs" title={project.po_number}>{project.po_number.length > 25 ? `${project.po_number.slice(0, 20)}...` : project.po_number}</td>
                   <td>{project.client_name}</td>
+                  {(isAdmin || isLayerTwo) && <td className="text-sm">{project.rate ? `₹${project.rate.toFixed(2)}` : '—'}</td>}
+                  {(isAdmin || isLayerTwo) && <td className="text-sm font-mono">{project.client_gst_num || '—'}</td>}
                   <td>
                     {project.active_task_status ? (
                       <ProjectBadge status={project.active_task_status as ProjectStatus} />
