@@ -1,15 +1,16 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   HomeIcon, FolderIcon, ClipboardDocumentListIcon,
   ExclamationCircleIcon, DocumentTextIcon,
-  BellIcon, UserGroupIcon, BuildingOfficeIcon,
-  ChatBubbleLeftRightIcon, Cog6ToothIcon, WrenchScrewdriverIcon,
+  UserGroupIcon, BuildingOfficeIcon,
+  ChatBubbleLeftRightIcon,
   SparklesIcon, CalendarIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
 import clsx from 'clsx'
 import { Avatar } from '../ui/Avatar'
 import { useState } from 'react'
+import HelpIcon from './HelpIcon'
 
 interface Props {
   onOpenQueries: () => void
@@ -23,6 +24,7 @@ const navItem = (to: string, label: string, Icon: React.ComponentType<{ classNam
 export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
   const { user, isAdmin, isLayerTwo, isLayerThree } = useAuth()
   const [anim, setAnim] = useState("");
+  const navigate = useNavigate()
   const commonNav = [
     navItem('/dashboard', 'Dashboard', HomeIcon),
   ]
@@ -127,25 +129,34 @@ export default function Sidebar({ onOpenQueries, onOpenAIAssistant }: Props) {
         )}
       </nav>
 
-      {/* User info at bottom */}
-      <NavLink
-        to="/settings"
-        className="block mx-2 px-2 py-3 border-t-2 border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <Avatar src={user?.avatar_url} firstName={user?.first_name} lastName={user?.last_name} size="sm" />
-
-          <div className="min-w-0 opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-40 transition-all duration-300">
-            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-              {user?.first_name} {user?.last_name}
-            </p>
-
-            <p className="text-xs text-gray-400 dark:text-gray-300 truncate capitalize">
-              {user?.department_name || "Admin"}
-            </p>
+      {/* Bottom strip: Settings (left) + Help button (right) */}
+      <div className="flex items-center border-t-2 border-gray-200 dark:border-gray-800">
+        {/* Settings — takes remaining width */}
+        <NavLink
+          to="/settings"
+          className="flex-1 min-w-0 py-3 transition-colors"
+        >
+          <div className="flex items-center gap-2 ml-[18px]">
+            <Avatar src={user?.avatar_url} firstName={user?.first_name} lastName={user?.last_name} size="sm" />
+            <div className="min-w-0 opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-40 transition-all duration-300">
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {user?.first_name} {user?.last_name}
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-300 truncate capitalize">
+                {user?.department_name || "Admin"}
+              </p>
+            </div>
           </div>
+        </NavLink>
+
+        {/* Help button — fixed width, right end */}
+        <div
+          className="flex-shrink-0 pr-4 py-3 opacity-0 max-w-0 overflow-hidden group-hover:opacity-100 group-hover:max-w-[56px] transition-all duration-300"
+          onClick={() => navigate('/help')}
+        >
+          <HelpIcon />
         </div>
-      </NavLink>
+      </div>
     </aside>
   )
 }

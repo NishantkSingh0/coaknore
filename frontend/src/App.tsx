@@ -22,6 +22,7 @@ import MyTasksPage from './pages/MyTasksPage'
 import UpcomingTasksPage from './pages/UpcomingTasksPage'
 import TaskDetailPage from './pages/TaskDetailPage'
 import SettingsPage from './pages/SettingsPage'
+import HelpPage from './pages/HelpPage'
 
 // Website Pages
 import Home from './HomePages/Home'
@@ -86,6 +87,7 @@ export default function App() {
         <Route path="/sdepartments" element={<DepartmentsPage />} />
 
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/help" element={<HelpPage />} />
       </Route>
 
       {/* ---------------- 404 ---------------- */}

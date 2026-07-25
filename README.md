@@ -68,13 +68,13 @@ The application follows a traditional client-server architecture with clear sepa
 └─────────────────┘         └────────┬────────┘
                                      │
                                      │
-                    ┌────────────────┼────────────────┐
-                    │                │                │
-             ┌─────▼─────┐   ┌─────▼─────┐   ┌─────▼─────┐
-             │ PostgreSQL │   │  AWS S3   │   │   Audit   │
-             │  Database  │   │  Storage  │   │   Logs    │
-             └───────────┘   └───────────┘   └───────────┘
-```
+                     ┌───────────────┼───────────────┐
+                     │               │               │
+               ┌─────▼─────┐   ┌─────▼─────┐   ┌─────▼─────┐
+               │PostgreSQL │   │  AWS S3   │   │   Audit   │
+               │ Database  │   │  Storage  │   │   Logs    │
+               └───────────┘   └───────────┘   └───────────┘
+``` 
 
 ### Backend Structure
 
@@ -575,5 +575,3 @@ When reporting issues, include:
 ### License
 
 This project is proprietary software. All rights reserved.
-
-## Support For questions or support, contact the development team through the designated communication channels.
