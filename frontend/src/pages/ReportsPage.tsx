@@ -3,13 +3,16 @@ import { PlusIcon, PaperClipIcon } from '@heroicons/react/24/outline'
 import { reportApi, projectApi } from '../services/api'
 import { useAsync, useAsyncAction } from '../hooks/useAsync'
 import { useAuth } from '../context/AuthContext'
+import { usePreviewModal } from '../hooks/usePreviewModal'
 import { fmtDate } from '../utils/helpers'
 import Modal from '../components/ui/Modal'
+import PreviewModal from '../components/ui/PreviewModal'
 import toast from 'react-hot-toast'
 import type { Project } from '../types'
 
 export default function ReportsPage() {
   const { isLayerThree } = useAuth()
+  const { openPreview } = usePreviewModal()
   const [page, setPage] = useState(1)
   const [submitOpen, setSubmitOpen] = useState(false)
   const [form, setForm] = useState({ project_id: '', description: '', report_date: '' })
@@ -101,10 +104,13 @@ export default function ReportsPage() {
                 {report.files && report.files.length > 0 && (
                   <div className="flex flex-col gap-1 flex-shrink-0">
                     {report.files.map((f) => (
-                      <a key={f.id} href={f.s3_url} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-xs text-brand-600 hover:underline">
+                      <button
+                        key={f.id}
+                        onClick={() => openPreview(f.s3_url, f.original_name)}
+                        className="flex items-center gap-1 text-xs text-brand-600 hover:underline text-left"
+                      >
                         <PaperClipIcon className="w-3 h-3" /> {f.original_name}
-                      </a>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -200,6 +206,8 @@ export default function ReportsPage() {
           </div>
         </div>
       </Modal>
+
+      <PreviewModal />
     </div>
   )
 }

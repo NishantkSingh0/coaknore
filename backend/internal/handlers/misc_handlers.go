@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -213,6 +214,22 @@ func (h *ReportHandler) ListReports(w http.ResponseWriter, r *http.Request) {
 		utils.InternalError(w, err.Error())
 		return
 	}
+
+	// Load files for each report if file service is available
+	if h.fileSvc != nil {
+		for i := range reports {
+			files, err := h.fileSvc.GetFilesByOwner(models.FileOwnerDailyReport, reports[i].ID)
+			if err != nil {
+				// Log error but continue - don't fail the entire request
+				fmt.Printf("Error loading files for report %s: %v\n", reports[i].ID, err)
+			} else {
+				reports[i].Files = files
+			}
+		}
+	} else {
+		fmt.Println("Warning: File service is nil - files will not be loaded")
+	}
+
 	utils.Success(w, utils.BuildPaginatedResponse(reports, total, p.Page, p.PageSize))
 }
 

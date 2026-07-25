@@ -12,31 +12,19 @@ import { useDarkMode } from '../../context/DarkModeContext'
 export default function PreviewModal() {
   const { isOpen, url, fileName, fileType, closePreview } = usePreviewModal()
   const { isDark } = useDarkMode()
-  const [downloading, setDownloading] = useState(false)
 
   if (!isOpen || !url) return null
 
-  const handleDownload = async () => {
-    setDownloading(true)
-    try {
-      const response = await fetch(url)
-      if (!response.ok) throw new Error('Network response was not ok')
-      const blob = await response.blob()
-      const blobUrl = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = fileName || 'downloaded-file'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      window.URL.revokeObjectURL(blobUrl)
-    } catch (error) {
-      console.warn('Direct blob download failed (possibly due to CORS). Falling back to opening in a new tab.', error)
-      // Fallback: Open file URL in new tab which will download it or let the user save it
-      window.open(url, '_blank')
-    } finally {
-      setDownloading(false)
-    }
+  const handleDownload = () => {
+    // Direct download using anchor with download attribute
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName || 'downloaded-file'
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
   }
 
   return (
@@ -77,12 +65,11 @@ export default function PreviewModal() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={handleDownload}
-                      disabled={downloading}
-                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-semibold text-gray-700 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs font-semibold text-gray-700 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 active:bg-gray-100 transition-colors cursor-pointer"
                       title="Download file"
                     >
                       <ArrowDownTrayIcon className="w-4 h-4 text-gray-500 dark:text-gray-200" />
-                      <span>{downloading ? 'Downloading...' : 'Download'}</span>
+                      <span>Download</span>
                     </button>
 
                     <button

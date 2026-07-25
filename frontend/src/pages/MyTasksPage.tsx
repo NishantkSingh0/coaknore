@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClockIcon, FolderIcon, CalendarDaysIcon, LockClosedIcon } from '@heroicons/react/24/outline'
+import { ClockIcon, CubeIcon, CalendarDaysIcon, LockClosedIcon } from '@heroicons/react/24/outline'
 import { taskApi, projectApi } from '../services/api'
 import { useAsync } from '../hooks/useAsync'
 import { useAuth } from '../context/AuthContext'
@@ -72,16 +72,14 @@ export default function MyTasksPage() {
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
                       {task.title || task.department_name}
                     </p>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 mt-1 text-xs font-semibold text-gray-500 dark:text-gray-200">
                       <span className="flex items-center gap-1">
-                        <FolderIcon className="w-3.5 h-3.5" />
+                        <CubeIcon className="w-3.5 h-3.5" />
                         {task.project_name}
                       </span>
-                      <span>•</span>
-                      <span>{task.department_name}</span>
                     </div>
                     {isLayerThree && task.expected_completion_date && (
-                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
                         <CalendarDaysIcon className="w-3.5 h-3.5" />
                         Expected: {fmtDate(task.expected_completion_date)}
                         {task.completion_date_locked && (

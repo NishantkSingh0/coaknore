@@ -246,7 +246,7 @@ function AdminDashboard() {
           <StatCard label="Opened Issues"      value={stats.open_issues}        icon={ExclamationCircleIcon}       color="bg-red-50 text-red-600 dark:bg-red-500/20 dark:text-red-400"     to="/issues" />
           <StatCard label="Pending Reworks"  value={stats.pending_reworks}    icon={ArrowPathIcon}               color="bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400" to="/reworks?status=pending" />
           <StatCard label="Material Requests"    value={stats.pending_materials}  icon={CubeIcon}                    color="bg-yellow-50 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400" to="/materials?status=pending" />
-          <StatCard label="Staffs"    value={Math.max(0, stats.total_employees - 2)}    icon={UserGroupIcon}               color="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" to="/employees" />
+          <StatCard label="Staffs"    value={Math.max(0, stats.total_employees - 1)}    icon={UserGroupIcon}               color="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400" to="/employees" />
         </div>
       )}
 
@@ -452,29 +452,87 @@ function Layer3Dashboard() {
             ) : myTasksData?.data?.map((task) => {
               const completedSubs = task.subtasks?.filter((s) => s.status === 'completed').length || 0
               const totalSubs = task.subtasks?.length || 0
+              const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'completed'
               return (
                 <Link key={task.id} to={`/tasks/${task.id}`}
-                  className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate dark:text-white">{task.title || task.department_name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={clsx('text-xs px-2 py-0.5 rounded-full font-medium',
-                        taskStatusColor[task.status])}>
-                        {taskStatusLabel[task.status]}
-                      </span>
-                      {task.due_date && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                          <ClockIcon className="w-3 h-3" />
-                          {fmtDate(task.due_date)}
+                  className="block px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      {/* Task Title */}
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                        {task.title || task.department_name}
+                      </p>
+                      
+                      {/* Project Name */}
+                      {task.project_name && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
+                          <FolderIcon className="w-3 h-3" />
+                          {task.project_name}
+                        </p>
+                      )}
+
+                      {/* Status and Due Date Row */}
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className={clsx('text-xs px-2 py-0.5 rounded-full font-medium',
+                          taskStatusColor[task.status])}>
+                          {taskStatusLabel[task.status]}
                         </span>
+                        
+                        {task.due_date && (
+                          <span className={clsx('text-xs flex items-center gap-1',
+                            isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-400')}>
+                            <ClockIcon className="w-3 h-3" />
+                            {isOverdue ? 'Overdue: ' : 'Due: '}{fmtDate(task.due_date)}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Start Date if available */}
+                      {task.start_date && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-2">
+                          Started: {fmtDate(task.start_date)}
+                        </p>
+                      )}
+
+                      {/* Subtask Progress */}
+                      {totalSubs > 0 && (
+                        <div className="mb-2">
+                          <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            <span>Subtasks</span>
+                            <span>{completedSubs}/{totalSubs}</span>
+                          </div>
+                          <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+                            <div className="bg-brand-500 rounded-full h-2 transition-all"
+                              style={{ width: `${(completedSubs / totalSubs) * 100}%` }} />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Assigned Employees */}
+                      {task.assigned_employees && task.assigned_employees.length > 0 && (
+                        <div className="flex items-center gap-1 mt-2">
+                          <UserGroupIcon className="w-3 h-3 text-gray- dark:text-gray-400" />
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {task.assigned_employees.length} assignee{task.assigned_employees.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
                       )}
                     </div>
-                    {totalSubs > 0 && (
-                      <div className="mt-1.5 w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1">
-                        <div className="bg-brand-500 rounded-full h-1 transition-all"
-                          style={{ width: `${(completedSubs / totalSubs) * 100}%` }} />
-                      </div>
-                    )}
+
+                    {/* Status Icon */}
+                    <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                      task.status === 'completed' ? 'bg-green-50 dark:bg-green-500/20' :
+                      task.status === 'in_progress' ? 'bg-blue-50 dark:bg-blue-500/20' :
+                      task.status === 'pending' ? 'bg-gray-50 dark:bg-gray-500/20' :
+                      'bg-orange-50 dark:bg-orange-500/20')}>
+                      {task.status === 'completed' ? (
+                        <CheckCircleIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      ) : task.status === 'in_progress' ? (
+                        <ClockIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      ) : (
+                        <ExclamationCircleIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      )}
+                    </div>
                   </div>
                 </Link>
               )
@@ -513,8 +571,13 @@ function Layer3Dashboard() {
               <CalendarIcon className="w-5 h-5 text-brand-500" />
               Upcoming Tasks
             </h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Read-only preview</span>
-          </div>
+            <Link
+              to="/upcoming-tasks"
+              className="text-xs text-brand-600 dark:text-brand-400 hover:underline"
+            >
+              Read-only preview
+            </Link>          
+        </div>
           <div className="divide-y divide-gray-100 dark:divide-gray-600">
             {upcomingTasksData.map((upcoming) => (
               <div key={upcoming.id} className="flex items-center gap-3 px-5 py-3 bg-gray-50 dark:bg-gray-800/50">

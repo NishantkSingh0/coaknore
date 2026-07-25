@@ -560,8 +560,8 @@ func (s *TaskService) checkNMinusOneCompletion(orgID, taskID uuid.UUID, task *mo
 	
 	// If all non-IQC tasks are completed and IQC is not completed, send notification
 	if totalSubtasks > 0 && completedSubtasks == totalSubtasks-1 && !iqcCompleted {
-		notificationTitle := fmt.Sprintf("%s Department is Completed Their Work", task.DepartmentName)
-		notificationBody := fmt.Sprintf("Your IQC Required.. Please Have a Look over %s Department", task.DepartmentName)
+		notificationTitle := fmt.Sprintf("%s Department has Completed Their Work", task.DepartmentName)
+		notificationBody := fmt.Sprintf("Your IQC is Required.. Please Visit as soon as possible !!")
 		
 		// Notify Admin and Layer2
 		go s.notifSvc.NotifyLayer(orgID, []models.LayerType{models.LayerSuperAdmin, models.LayerTwo}, 

@@ -1,39 +1,62 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BellIcon } from '@heroicons/react/24/outline'
-import { CheckIcon } from '@heroicons/react/24/solid'
+import {
+  BellIcon,
+  FolderPlusIcon,
+  ArrowsRightLeftIcon,
+  ArrowPathIcon,
+  ClipboardDocumentListIcon,
+  PlayIcon,
+  CheckCircleIcon,
+  CheckIcon,
+  PaperClipIcon,
+  ChartBarIcon,
+  ExclamationTriangleIcon,
+  LockClosedIcon,
+  XCircleIcon,
+  ArchiveBoxIcon,
+  ArrowPathRoundedSquareIcon,
+  ChatBubbleLeftRightIcon,
+  ArrowUturnLeftIcon,
+  PencilSquareIcon,
+  LockOpenIcon,
+  ClockIcon,
+} from '@heroicons/react/24/outline'
+import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid'
 import { notifApi } from '../services/api'
 import { useAsync } from '../hooks/useAsync'
 import { fmtRelative } from '../utils/helpers'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 
-const NOTIF_ICON: Record<string, string> = {
-  project_created: '📁',
-  routing_assigned: '🔀',
-  routing_updated: '🔄',
-  task_assigned: '📋',
-  task_started: '▶️',
-  task_completed: '✅',
-  subtask_completed: '☑️',
-  proof_uploaded: '📎',
-  daily_report_submitted: '📊',
-  issue_raised: '⚠️',
-  issue_approved: '✅',
-  issue_closed: '🔒',
-  issue_rejected: '❌',
-  material_request: '📦',
-  material_approved: '✅',
-  material_rejected: '❌',
-  rework_request: '🔁',
-  rework_approved: '✅',
-  rework_rejected: '❌',
-  query_received: '💬',
-  query_replied: '↩️',
-  query_closed: '🔒',
-  project_revision: '📝',
-  department_reopened: '🔓',
-  overdue_task: '⏰',
+// Icon components per notification type — outline style, no background,
+// colored to match the row's priority tint.
+const NOTIF_ICON: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+  project_created: FolderPlusIcon,
+  routing_assigned: ArrowsRightLeftIcon,
+  routing_updated: ArrowPathIcon,
+  task_assigned: ClipboardDocumentListIcon,
+  task_started: PlayIcon,
+  task_completed: CheckCircleIconSolid,
+  subtask_completed: CheckCircleIcon,
+  proof_uploaded: PaperClipIcon,
+  daily_report_submitted: ChartBarIcon,
+  issue_raised: ExclamationTriangleIcon,
+  issue_approved: CheckCircleIconSolid,
+  issue_closed: LockClosedIcon,
+  issue_rejected: XCircleIcon,
+  material_request: ArchiveBoxIcon,
+  material_approved: CheckCircleIconSolid,
+  material_rejected: XCircleIcon,
+  rework_request: ArrowPathRoundedSquareIcon,
+  rework_approved: CheckCircleIconSolid,
+  rework_rejected: XCircleIcon,
+  query_received: ChatBubbleLeftRightIcon,
+  query_replied: ArrowUturnLeftIcon,
+  query_closed: LockClosedIcon,
+  project_revision: PencilSquareIcon,
+  department_reopened: LockOpenIcon,
+  overdue_task: ClockIcon,
 }
 
 // Priority tiers — drive the color-coding so the most time-sensitive
@@ -76,8 +99,8 @@ const NOTIF_PRIORITY: Record<string, Priority> = {
 const getPriority = (type: string): Priority => NOTIF_PRIORITY[type] || 'standard'
 
 // Solid hex values used as an inline-style fallback so the left border
-// ALWAYS renders with the right color on every row, regardless of
-// Tailwind's JIT class scanning / purge behavior.
+// (and now the icon color) ALWAYS renders correctly on every row,
+// regardless of Tailwind's JIT class scanning / purge behavior.
 const PRIORITY_HEX: Record<Priority, string> = {
   critical: '#ef4444',   // red-500
   important: '#f97316',  // orange-500
@@ -88,25 +111,21 @@ const PRIORITY_META: Record<Priority, {
   label: string
   badge: string
   bgUnread: string
-  iconRing: string
 }> = {
   critical: {
     label: 'Critical',
     badge: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-800',
     bgUnread: 'bg-red-50/60 dark:bg-red-950/30',
-    iconRing: 'bg-red-100 dark:bg-red-950 ring-1 ring-red-200 dark:ring-red-800',
   },
   important: {
     label: 'Important',
     badge: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300 border border-orange-200 dark:border-orange-800',
     bgUnread: 'bg-orange-50/60 dark:bg-orange-950/20',
-    iconRing: 'bg-orange-100 dark:bg-orange-950 ring-1 ring-orange-200 dark:ring-orange-800',
   },
   standard: {
     label: 'Standard',
     badge: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700',
     bgUnread: 'bg-brand-50/50 dark:bg-gray-800/60',
-    iconRing: 'bg-gray-100 dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700',
   },
 }
 
@@ -131,7 +150,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-4xl mt-5 mx-auto space-y-6">
       <div className="page-header">
         <h1 className="page-title">Notifications</h1>
         <div className="flex items-center gap-3">
@@ -182,17 +201,16 @@ export default function NotificationsPage() {
           )}
 
           {/*
-            Each notification is now its own self-contained card with a
-            defined background, border and shadow — no shared "divide"
-            border running underneath, and no bleed of a flat gray wash
-            across the whole list. Only the individual row tints (driven
-            by PRIORITY_META) change, which keeps the existing color
-            coding and read/unread logic exactly as before.
+            Each notification is its own self-contained card with a
+            defined background, border and shadow. Icons are now plain
+            Heroicons (no circular background), colored to match the
+            row's priority.
           */}
           <div className="space-y-2.5">
             {data?.data?.map((notif) => {
               const priority = getPriority(notif.type)
               const meta = PRIORITY_META[priority]
+              const Icon = NOTIF_ICON[notif.type] || BellIcon
               return (
                 <div
                   key={notif.id}
@@ -205,11 +223,11 @@ export default function NotificationsPage() {
                   )}
                   style={{ borderLeft: `4px solid ${PRIORITY_HEX[priority]}` }}
                 >
-                  <span className={clsx(
-                    'text-xl flex-shrink-0 mt-0.5 w-9 h-9 rounded-full flex items-center justify-center',
-                    meta.iconRing
-                  )}>
-                    {NOTIF_ICON[notif.type] || '🔔'}
+                  <span className="flex-shrink-0 mt-0.5 w-9 h-9 flex items-center justify-center">
+                    <Icon
+                      className="w-6 h-6"
+                      style={{ color: PRIORITY_HEX[priority] }}
+                    />
                   </span>
 
                   <div className="flex-1 min-w-0">

@@ -120,8 +120,8 @@ export default function SettingsPage() {
               <p className="text-lg font-bold dark:text-gray-200 text-gray-900">{user?.first_name} {user?.last_name}</p>
               <p className="text-gray-500 dark:text-gray-400">{user?.email}</p>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-gray-400 capitalize">
-                  {user?.department_name ? ` · ${user.department_name}` : 'Admin'}
+                <span className="text-xs text-gray-400 font-semibold dark:text-gray-200 capitalize">
+                  {user?.department_name ? ` ${user.department_name}` : 'Admin'}
                 </span>
                 {user?.avatar_url && (
                   <>
@@ -129,7 +129,7 @@ export default function SettingsPage() {
                     <button
                       onClick={handleRemoveAvatar}
                       disabled={uploading}
-                      className="text-xs text-red-600 hover:text-red-800 font-medium cursor-pointer"
+                      className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-500 font-medium cursor-pointer"
                     >
                       Remove avatar
                     </button>
@@ -143,7 +143,7 @@ export default function SettingsPage() {
 
       {/* Change Password */}
       <div className="card">
-        <div className="card-header"><h2 className="font-semibold">Change Password</h2> <h5 className='text-xs'>Contact Admin If you Forget your Password</h5> </div>
+        <div className="card-header"><h2 className="font-semibold">Change Password</h2> <h5 className='text-xs'>Contact Admin If you Forget your Current Password</h5> </div>
         <div className="card-body">
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>

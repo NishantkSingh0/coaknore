@@ -255,7 +255,6 @@ func (s *OrganizationService) ListEmployees(orgID uuid.UUID, search, layer, dept
 
 	// Exclude specific emails from being visible
 	conditions = append(conditions, "e.email NOT IN ('n@oaknore.in', 'k@oaknore.in')")
-
 	if search != "" {
 		conditions = append(conditions, fmt.Sprintf(`(
 			e.first_name ILIKE $%d OR e.last_name ILIKE $%d OR e.email ILIKE $%d

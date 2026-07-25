@@ -727,7 +727,7 @@ function ActiveRoutingFlow({ routing }: { routing: Routing }) {
                     ))}
                   </div>
                   <p className="text-xs text-gray-400 mt-1.5">
-                    {step.dependency_policy === 'require_all' ? 'All must complete' : 'Any can proceed'}
+                    {step.dependency_policy === 'require_all' ? 'All must be completed' : 'Any can proceed'}
                   </p>
                 </div>
               </div>

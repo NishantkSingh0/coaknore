@@ -12,9 +12,9 @@ import type { TaskStatus, DepartmentTask, Routing } from '../../types'
 const COLUMNS: { status: TaskStatus; label: string; description: string; color: string; bg: string }[] = [
   { status: 'pending', label: 'Pending', description: 'Routing has not been initiated for these departments.', color: 'bg-gray-100 border-gray-300 dark:bg-gray-400/20 dark:border-gray-600', bg: 'bg-gray-50 dark:bg-gray-700/50' },
   { status: 'on_hold', label: 'On Hold', description: 'Routing has been assigned to this department, but the department admin has not started work yet.', color: 'bg-yellow-50 border-yellow-300 dark:bg-yellow-500/20 dark:border-yellow-500/40', bg: 'bg-yellow-50/60 dark:bg-yellow-900/30' },
-  { status: 'issue_hold', label: 'Issue Hold', description: 'Work is currently on hold due to an issue in the department listed below.', color: 'bg-red-200 border-red-200 dark:bg-red-500/20 dark:border-red-500/40', bg: 'bg-red-200/60 dark:bg-red-900/30' },
-  { status: 'in_progress', label: 'In Progress', description: 'Work is currently in progress in the department listed below.', color: 'bg-blue-500 border-blue-200 dark:bg-blue-500/20 dark:border-blue-500/40', bg: 'bg-blue-500/60 dark:bg-blue-900/30' },
-  { status: 'completed', label: 'Completed', description: 'Work has been completed by the department listed below.', color: 'bg-green-500 border-green-200 dark:bg-green-500/20 dark:border-green-500/40', bg: 'bg-green-500/60 dark:bg-green-900/30' },
+  { status: 'issue_hold', label: 'Issue Hold', description: 'Work is currently on hold due to an issue in the department listed below.', color: 'bg-red-200 border-red-400 dark:bg-red-500/20 dark:border-red-500/40', bg: 'bg-red-300/60 dark:bg-red-900/50' },
+  { status: 'in_progress', label: 'In Progress', description: 'Work is currently in progress in the department listed below.', color: 'bg-blue-200 border-blue-400 dark:bg-blue-500/20 dark:border-blue-500/40', bg: 'bg-blue-200/60 dark:bg-blue-900/30' },
+  { status: 'completed', label: 'Completed', description: 'Work has been completed by the department listed below.', color: 'bg-green-200 border-green-400 dark:bg-green-500/20 dark:border-green-500/40', bg: 'bg-green-200/60 dark:bg-green-900/30' },
 ]
 
 export default function TaskBoard({ projectId }: { projectId: string }) {
@@ -113,12 +113,14 @@ export default function TaskBoard({ projectId }: { projectId: string }) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {routing.change_reason && (
-                    <span className="text-xs text-gray-400 dark:text-gray-500 max-w-xs truncate">
-                      {routing.change_reason}
-                    </span>
-                  )}
-                  <ClockIcon className={`w-4 h-4 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  <span className="text-xs text-gray-400 dark:text-gray-500 max-w-xs truncate">
+                    {routing.change_reason || "First Route"}
+                  </span>
+                  <ClockIcon
+                    className={`w-4 h-4 text-gray-400 transition-transform ${
+                      isExpanded ? "rotate-180" : ""
+                    }`}
+                  />
                 </div>
               </div>
             </div>
