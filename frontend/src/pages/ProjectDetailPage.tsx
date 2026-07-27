@@ -40,6 +40,33 @@ export default function ProjectDetailPage() {
   console.log('project', project)
   const { openPreview } = usePreviewModal()
 
+  const parseDescriptionList = (content: string): string[] => {
+    const items: string[] = [];
+    let current = "";
+
+    for (const part of content.split("-")) {
+      const text = part.trim();
+
+      // Looks like a continuation, not a new bullet
+      if (
+        current &&
+        (
+          /^[a-z0-9]/.test(text) ||        // starts with lowercase or number
+          text.split(/\s+/).length <= 2 || // one/two words
+          text.length < 15                 // very short fragment
+        )
+      ) {
+        current += "-" + text;
+      } else {
+        if (current) items.push(current);
+        current = text;
+      }
+    }
+
+    if (current) items.push(current);
+
+    return items;
+  };
 
   useEffect(() => {
     sessionStorage.setItem(storageKey, activeTab)
@@ -257,15 +284,10 @@ export default function ProjectDetailPage() {
                         <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-300 mb-3">
                           {title}
                         </h4>
-
                         <ul className="list-disc pl-5 space-y-2 text-sm text-gray-700 dark:text-gray-400">
-                          {content!
-                            .split("-")
-                            .map((item) => item.trim())
-                            .filter(Boolean)
-                            .map((item, index) => (
-                              <li key={index}>{item}</li>
-                            ))}
+                          {parseDescriptionList(content!).map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))}
                         </ul>
                       </div>
                     ))}

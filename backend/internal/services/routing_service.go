@@ -425,10 +425,10 @@ func (s *RoutingService) PublishRouting(orgID, routingID, publishedBy uuid.UUID)
 		routing.PublishedAt = &rPubAt.Time
 	}
 
-	// Set project status to on_hold (routing is set but not started yet)
+	// Set project status to in_progress 
 	tx.Exec(`
 		UPDATE projects
-		SET status = 'on_hold', updated_at = NOW()
+		SET status = 'in_progress', updated_at = NOW()
 		WHERE id = $1 AND status IN ('created', 'routing')
 	`, projectID)
 
