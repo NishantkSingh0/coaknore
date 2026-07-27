@@ -48,6 +48,9 @@ export default function TaskDetailPage() {
     assigned_to_dept_id: '',
     material_name: '', material_description: '', required_quantity: '', material_unit: '', material_remarks: '',
   })
+  // department file upload
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingDepartmentFile, setUploadingDepartmentFile] = useState(false)
   const [issueImage, setIssueImage] = useState<File | null>(null)
   const issueFileRef = useRef<HTMLInputElement>(null)
   
@@ -56,6 +59,25 @@ export default function TaskDetailPage() {
   const [dateChangeConfirm, setDateChangeConfirm] = useState<{ oldDate: string; newDate: string } | null>(null)
 
   // ── handlers ──────────────────────────────────────────────────────────────
+  const handleDepartmentFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !id) return
+
+    setUploadingDepartmentFile(true)
+    try {
+      await taskApi.uploadDepartmentFile(id, file)
+      toast.success('Department file uploaded successfully')
+      refetch()
+    } catch (error) {
+      toast.error('Failed to upload department file')
+    } finally {
+      setUploadingDepartmentFile(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
   const handleStatusChange = async (status: TaskStatus) => {
     const ok = await execute(() => taskApi.updateStatus(id!, status))
     if (ok !== null) { toast.success('Status updated'); refetch() }
@@ -479,7 +501,7 @@ export default function TaskDetailPage() {
                 />
                 <button
                   onClick={handleSetExpectedCompletion}
-                  disabled={settingDate || !expectedDate}
+                  disabled={settingDate || !expectedDate }
                   className="btn-primary whitespace-nowrap"
                 >
                   {settingDate ? 'Setting...' : 'Set Date'}
@@ -576,10 +598,57 @@ export default function TaskDetailPage() {
         </div>
       )}
 
+      {/* ── Important Additional Information (Department Files) ──────────────── */}
+      {(task.department_files && task.department_files.length > 0) && (
+        <div className="card">
+          <div className="p-4 border-b border-gray-100 dark:border-gray-800">
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Important Additional Information</h2>
+          </div>
+          <div className="p-4">
+            <div className="flex gap-2 flex-wrap">
+              {task.department_files.map((file) => (
+                <button
+                  key={file.id}
+                  type="button"
+                  onClick={() => openPreview(file.s3_url, file.original_name)}
+                  className="text-sm text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer text-left border border-gray-200 dark:border-gray-700 rounded px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <PaperClipIcon className="w-4 h-4 flex-shrink-0" /> <span className="truncate max-w-[200px]">{file.original_name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Subtasks ──────────────────────────────────────────────────────────── */}
       <div className="card">
         <div className="p-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100">Subtasks</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Subtasks</h2>
+            {(isLayerTwo || isAdmin) && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleDepartmentFileUpload}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingDepartmentFile}
+                  className="btn-secondary btn-sm flex items-center gap-1"
+                >
+                  {uploadingDepartmentFile ? (
+                    <div className="w-4 h-4 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <PaperClipIcon className="w-4 h-4" />
+                  )}
+                  Upload Department File
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {task.subtasks?.length === 0 ? (

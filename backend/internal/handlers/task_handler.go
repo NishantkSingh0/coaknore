@@ -42,6 +42,9 @@ func (h *TaskHandler) GetTask(w http.ResponseWriter, r *http.Request) {
 			files, _ := h.fileSvc.GetFilesByOwner(models.FileOwnerSubtask, st.ID)
 			task.Subtasks[i].Files = files
 		}
+		// Attach department task files
+		deptFiles, _ := h.fileSvc.GetFilesByOwner(models.FileOwnerDepartmentTask, taskID)
+		task.DepartmentFiles = deptFiles
 	}
 	utils.Success(w, task)
 }
@@ -251,6 +254,40 @@ func (h *TaskHandler) UploadSubtaskProof(w http.ResponseWriter, r *http.Request)
 
 	// Auto-complete subtask now that proof is uploaded
 	_ = h.taskSvc.CompleteSubtask(orgID, subtaskID, empID, "Proof uploaded")
+
+	utils.Created(w, asset)
+}
+
+func (h *TaskHandler) UploadDepartmentTaskFile(w http.ResponseWriter, r *http.Request) {
+	orgID := middleware.GetOrgID(r)
+	empID := middleware.GetEmployeeID(r)
+	layer := middleware.GetLayer(r)
+	
+	// Only Layer1, Layer2, and SuperAdmin can upload department task files
+	if layer != models.LayerOne && layer != models.LayerTwo && layer != models.LayerSuperAdmin {
+		utils.Forbidden(w, "Only Layer1, Layer2, and SuperAdmin can upload department task files")
+		return
+	}
+	
+	taskID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		utils.BadRequest(w, "Invalid task ID")
+		return
+	}
+
+	r.ParseMultipartForm(50 << 20)
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		utils.BadRequest(w, "file is required")
+		return
+	}
+	defer file.Close()
+
+	asset, err := h.fileSvc.UploadFile(orgID, empID, nil, models.FileOwnerDepartmentTask, taskID, file, header)
+	if err != nil {
+		utils.InternalError(w, err.Error())
+		return
+	}
 
 	utils.Created(w, asset)
 }

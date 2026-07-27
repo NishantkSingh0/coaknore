@@ -209,7 +209,7 @@ export default function RoutingBuilder({
   // Confirmed edit — load steps for editing
   const confirmEdit = () => {
     if (!pendingEditReason.trim()) {
-      toast.error('Please provide a reason for editing')
+      toast.error('Please provide a valid reason for editing')
       return
     }
     const routing = routings?.find((r) => r.id === pendingEditRoutingId)
@@ -550,7 +550,7 @@ export default function RoutingBuilder({
           <div className="flex gap-3 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-500 rounded-xl">
             <ExclamationTriangleIcon className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-blue-800 dark:text-blue-400">Creating a new routing version</p>
+              <p className="text-sm font-semibold text-blue-800 dark:text-blue-400">Sure about Creating a new routing version?</p>
               <p className="text-sm text-blue-700 dark:text-blue-600 mt-1">
                 Use this only when necessary to maintain project data quality.
               </p>

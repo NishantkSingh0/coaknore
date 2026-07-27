@@ -136,6 +136,7 @@ const (
 	FileOwnerQuery           FileOwnerType = "query"
 	FileOwnerRework          FileOwnerType = "rework_request"
 	FileOwnerMaterial        FileOwnerType = "material_request"
+	FileOwnerDepartmentTask  FileOwnerType = "department_task"
 )
 
 type NotificationType string
@@ -349,6 +350,7 @@ type DepartmentTask struct {
 	CompletedAt            *time.Time `json:"completed_at,omitempty"`
 	AssignedEmployees      []Employee `json:"assigned_employees,omitempty"`
 	Subtasks               []Subtask  `json:"subtasks,omitempty"`
+	DepartmentFiles        []FileAsset `json:"department_files,omitempty"`
 	RoutingIsLatest        bool       `json:"routing_is_latest,omitempty"`
 	CreatedAt              time.Time  `json:"created_at"`
 	UpdatedAt              time.Time  `json:"updated_at"`

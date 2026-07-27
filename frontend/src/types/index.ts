@@ -171,6 +171,7 @@ export interface DepartmentTask {
   completed_at?: string
   assigned_employees?: Employee[]
   subtasks?: Subtask[]
+  department_files?: FileAsset[]
   routing_is_latest?: boolean
   created_at: string
   updated_at: string

@@ -15,8 +15,8 @@ const Tooltip = () => {
 
 const StyledWrapper = styled.div`
   .faq-button {
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     border: none;
     background-color: #ffe53b;
@@ -28,7 +28,7 @@ const StyledWrapper = styled.div`
     position: relative;
   }
   .faq-button svg {
-    height: 1.5em;
+    height: 17px;
     fill: white;
   }
   .faq-button:hover svg {

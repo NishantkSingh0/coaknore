@@ -777,6 +777,48 @@ const layer2Sections: Section[] = [
   },
 
   {
+    id: 'l2-department-files',
+    icon: ArrowUpTrayIcon,
+    title: 'Department Files, Uploading Important Information for Production Teams',
+    content: (
+      <div className="space-y-5">
+        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          As a Manager or Admin, you can upload <strong>Department Files</strong> to specific tasks. These files contain important drawings, specifications, or guidance that production departments need to see before proceeding with their work.
+        </p>
+        <SubSection icon={InformationCircleIcon} title="Purpose of Department Files">
+          <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+            <p><strong className="text-gray-800 dark:text-gray-200">Enable Specific Departments:</strong> Upload files directly to a department's task so they see exactly what they need for their specific work.</p>
+            <p><strong className="text-gray-800 dark:text-gray-200">Provide Guidance:</strong> Share important drawings, updated specifications, or special instructions that aren't in the original project files.</p>
+            <p><strong className="text-gray-800 dark:text-gray-200">Ensure Compliance:</strong> Make sure production teams have the correct reference materials before they start work.</p>
+          </div>
+        </SubSection>
+        <SubSection icon={PlusCircleIcon} title="How to Upload Department Files">
+          <div className="space-y-0">
+            <Step n={1} icon={FolderOpenIcon} title="Navigate to the task">
+              <p>Go to Project → Tasks tab, then click on the specific department task you want to add files to.</p>
+            </Step>
+            <Step n={2} icon={EyeIcon} title="Open the Task Detail Page">
+              <p>You'll see the task description, subtasks, and other details. Look for the Subtasks section header.</p>
+            </Step>
+            <Step n={3} icon={ArrowUpTrayIcon} title="Click 'Upload Department File'">
+              <p>In the Subtasks section header, you'll see an "Upload Department File" button. Click it to open the file picker.</p>
+            </Step>
+            <Step n={4} icon={DocumentTextIcon} title="Select and upload the file">
+              <p>Choose the drawing, specification, or document you want to share. The file uploads to AWS S3 and is linked to this task.</p>
+            </Step>
+            <Step n={5} icon={CheckCircleIcon} title="File is now visible to the department">
+              <p>The file appears in the "Important Additional Information" section for all users, especially the production department assigned to this task.</p>
+            </Step>
+          </div>
+        </SubSection>
+        <InfoBox type="tip">
+          Department files are task-specific. Upload different files for different departments if they need different guidance. This keeps information targeted and relevant.
+        </InfoBox>
+      </div>
+    ),
+  },
+
+  {
     id: 'l2-routing',
     icon: MapIcon,
     title: 'Building & Publishing Routings',
@@ -918,16 +960,19 @@ const layer3Sections: Section[] = [
             <Step n={1} icon={EyeIcon} title="Read the task description and check project files">
               <p>The task description tells you what your department needs to do. The parent project has CAD files, Job Cards, and Renders attached, use them as your reference.</p>
             </Step>
-            <Step n={2} icon={PencilSquareIcon} title="Set status to In Progress">
+            <Step n={2} icon={InformationCircleIcon} title="Check Important Additional Information">
+              <p>Look for the "Important Additional Information" section. This contains guided drawings and special instructions from upper departments that you must acknowledge before proceeding with your work.</p>
+            </Step>
+            <Step n={3} icon={PencilSquareIcon} title="Set status to In Progress">
               <p>Change the status from <Tag label="Pending" color="gray" /> to <Tag label="In Progress" color="blue" /> as soon as your team starts. This tells Admin and Managers that work has begun.</p>
             </Step>
-            <Step n={3} icon={UserPlusIcon} title="Assign team members if needed">
+            <Step n={4} icon={UserPlusIcon} title="Assign team members if needed">
               <p>If specific people in your department are responsible for this task, use Assign Employees to tag them. They receive a notification.</p>
             </Step>
-            <Step n={4} icon={CheckCircleIcon} title="Complete subtasks one by one">
+            <Step n={5} icon={CheckCircleIcon} title="Complete subtasks one by one">
               <p>Tick off each subtask as you finish it. For subtasks that require photographic proof, click the upload button, uploading a file auto-completes that subtask.</p>
             </Step>
-            <Step n={5} icon={CheckCircleIcon} title="Mark the full task as Completed when done">
+            <Step n={6} icon={CheckCircleIcon} title="Mark the full task as Completed when done">
               <p>When all subtasks are done and work is complete, set the status to <Tag label="Completed" color="dark" />. This automatically unlocks the next department's task in the routing.</p>
             </Step>
           </div>

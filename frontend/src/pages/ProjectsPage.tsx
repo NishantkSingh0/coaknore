@@ -90,8 +90,6 @@ export default function ProjectsPage() {
                 <th>Project</th>
                 <th>PO Number</th>
                 <th>Client</th>
-                {(isAdmin || isLayerTwo) && <th>Rate</th>}
-                {(isAdmin || isLayerTwo) && <th>GST Num</th>}
                 <th>Status</th>
                 <th>Delivery</th>
                 <th>Revision</th>
@@ -133,8 +131,6 @@ export default function ProjectsPage() {
                   </td>
                   <td className="font-mono text-xs" title={project.po_number}>{project.po_number.length > 25 ? `${project.po_number.slice(0, 20)}...` : project.po_number}</td>
                   <td>{project.client_name}</td>
-                  {(isAdmin || isLayerTwo) && <td className="text-sm">{project.rate ? `₹${project.rate.toFixed(2)}` : '—'}</td>}
-                  {(isAdmin || isLayerTwo) && <td className="text-sm font-mono">{project.client_gst_num || '—'}</td>}
                   <td>
                     {project.active_task_status ? (
                       <ProjectBadge status={project.active_task_status as ProjectStatus} />

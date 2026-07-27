@@ -197,6 +197,9 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(appmiddleware.RequireLayer(models.LayerTwo, models.LayerOne, models.LayerSuperAdmin))
 
+			// Department task file upload
+			r.Post("/api/tasks/{id}/department-file", taskHandler.UploadDepartmentTaskFile)
+
 			// Routing builder
 			r.Post("/api/projects/{projectId}/routings", routingHandler.CreateRouting)
 			r.Put("/api/routings/{id}", routingHandler.UpdateRouting)

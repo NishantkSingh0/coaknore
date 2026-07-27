@@ -321,6 +321,12 @@ export const taskApi = {
     const res = await api.post<ApiResponse<FileAsset>>(`/subtasks/${id}/proof`, form)
     return unwrap(res)
   },
+  uploadDepartmentFile: async (id: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await api.post<ApiResponse<FileAsset>>(`/tasks/${id}/department-file`, form)
+    return unwrap(res)
+  },
 }
 
 // ============================================================
