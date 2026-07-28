@@ -86,7 +86,7 @@ func (s *ProjectService) CreateProject(orgID, createdBy uuid.UUID, req CreatePro
 			delivery_date, delivery_address, cover_image_url, cad_files_url,
 			job_cards_url, render_files_url, drawing_file_id, status, created_by
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'created',$20
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,'created',$21
 		)
 		RETURNING id, organization_id, po_number, project_name, client_name,
 			client_email, client_phone, client_address, client_gst_num, rate, quantity,

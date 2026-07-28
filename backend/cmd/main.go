@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"runtime"
 	"syscall"
 	"time"
 
@@ -42,10 +41,7 @@ func main() {
 	defer db.Close()
 
 	// ── Migrations + Seed ───────────────────────────────────────────────────
-	// Resolve the migrations directory relative to the running binary so this
-	// works both with `go run` and a compiled binary.
-	_, filename, _, _ := runtime.Caller(0)
-	migrationsPath := filepath.Join(filepath.Dir(filename), "..", "migrations")
+	migrationsPath := resolveMigrationsPath()
 
 	newMigrations, err := database.RunMigrations(db, migrationsPath)
 	if err != nil {
@@ -331,4 +327,27 @@ func main() {
 	}
 
 	log.Print("Server stopped")
+}
+
+func resolveMigrationsPath() string {
+	if path := os.Getenv("MIGRATIONS_PATH"); path != "" {
+		return path
+	}
+
+	candidates := []string{
+		filepath.Join(".", "migrations"),
+		filepath.Join("..", "migrations"),
+	}
+
+	if exe, err := os.Executable(); err == nil {
+		candidates = append(candidates, filepath.Join(filepath.Dir(exe), "migrations"))
+	}
+
+	for _, path := range candidates {
+		if info, err := os.Stat(path); err == nil && info.IsDir() {
+			return path
+		}
+	}
+
+	return "migrations"
 }

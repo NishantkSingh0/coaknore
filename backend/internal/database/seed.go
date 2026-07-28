@@ -50,7 +50,7 @@ func RunSeed(db *sql.DB) {
 	}
 	if adminCreated {
 		log.Printf("[seed] super admin created — email: %s", DefaultSeed.Email)
-		log.Printf("[seed] ⚠  change the default password after first login!")
+		log.Printf("[seed] ⚠  change the default password after first login!, Current Passwor: %s", DefaultSeed.Password)
 	} else {
 		log.Printf("[seed] super admin already exists — skipping")
 	}
