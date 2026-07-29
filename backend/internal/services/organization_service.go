@@ -444,6 +444,158 @@ func (s *OrganizationService) UpdateAvatar(employeeID uuid.UUID, avatarURL *stri
 	return err
 }
 
+func (s *OrganizationService) DeleteEmployee(id uuid.UUID) error {
+	// Start a transaction for safe cascade deletion
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete in order of dependencies to avoid foreign key violations
+	
+	// 1. Delete task employee assignments
+	_, err = tx.Exec(`DELETE FROM task_employee_assignments WHERE employee_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 2. Handle NOT NULL constraints - must delete these records
+	// Delete issues where employee is raised_by (NOT NULL)
+	_, err = tx.Exec(`DELETE FROM issues WHERE raised_by = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete rework requests where employee is requested_by (NOT NULL)
+	_, err = tx.Exec(`DELETE FROM rework_requests WHERE requested_by = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete material requisitions where employee is requested_by (NOT NULL)
+	_, err = tx.Exec(`DELETE FROM material_requisitions WHERE requested_by = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete queries where employee is sender or recipient (both NOT NULL)
+	_, err = tx.Exec(`DELETE FROM queries WHERE sender_id = $1 OR recipient_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete daily reports where employee is submitted_by (NOT NULL)
+	_, err = tx.Exec(`DELETE FROM daily_reports WHERE submitted_by = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete file assets where employee is uploaded_by (NOT NULL)
+	_, err = tx.Exec(`DELETE FROM file_assets WHERE uploaded_by = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete notifications for this employee (recipient_id is NOT NULL)
+	_, err = tx.Exec(`DELETE FROM notifications WHERE recipient_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete routing edit timeline where employee is edited_by (NOT NULL)
+	_, err = tx.Exec(`DELETE FROM routing_edit_timeline WHERE edited_by = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Delete query messages where employee is sender (NOT NULL)
+	_, err = tx.Exec(`DELETE FROM query_messages WHERE sender_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 3. Handle NULLABLE constraints - set to NULL to preserve data
+	// Update subtasks to remove completed_by reference (nullable)
+	_, err = tx.Exec(`UPDATE subtasks SET completed_by = NULL WHERE completed_by = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Update subtasks to remove assigned_to reference (nullable)
+	_, err = tx.Exec(`UPDATE subtasks SET assigned_to = NULL WHERE assigned_to = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Update projects to remove created_by reference (NOT NULL - but we need to handle this)
+	// Since created_by is NOT NULL, we cannot set it to NULL. We must either:
+	// - Delete the project (too destructive)
+	// - Set it to a default admin user (better approach)
+	// For now, let's check if there are projects created by this employee
+	var projectCount int
+	tx.QueryRow(`SELECT COUNT(*) FROM projects WHERE created_by = $1`, id).Scan(&projectCount)
+	if projectCount > 0 {
+		// Set to a default admin or fail - for now we'll return error
+		return fmt.Errorf("cannot delete employee who created %d projects", projectCount)
+	}
+
+	// Update routings to remove created_by reference (NOT NULL - similar issue)
+	var routingCount int
+	tx.QueryRow(`SELECT COUNT(*) FROM routings WHERE created_by = $1`, id).Scan(&routingCount)
+	if routingCount > 0 {
+		return fmt.Errorf("cannot delete employee who created %d routings", routingCount)
+	}
+
+	// Update project revisions to remove revised_by reference (NOT NULL)
+	var revisionCount int
+	tx.QueryRow(`SELECT COUNT(*) FROM project_revisions WHERE revised_by = $1`, id).Scan(&revisionCount)
+	if revisionCount > 0 {
+		return fmt.Errorf("cannot delete employee who revised %d project revisions", revisionCount)
+	}
+
+	// Update routing templates to remove created_by reference (NOT NULL)
+	var templateCount int
+	tx.QueryRow(`SELECT COUNT(*) FROM routing_templates WHERE created_by = $1`, id).Scan(&templateCount)
+	if templateCount > 0 {
+		return fmt.Errorf("cannot delete employee who created %d routing templates", templateCount)
+	}
+
+	// Update nullable references
+	_, err = tx.Exec(`UPDATE issues SET reviewed_by = NULL WHERE reviewed_by = $1`, id)
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(`UPDATE issues SET resolved_by = NULL WHERE resolved_by = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`UPDATE rework_requests SET reviewed_by = NULL WHERE reviewed_by = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`UPDATE material_requisitions SET reviewed_by = NULL WHERE reviewed_by = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(`UPDATE audit_logs SET actor_id = NULL WHERE actor_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 4. Finally delete the employee
+	_, err = tx.Exec(`DELETE FROM employees WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Commit the transaction
+	return tx.Commit()
+}
+
 func nullStr(s string) interface{} {
 	if s == "" {
 		return nil

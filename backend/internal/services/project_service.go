@@ -655,3 +655,95 @@ func nullBytes(b []byte) interface{} {
 	}
 	return string(b)
 }
+
+func (s *ProjectService) DeleteProject(id uuid.UUID) error {
+	// Start a transaction for safe cascade deletion
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Delete in order of dependencies to avoid foreign key violations
+	
+	// 1. First, set drawing_file_id to NULL in projects (to remove FK constraint to file_assets)
+	_, err = tx.Exec(`UPDATE projects SET drawing_file_id = NULL WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 2. Delete file assets associated with the project
+	_, err = tx.Exec(`DELETE FROM file_assets WHERE project_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 3. Delete daily reports (already cascades from project, but being explicit)
+	_, err = tx.Exec(`DELETE FROM daily_reports WHERE project_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 4. Delete material requisitions (already cascades from project)
+	_, err = tx.Exec(`DELETE FROM material_requisitions WHERE project_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 5. Delete queries (already cascades from project)
+	_, err = tx.Exec(`DELETE FROM queries WHERE project_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 6. Delete rework requests (already cascades from project)
+	_, err = tx.Exec(`DELETE FROM rework_requests WHERE project_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 7. Delete issues (already cascades from project)
+	_, err = tx.Exec(`DELETE FROM issues WHERE project_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 8. Delete department tasks (already cascades from project)
+	_, err = tx.Exec(`DELETE FROM department_tasks WHERE project_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 9. Delete routings (already cascades from project)
+	_, err = tx.Exec(`DELETE FROM routings WHERE project_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 10. Delete project revisions (already cascades from project)
+	_, err = tx.Exec(`DELETE FROM project_revisions WHERE project_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 11. Delete notifications related to this project
+	_, err = tx.Exec(`DELETE FROM notifications WHERE project_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 12. Delete audit logs related to this project
+	_, err = tx.Exec(`DELETE FROM audit_logs WHERE project_id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// 13. Finally delete the project
+	_, err = tx.Exec(`DELETE FROM projects WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+
+	// Commit the transaction
+	return tx.Commit()
+}

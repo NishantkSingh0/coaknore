@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, MagnifyingGlassIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { orgApi } from '../services/api'
 import { useAsync, useAsyncAction } from '../hooks/useAsync'
+import { useAuth } from '../context/AuthContext'
 import { layerLabel, fmtDate } from '../utils/helpers'
 import { Key } from "lucide-react";
 import Modal from '../components/ui/Modal'
@@ -12,6 +13,7 @@ import type { LayerType, DepartmentLayer } from '../types'
 import clsx from 'clsx'
 
 export default function EmployeesPage() {
+  const { isAdmin } = useAuth()
   const [search, setSearch] = useState('')
   const [layer, setLayer] = useState<LayerType | ''>('')
   const [emailEdited, setEmailEdited] = useState(false)
@@ -28,6 +30,7 @@ export default function EmployeesPage() {
   const [resetId, setResetId] = useState<string | null>(null)
   const [newPassword, setNewPassword] = useState('')
   const [toggleConfirm, setToggleConfirm] = useState<{ id: string; active: boolean; name: string } | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -52,7 +55,6 @@ export default function EmployeesPage() {
     })
   }
   const filteredDepartments = depts?.filter((d) => d.layer === form.layer) ?? []
-  const isAdmin = form.layer === 'layer1'
 
   const handleCreate = async () => {
     if (!form.email || !form.password || !form.first_name || !form.last_name) {
@@ -87,6 +89,14 @@ export default function EmployeesPage() {
     if (ok !== null) {
       toast.success('Password reset')
       setResetId(null); setNewPassword('')
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    const ok = await execute(() => orgApi.deleteEmployee(id))
+    if (ok !== null) {
+      toast.success('Employee deleted')
+      refetch()
     }
   }
 
@@ -190,6 +200,14 @@ export default function EmployeesPage() {
                       >
                         <Key height={14} width={14}/>
                       </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => setDeleteConfirm({ id: emp.id, name: `${emp.first_name} ${emp.last_name}` })}
+                          className="btn-ghost btn-sm text-xs text-red-600 hover:text-red-700"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -346,6 +364,22 @@ export default function EmployeesPage() {
           }
           confirmText={toggleConfirm.active ? 'Enable' : 'Disable'}
           type={toggleConfirm.active ? 'info' : 'warning'}
+        />
+      )}
+
+      {deleteConfirm && (
+        <ConfirmationModal
+          open={!!deleteConfirm}
+          onClose={() => setDeleteConfirm(null)}
+          onConfirm={async () => {
+            const { id } = deleteConfirm
+            setDeleteConfirm(null)
+            await handleDelete(id)
+          }}
+          title={`Delete ${deleteConfirm.name}`}
+          message={`Are you sure you want to delete ${deleteConfirm.name}? This action cannot be undone and all their data will be permanently removed.`}
+          confirmText="Delete"
+          type="danger"
         />
       )}
     </div>

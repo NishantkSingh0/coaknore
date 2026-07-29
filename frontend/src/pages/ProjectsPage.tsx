@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { PlusIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, MagnifyingGlassIcon, FunnelIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { projectApi } from '../services/api'
-import { useAsync } from '../hooks/useAsync'
+import { useAsync, useAsyncAction } from '../hooks/useAsync'
 import { useAuth } from '../context/AuthContext'
 import { fmtDate } from '../utils/helpers'
 import { ProjectBadge } from '../components/ui/StatusBadge'
+import ConfirmationModal from '../components/ui/ConfirmationModal'
 import type { ProjectStatus } from '../types'
 import { usePreviewModal } from '../hooks/usePreviewModal'
+import toast from 'react-hot-toast'
 
 
 const STATUS_OPTIONS: { label: string; value: ProjectStatus | '' }[] = [
@@ -26,16 +28,26 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState('')
   const { openPreview } = usePreviewModal()
   const navigate = useNavigate()
+  const { execute, loading: actLoading } = useAsyncAction()
   const [status, setStatus] = useState<ProjectStatus | ''>(
 
     (searchParams.get('status') as ProjectStatus) || ''
   )
   const [page, setPage] = useState(1)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
 
   const { data, loading, refetch } = useAsync(
     () => projectApi.list({ page, page_size: 20, search, status: status || undefined }),
     [page, search, status]
   )
+
+  const handleDelete = async (id: string) => {
+    const ok = await execute(() => projectApi.delete(id))
+    if (ok !== null) {
+      toast.success('Project deleted')
+      refetch()
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -94,11 +106,12 @@ export default function ProjectsPage() {
                 <th>Delivery</th>
                 <th>Revision</th>
                 <th>Created</th>
+                {isAdmin && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {data?.data?.length === 0 && (
-                <tr><td colSpan={isAdmin || isLayerTwo ? 10 : 8} className="text-center py-12 text-gray-400">No projects found</td></tr>
+                <tr><td colSpan={isAdmin ? 8 : 7} className="text-center py-12 text-gray-400">No projects found</td></tr>
               )}
               {data?.data?.map((project) => (
                 <tr
@@ -146,6 +159,16 @@ export default function ProjectsPage() {
                     )}
                   </td>
                   <td className="text-gray-500">{fmtDate(project.created_at)}</td>
+                  {isAdmin && (
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => setDeleteConfirm({ id: project.id, name: project.project_name })}
+                        className="btn-ghost btn-sm text-xs text-red-600 hover:text-red-700"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -179,6 +202,22 @@ export default function ProjectsPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {deleteConfirm && (
+        <ConfirmationModal
+          open={!!deleteConfirm}
+          onClose={() => setDeleteConfirm(null)}
+          onConfirm={async () => {
+            const { id } = deleteConfirm
+            setDeleteConfirm(null)
+            await handleDelete(id)
+          }}
+          title={`Delete ${deleteConfirm.name}`}
+          message={`Are you sure you want to delete project "${deleteConfirm.name}"? This action cannot be undone and all associated data (tasks, routings, issues, etc.) will be permanently removed.`}
+          confirmText="Delete"
+          type="danger"
+        />
       )}
     </div>
   )

@@ -219,3 +219,17 @@ func (h *ProjectHandler) GetProjectRestricted(w http.ResponseWriter, r *http.Req
 	}
 	utils.Success(w, result)
 }
+
+func (h *ProjectHandler) DeleteProject(w http.ResponseWriter, r *http.Request) {
+	projectID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		utils.BadRequest(w, "Invalid project ID")
+		return
+	}
+
+	if err := h.projectSvc.DeleteProject(projectID); err != nil {
+		utils.InternalError(w, err.Error())
+		return
+	}
+	utils.Success(w, map[string]string{"message": "Project deleted successfully"})
+}

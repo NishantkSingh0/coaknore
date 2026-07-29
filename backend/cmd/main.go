@@ -168,12 +168,14 @@ func main() {
 			r.Patch("/api/employees/{id}/toggle", orgHandler.ToggleEmployee)
 			r.Post("/api/employees/{id}/transfer", orgHandler.TransferEmployee)
 			r.Post("/api/employees/{id}/reset-password", orgHandler.AdminResetPassword)
+			r.Delete("/api/employees/{id}", orgHandler.DeleteEmployee)
 
 			// Project CRUD
 			r.Post("/api/projects", projectHandler.CreateProject)
 			r.Put("/api/projects/{id}", projectHandler.UpdateProject)
 			r.Patch("/api/projects/{id}/status", projectHandler.UpdateProjectStatus)
 			r.Post("/api/projects/{id}/drawing", projectHandler.UploadDrawing)
+			r.Delete("/api/projects/{id}", projectHandler.DeleteProject)
 
 			// Dashboard stats
 			r.Get("/api/dashboard/stats", searchHandler.GetDashboardStats)

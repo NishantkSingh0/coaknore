@@ -282,6 +282,20 @@ func (h *OrganizationHandler) SearchEmployees(w http.ResponseWriter, r *http.Req
 	utils.Success(w, employees)
 }
 
+func (h *OrganizationHandler) DeleteEmployee(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		utils.BadRequest(w, "Invalid employee ID")
+		return
+	}
+
+	if err := h.orgSvc.DeleteEmployee(id); err != nil {
+		utils.InternalError(w, err.Error())
+		return
+	}
+	utils.Success(w, map[string]string{"message": "Employee deleted successfully"})
+}
+
 func (h *OrganizationHandler) GetOrganization(w http.ResponseWriter, r *http.Request) {
 	orgID := middleware.GetOrgID(r)
 	org, err := h.orgSvc.GetOrganization(orgID)

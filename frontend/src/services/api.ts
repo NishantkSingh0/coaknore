@@ -217,6 +217,12 @@ export const orgApi = {
     cacheService.set(cacheKey, data, params)
     return data
   },
+  deleteEmployee: async (id: string) => {
+    const res = await api.delete<ApiResponse<{ message: string }>>(`/employees/${id}`)
+    const result = unwrap(res)
+    cacheService.invalidate('/employees') // Invalidate employees cache
+    return result
+  },
 }
 
 // ============================================================
@@ -295,6 +301,12 @@ export const projectApi = {
     const data = unwrap(res)
     cacheService.set(cacheKey, data, params)
     return data
+  },
+  delete: async (id: string) => {
+    const res = await api.delete<ApiResponse<{ message: string }>>(`/projects/${id}`)
+    const result = unwrap(res)
+    cacheService.invalidate('/projects') // Invalidate projects cache
+    return result
   },
 }
 
