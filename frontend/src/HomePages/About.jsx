@@ -97,7 +97,7 @@ export default function About() {
         </video>
         <div className="absolute inset-0 bg-slate-950/70" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-linear-to-t from-slate-50 to-transparent" />
-        <div className="relative mx-auto max-w-6xl px-6 py-56 sm:px-10 lg:px-16">
+        <div className="relative home-shell-narrow px-0 py-56 sm:px-10 lg:px-16">
           <div className="max-w-3xl space-y-8">
             <span className="hero-enter badge-pulse inline-flex rounded-full bg-[#131042] px-4 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-white">
               Our story
@@ -122,7 +122,7 @@ export default function About() {
 
       {/* STATS BAR */}
       <section className="bg-[#090725] text-white">
-        <div className="mx-auto max-w-7xl px-6 py-12 sm:px-10 lg:px-16">
+        <div className="home-shell px-0 py-12 sm:px-10 lg:px-16">
           <div className="grid grid-cols-2 gap-8 lg:grid-cols-4" data-reveal-stagger="80">
             {stats.map(({ value, label }) => (
               <div key={value} className="reveal text-center" data-reveal="up">
@@ -135,8 +135,9 @@ export default function About() {
       </section>
 
       {/* BRAND STORY */}
-      <section className="mx-auto px-6 py-24 sm:px-10 lg:px-16 bg-[#e4e4e4]">
-        <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
+      <section className="bg-[#e4e4e4]">
+        <div className="home-shell py-24">
+        <div className="home-grid-2 gap-16 lg:items-center">
           <div className="reveal space-y-7" data-reveal="left">
             <span className="badge-pulse inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold uppercase tracking-widest text-blue-800">
               Who we are
@@ -158,11 +159,12 @@ export default function About() {
             <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80" alt="Stone work" className="rounded-3xl object-cover h-64 w-full mt-8 transition duration-500 hover:scale-105 shadow-xl" />
           </div>
         </div>
+        </div>
       </section>
 
       {/* MANUFACTURING TECHNIQUES HEADER */}
       <section className="bg-slate-950 py-8">
-        <div className="mx-auto max-w-7xl px-6 pt-20 pb-8 sm:px-10 lg:px-16">
+        <div className="home-shell px-0 pt-20 pb-8 sm:px-10 lg:px-16">
           <div className="reveal text-center space-y-4 mb-4" data-reveal="fade">
             <span className="badge-pulse inline-flex rounded-full bg-blue-500/20 px-4 py-2 text-sm font-semibold uppercase tracking-widest text-blue-300">
               Manufacturing Excellence
@@ -180,8 +182,8 @@ export default function About() {
       {/* TECHNIQUE SECTIONS */}
       {techniques.map(({ id, title, subtitle, desc, detail, img, tag, accent }, i) => (
         <section key={id} className={i % 2 === 0 ? 'bg-slate-950 text-white' : 'bg-slate-900 text-white'}>
-          <div className="mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-16">
-            <div className={`grid gap-14 lg:grid-cols-2 lg:items-center ${i % 2 !== 0 ? 'lg:[&>*:first-child]:order-2' : ''}`}>
+          <div className="home-shell px-0 py-20 sm:px-10 lg:px-16">
+            <div className={`home-grid-2 gap-14 lg:items-center ${i % 2 !== 0 ? 'lg:[&>*:first-child]:order-2' : ''}`}>
               <div className="reveal space-y-6" data-reveal={i % 2 === 0 ? 'left' : 'right'}>
                 <div className="flex items-center gap-4">
                   <span className="text-6xl font-black text-white/70 leading-none">{id}</span>
@@ -205,7 +207,7 @@ export default function About() {
 
       {/* PROCESS TIMELINE */}
       <section className="bg-white py-24">
-        <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
+        <div className="home-shell px-0 sm:px-10 lg:px-16">
           <div className="reveal text-center space-y-4 mb-20" data-reveal="fade">
             <span className="badge-pulse inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold uppercase tracking-widest text-blue-800">
               Our Process
@@ -257,12 +259,12 @@ export default function About() {
 
       {/* VALUES */}
       <section className="bg-slate-950 text-slate-100">
-        <div className="mx-auto max-w-7xl px-6 py-24 sm:px-10 lg:px-16">
+        <div className="home-shell px-0 py-24 sm:px-10 lg:px-16">
           <div className="reveal text-center mb-16" data-reveal="fade">
             <h2 className="text-4xl font-black">What we stand for</h2>
             <p className="mt-4 text-slate-400 text-lg">The principles that guide every decision we make.</p>
           </div>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3" data-reveal-stagger="90">
+          <div className="home-grid-3 gap-8" data-reveal-stagger="90">
             {[
               {title: 'Sustainability',      body: 'Responsibly sourced timber, low-VOC finishes, and zero-waste manufacturing practices. We believe beautiful furniture should not cost the earth.' },
               {title: 'Craftsmanship',       body: 'Every joint, every weld, every stitch is executed by a specialist. We do not cut corners — we cut timber, metal, and stone with precision.' },
@@ -281,8 +283,8 @@ export default function About() {
       </section>
 
       {/* DESIGN PHILOSOPHY */}
-      <section className="mx-auto max-w-7xl px-6 py-24 sm:px-10 lg:px-16">
-        <div className="grid gap-14 lg:grid-cols-2 lg:items-center">
+      <section className="home-shell px-0 py-24 sm:px-10 lg:px-16">
+        <div className="home-grid-2 gap-14 lg:items-center">
           <div className="reveal space-y-8" data-reveal="left">
             <span className="badge-pulse inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold uppercase tracking-widest text-blue-800">
               Design Philosophy
@@ -315,7 +317,7 @@ export default function About() {
       </section>
 
       {/* CTA */}
-      <section className="mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-16">
+      <section className="home-shell px-0 py-20 sm:px-10 lg:px-16">
         <div className="reveal rounded-4xl overflow-hidden" data-reveal="scale">
           <div className="relative">
             <img src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=2000&q=80" alt="Luxury interior" className="h-125 w-full object-cover" />

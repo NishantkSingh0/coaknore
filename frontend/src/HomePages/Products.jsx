@@ -32,7 +32,7 @@ export default function Products() {
         style={{ backgroundImage: "url('https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1700&q=80')" }}
       >
         <div className="bg-slate-950/85">
-          <div className="mx-auto max-w-6xl px-6 py-28 sm:px-10 lg:px-16">
+          <div className="home-shell-narrow px-0 py-28 sm:px-10 lg:px-16">
             <span className="hero-enter badge-pulse inline-flex rounded-full bg-[#131042] px-4 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-white">
               Our Collections
             </span>
@@ -47,12 +47,12 @@ export default function Products() {
       </section>
 
       {/* ── Product grid ─────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-16">
+      <section className="home-shell px-0 py-20 sm:px-10 lg:px-16">
         <div className="reveal mb-12 text-center" data-reveal="fade">
           <h2 className="text-3xl font-bold text-[#131042]">Our Signature Pieces</h2>
           <p className="mt-3 text-[#1e1873]">Handcrafted for modern living.</p>
         </div>
-        <div className="grid gap-10 md:grid-cols-2 xl:grid-cols-3" data-reveal-stagger="70">
+        <div className="home-grid-3 gap-10" data-reveal-stagger="70">
           {products.map(({ img, name, desc, category }) => (
             <article
               key={name}
@@ -76,8 +76,8 @@ export default function Products() {
       </section>
 
       {/* ── Custom CTA ───────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-16">
-        <div className="grid gap-10 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+      <section className="home-shell px-0 py-20 sm:px-10 lg:px-16">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(460px,0.9fr)] lg:items-center">
           <div className="reveal space-y-6" data-reveal="left">
             <span className="badge-pulse inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-blue-700">
               Custom Creations

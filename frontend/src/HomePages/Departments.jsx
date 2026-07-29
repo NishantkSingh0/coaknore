@@ -124,7 +124,7 @@ export default function Departments() {
         style={{ backgroundImage: "url('/images/1.webp')" }}
       >
         <div className="bg-slate-200/30">
-          <div className="mx-auto max-w-6xl px-6 py-28 sm:px-10 lg:px-16">
+          <div className="home-shell-narrow px-0 py-28 sm:px-10 lg:px-16">
             <span className="hero-enter badge-pulse inline-flex rounded-full bg-[#131042] px-4 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-white">
               Work Culture
             </span>
@@ -139,7 +139,7 @@ export default function Departments() {
       </section>
 
       {/* Gallery categories */}
-      <section className="mx-auto max-w-7xl px-6 py-16 sm:px-10 lg:px-16">
+      <section className="home-shell px-0 py-16 sm:px-10 lg:px-16">
         <div className="space-y-24">
           {galleryCategories.map((cat) => (
             <GalleryCategory key={cat.path} category={cat} />

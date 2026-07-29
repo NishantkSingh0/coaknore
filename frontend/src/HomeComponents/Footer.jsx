@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="absolute right-0 bottom-0 h-72 w-72 rounded-full bg-amber-400 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-6 py-14 sm:px-10 lg:px-16">
+      <div className="home-shell relative px-0 py-14 sm:px-10 lg:px-16">
 
         {/* Top Section */}
         <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">

@@ -44,7 +44,7 @@ export default function Contact() {
         style={{ backgroundImage: "url('https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1700&q=80')" }}
       >
         <div className="bg-slate-950/85">
-          <div className="mx-auto max-w-6xl px-6 py-28 sm:px-10 lg:px-16">
+          <div className="home-shell-narrow px-0 py-28 sm:px-10 lg:px-16">
             <span className="hero-enter badge-pulse inline-flex rounded-full bg-[#131042] px-4 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-white">
               Contact
             </span>
@@ -59,8 +59,8 @@ export default function Contact() {
       </section>
 
       {/* ── Contact grid ─────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-16">
-        <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+      <section className="home-shell px-0 py-20 sm:px-10 lg:px-16">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(520px,1.05fr)] lg:items-start">
           {/* Left — info */}
           <div className="reveal space-y-8" data-reveal="left">
             <div className="rounded-4xl bg-white p-10 shadow-xl shadow-slate-200/50">
@@ -158,7 +158,7 @@ export default function Contact() {
       </section>
 
       {/* ── Find us — Map section ────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-6 pb-20 sm:px-10 lg:px-16">
+      <section className="home-shell px-0 pb-20 sm:px-10 lg:px-16">
         <div className="reveal" data-reveal="up">
           {/* Header */}
           <div className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -203,8 +203,8 @@ export default function Contact() {
 
       {/* ── Collaborate dark section ─────────────────────────────────────── */}
       <section className="text-[#131042]">
-        <div className="mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-16">
-          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div className="home-shell px-0 py-20 sm:px-10 lg:px-16">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(520px,1.05fr)] lg:items-center">
             <div className="reveal space-y-6" data-reveal="left">
               <span className="badge-pulse inline-flex rounded-full bg-[#131042] px-4 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-blue-200">
                 collaborate

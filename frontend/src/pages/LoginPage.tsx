@@ -105,7 +105,7 @@ export default function LoginPage() {
                 onChange={handleNameChange}
                 onBlur={handleNameBlur}
                 className="input relative bg-transparent"
-                placeholder="yourname"
+                placeholder="•••@oaknore.in"
                 autoComplete="email"
                 required
               />

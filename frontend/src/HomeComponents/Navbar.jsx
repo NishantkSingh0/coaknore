@@ -53,7 +53,7 @@ export default function Navbar() {
           scrolled ? 'shadow-[0_20px_80px_rgba(15,23,42,0.08)]' : ''
         } ${hidden && !menuOpen ? '-translate-y-full' : 'translate-y-0'}`}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div className="home-shell flex items-center justify-between px-6 py-4">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 text-xl font-semibold text-oak relative z-60">
             <img src={"./images/logo3.webp"} alt="logo" className="h-10 w-10 rounded-3xl" />

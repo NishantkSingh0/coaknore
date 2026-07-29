@@ -17,7 +17,7 @@ export default function Services() {
         style={{ backgroundImage: "url('/images/44.webp')" }}
       >
         <div className="bg-slate-950/85">
-          <div className="mx-auto max-w-6xl px-6 py-28 sm:px-10 lg:px-16">
+          <div className="home-shell-narrow px-0 py-28 sm:px-10 lg:px-16">
             <span className="hero-enter badge-pulse inline-flex rounded-full bg-[#131042] px-4 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-white">
               Our Services
             </span>
@@ -32,12 +32,12 @@ export default function Services() {
       </section>
 
       {/* ── Service cards ────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-16">
+      <section className="home-shell px-0 py-20 sm:px-10 lg:px-16">
         <div className="reveal mb-12 text-center" data-reveal="fade">
           <h2 className="text-3xl font-bold text-[#131042]">What we offer</h2>
           <p className="mt-3 text-[#1e1873]">End-to-end services for every kind of project.</p>
         </div>
-        <div className="grid gap-10 lg:grid-cols-3" data-reveal-stagger="110">
+        <div className="home-grid-3 gap-10" data-reveal-stagger="110">
           {[
             { num: '01', title: 'Custom Furniture',      desc: 'Bespoke tables, seating, storage, and cabinetry created to match your exact scale, material, and finish preferences.' },
             { num: '02', title: 'Interior Design',       desc: 'We develop design concepts, space planning, and furniture layouts for residential and hospitality interiors.' },
@@ -59,8 +59,8 @@ export default function Services() {
 
       {/* ── Project approach dark section ────────────────────────────────── */}
       <section className="bg-slate-950 text-slate-100">
-        <div className="mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-16">
-          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div className="home-shell px-0 py-20 sm:px-10 lg:px-16">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(520px,1.05fr)] lg:items-center">
             <div className="reveal space-y-6" data-reveal="left">
               <span className="badge-pulse inline-flex rounded-full bg-[#131042] px-4 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-blue-200">
                 Project approach
@@ -85,9 +85,9 @@ export default function Services() {
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-16">
+      <section className="home-shell px-0 py-20 sm:px-10 lg:px-16">
         <div className="reveal rounded-4xl border border-slate-200 bg-white p-10 shadow-xl shadow-slate-900/5" data-reveal="scale">
-          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(520px,1.05fr)] lg:items-center">
             <div>
               <h2 className="text-4xl font-bold text-[#131042]">
                 Bring your most ambitious interiors to life.

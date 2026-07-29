@@ -14,7 +14,7 @@ export default function Home() {
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative h-[calc(100vh-80px)] overflow-hidden bg-white lg:bg-[url('/images/42.webp')] lg:bg-cover lg:bg-center">
         <div className="absolute inset-0 hidden bg-black/10 lg:block" />
-        <div className="relative mx-auto flex h-full max-w-7xl flex-col items-center justify-center px-6 text-center sm:px-10 lg:items-start lg:justify-end lg:px-20 lg:pb-16 lg:text-left">
+        <div className="relative home-shell flex h-full flex-col items-center justify-center px-6 text-center sm:px-10 lg:items-start lg:justify-end lg:px-20 lg:pb-16 lg:text-left">
           {/* Mobile branding — entrance animations */}
           <div className="block lg:hidden">
             <h1 className="hero-enter text-5xl font-mono tracking-[0.22em] text-black sm:text-6xl">
@@ -46,13 +46,13 @@ export default function Home() {
       </section>
 
       {/* ── Feature cards ────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-7xl px-6 py-20 sm:px-10 lg:px-16">
+      <section className="home-shell px-0 py-20 sm:px-10 lg:px-16">
         <div className="reveal mb-12 text-center" data-reveal="fade">
           <span className="badge-pulse inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold uppercase tracking-widest text-blue-800">
             Why Oak &amp; Ore
           </span>
         </div>
-        <div className="grid gap-8 lg:grid-cols-3" data-reveal-stagger="100">
+        <div className="home-grid-3 gap-8" data-reveal-stagger="100">
           {[
             { num: '01', title: 'Design Studio Excellence', desc: 'From concept to production, our team delivers bespoke furniture with sculptural forms and premium joinery.' },
             { num: '02', title: 'Sustainable Materials',    desc: 'We source responsibly harvested oak, walnut, and artisanal finishes to create furniture built to last generations.' },
@@ -74,7 +74,7 @@ export default function Home() {
 
       {/* ── Craft & Story dark section ───────────────────────────────────── */}
       <section className="bg-gray-950 text-slate-100">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 py-20 sm:px-10 lg:grid-cols-[1.2fr_0.8fr] lg:px-16">
+        <div className="home-shell grid gap-10 px-6 py-20 sm:px-10 lg:grid-cols-[1.2fr_0.8fr] lg:px-16">
           <div className="reveal space-y-6" data-reveal="left">
             <span className="badge-pulse inline-flex rounded-full bg-[#131042] px-4 py-2 text-sm font-semibold uppercase tracking-widest text-blue-200">
               Craft &amp; story
@@ -108,8 +108,9 @@ export default function Home() {
       </section>
 
       {/* ── Featured Collection ──────────────────────────────────────────── */}
-      <section className="mx-auto px-6 py-20 sm:px-10 lg:px-16 bg-[#e4e4e4]">
-        <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+      <section className="bg-[#e4e4e4]">
+        <div className="home-shell py-20">
+          <div className="home-grid-2 gap-10 lg:items-center">
           <div className="reveal space-y-6" data-reveal="left">
             <span className="badge-pulse inline-flex rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold uppercase tracking-[0.24em] text-blue-900">
               Featured Collection
@@ -147,6 +148,7 @@ export default function Home() {
               <p className="mt-3 text-slate-300">Crafted to enhance contemporary bedrooms with elegant storage and refined functionality.</p>
             </article>
           </div>
+        </div>
         </div>
       </section>
     </main>
