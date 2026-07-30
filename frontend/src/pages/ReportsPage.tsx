@@ -83,7 +83,11 @@ export default function ReportsPage() {
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : (
+      ) : !data?.data || data.data.length === 0 ? (
+          <div className="card p-8 text-center text-gray-400 text-sm">
+            No reports yet
+          </div>
+        ) : (
         <div className="space-y-3">
           {data?.data?.length === 0 && (
             <div className="card p-8 text-center text-gray-400 text-sm">No reports yet</div>
