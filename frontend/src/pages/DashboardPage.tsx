@@ -12,6 +12,17 @@ import { fmtDate, fmtRelative, taskStatusColor, taskStatusLabel, issueStatusColo
 import { ProjectBadge, IssueBadge, ReworkBadge } from '../components/ui/StatusBadge'
 import clsx from 'clsx'
 
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center py-12">
+      <div className="relative">
+        <div className="w-12 h-12 border-4 border-gray-200 dark:border-gray-700 rounded-full"></div>
+        <div className="absolute top-0 left-0 w-12 h-12 border-4 border-brand-500 rounded-full animate-spin border-t-transparent"></div>
+      </div>
+    </div>
+  )
+}
+
 const getGreeting = () => {
   const hour = new Date().getHours()
 
@@ -231,9 +242,13 @@ function StatCard({
 // ── Admin / Layer1 Dashboard ─────────────────────────────────────────────────
 
 function AdminDashboard() {
-  const { data: stats } = useAsync(() => searchApi.getDashboardStats(), [])
-  const { data: recentIssues } = useAsync(() => issueApi.list({ page_size: 5 }), [])
-  const { data: recentReports } = useAsync(() => reportApi.list({ page_size: 5 }), [])
+  const { data: stats, loading: statsLoading } = useAsync(() => searchApi.getDashboardStats(), [])
+  const { data: recentIssues, loading: issuesLoading } = useAsync(() => issueApi.list({ page_size: 5 }), [])
+  const { data: recentReports, loading: reportsLoading } = useAsync(() => reportApi.list({ page_size: 5 }), [])
+
+  if (statsLoading || issuesLoading || reportsLoading) {
+    return <LoadingSpinner />
+  }
 
   return (
     <div className="space-y-6">
@@ -299,10 +314,14 @@ function AdminDashboard() {
 // ── Layer 2 Dashboard ────────────────────────────────────────────────────────
 
 function Layer2Dashboard() {
-  const { data: pendingIssues } = useAsync(() => issueApi.list({ page_size: 8, status: 'open' }), [])
-  const { data: pendingReworks } = useAsync(() => reworkApi.list({ page_size: 8, status: 'pending' }), [])
-  const { data: pendingMaterials } = useAsync(() => materialApi.list({ page_size: 8, status: 'pending' }), [])
-  const { data: recentReports } = useAsync(() => reportApi.list({ page_size: 6 }), [])
+  const { data: pendingIssues, loading: issuesLoading } = useAsync(() => issueApi.list({ page_size: 8, status: 'open' }), [])
+  const { data: pendingReworks, loading: reworksLoading } = useAsync(() => reworkApi.list({ page_size: 8, status: 'pending' }), [])
+  const { data: pendingMaterials, loading: materialsLoading } = useAsync(() => materialApi.list({ page_size: 8, status: 'pending' }), [])
+  const { data: recentReports, loading: reportsLoading } = useAsync(() => reportApi.list({ page_size: 6 }), [])
+
+  if (issuesLoading || reworksLoading || materialsLoading || reportsLoading) {
+    return <LoadingSpinner />
+  }
 
   const approvalCount =
     (pendingIssues?.data?.length || 0) +
@@ -426,16 +445,20 @@ function Layer2Dashboard() {
 
 function Layer3Dashboard() {
   const { user } = useAuth()
-  const { data: myTasksData } = useAsync(
+  const { data: myTasksData, loading: tasksLoading } = useAsync(
     () => taskApi.getMyTasks({ page_size: 8 }), []
   )
-  const { data: issuesData } = useAsync(
+  const { data: issuesData, loading: issuesLoading } = useAsync(
     () => issueApi.list({ page_size: 5 }), []
   )
-  const { data: upcomingTasksData } = useAsync(
+  const { data: upcomingTasksData, loading: upcomingLoading } = useAsync(
     () => user?.department_id ? routingApi.getUpcomingTasks(user.department_id) : Promise.resolve([]),
     [user?.department_id]
   )
+
+  if (tasksLoading || issuesLoading || upcomingLoading) {
+    return <LoadingSpinner />
+  }
 
   return (
     <div className="space-y-6">

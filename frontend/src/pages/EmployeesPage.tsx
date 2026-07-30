@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PlusIcon, MagnifyingGlassIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { orgApi } from '../services/api'
 import { useAsync, useAsyncAction } from '../hooks/useAsync'
@@ -56,16 +56,22 @@ export default function EmployeesPage() {
   }
   const filteredDepartments = depts?.filter((d) => d.layer === form.layer) ?? []
 
+  // Whenever the selected layer for the NEW employee changes, clear any
+  // previously chosen department so it can't be submitted against the wrong layer.
+  useEffect(() => {
+    setForm((f) => (f.department_id ? { ...f, department_id: '' } : f))
+  }, [form.layer])
+
   const handleCreate = async () => {
     if (!form.email || !form.password || !form.first_name || !form.last_name) {
       toast.error('Please fill in all required fields.')
       return
     }
-    if (!isAdmin && !form.department_id) {
+    if (form.layer !== 'layer1' && !form.department_id) {
       toast.error('Please select a department.')
       return
     }
-    const payload = isAdmin ? { ...form, department_id: '' } : form
+    const payload = form.layer === 'layer1' ? { ...form, department_id: '' } : form
     const ok = await execute(() => orgApi.createEmployee(payload))
     if (ok !== null) {
       toast.success('Employee created')
@@ -303,18 +309,18 @@ export default function EmployeesPage() {
           </div>
           <div>
             <label className="label">Layer / Role <span className="text-red-500">*</span></label>
-            <select  value={form.layer} onChange={(e) => setForm((f) => ({ ...f, layer: e.target.value as LayerType, department_id: ""}))} className="input"> 
+            <select  value={form.layer} onChange={(e) => setForm((f) => ({ ...f, layer: e.target.value as LayerType }))} className="input"> 
               <option value="layer1">Admin</option>
               <option value="layer2">Staff Management (Layer 2)</option>
               <option value="layer3">Execution (Layer 3)</option>
             </select>
           </div>
-          {!isAdmin && (
+          {form.layer !== 'layer1' && (
             <div>
               <label className="label">
-                Department {!isAdmin && <span className="text-red-500">*</span>}
+                Department <span className="text-red-500">*</span>
               </label>
-              <select value={form.department_id} disabled={isAdmin} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value, })) } className="input disabled:bg-gray-500 disabled:cursor-not-allowed">
+              <select value={form.department_id} onChange={(e) => setForm((f) => ({ ...f, department_id: e.target.value }))} className="input">
                 <option value="">Select Department</option>
                 {filteredDepartments.map((d) => (
                   <option key={d.id} value={d.id}>
