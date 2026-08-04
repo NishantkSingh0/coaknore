@@ -635,10 +635,10 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          {greeting}, {user?.first_name}{' '}
-          <span className="inline-block origin-[70%_70%] animate-wave">
+          <span className="inline-block pr-3 origin-[70%_70%] animate-wave">
             👋
           </span>
+          {greeting}, {user?.first_name}{' '}
         </h1>        
         {/* {(isAdmin || isLayerTwo) && ( */}
           <p className="mt-2 text-base italic text-brand-600 dark:text-brand-300 font-medium">`{quote}`</p>

@@ -28,7 +28,7 @@ export default function Home() {
             </p>
           </div>
           {/* Buttons */}
-          <div className="hero-enter hero-enter-delay-3 mt-10 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
+          <div className="hero-enter hero-enter-delay-3 mt-10 lg:ml-20 flex flex-wrap items-center justify-center gap-8 lg:justify-start">
             <Link
               to="/products"
               className="rounded-full bg-[#131042] px-8 py-3 text-sm font-medium tracking-wide text-white transition duration-300 hover:bg-neutral-800 hover:scale-105"

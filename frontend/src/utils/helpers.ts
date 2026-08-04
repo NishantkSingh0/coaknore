@@ -97,7 +97,7 @@ export const queryStatusColor: Record<QueryStatus, string> = {
 export const layerLabel: Record<LayerType, string> = {
   super_admin: 'Super Admin',
   layer1: 'Admin',
-  layer2: 'Production Mgmt',
+  layer2: 'Management',
   layer3: 'Execution',
 }
 

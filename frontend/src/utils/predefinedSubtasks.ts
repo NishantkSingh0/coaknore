@@ -335,7 +335,10 @@ const DEPARTMENT_ALIASES: Record<string, string[]> = {
     'assem',
     'asambli',
     'assambali',
-    'assambaly'
+    'assambaly',
+    'Packing',
+    'Packaging',
+    'Assembly & Packing'
   ]
 }
 

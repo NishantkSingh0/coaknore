@@ -143,7 +143,14 @@ export default function SettingsPage() {
 
       {/* Change Password */}
       <div className="card">
-        <div className="card-header"><h2 className="font-semibold">Change Password</h2> <h5 className='text-xs'>Contact Admin If you Forget your Current Password</h5> </div>
+        <div className="card-header">
+          <h2 className="font-semibold">Change Password</h2>
+          {!user?.department_name && (
+            <h5 className="text-xs">
+              Contact Admin if you forget your current password.
+            </h5>
+          )}
+        </div>
         <div className="card-body">
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
