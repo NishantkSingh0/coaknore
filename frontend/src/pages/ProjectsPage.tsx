@@ -217,6 +217,7 @@ export default function ProjectsPage() {
           message={`Are you sure you want to delete project "${deleteConfirm.name}"? This action cannot be undone and all associated data (tasks, routings, issues, etc.) will be permanently removed.`}
           confirmText="Delete"
           type="danger"
+          isValidate={true}
         />
       )}
     </div>

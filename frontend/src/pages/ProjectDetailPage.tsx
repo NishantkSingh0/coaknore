@@ -253,6 +253,8 @@ export default function ProjectDetailPage() {
                   ['Last Updated', fmtDateTime(project.updated_at)],
                   ...(isAdmin || isLayerTwo ? [
                     ['Client GST Number', project.client_gst_num || '—'],
+                  ] : []),
+                  ...(isAdmin ? [
                     ['Rate', project.rate ? `₹${project.rate.toFixed(2)}` : '—'],
                   ] : []),
                 ].map(([label, value]) => (

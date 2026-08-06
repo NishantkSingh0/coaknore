@@ -383,7 +383,7 @@ export default function EmployeesPage() {
             await handleDelete(id)
           }}
           title={`Delete ${deleteConfirm.name}`}
-          message={`Are you sure you want to delete ${deleteConfirm.name}? This action cannot be undone and all their data will be permanently removed.`}
+          message={`Are you sure you want to delete ${deleteConfirm.name}? This action cannot be undone and all their data like query history will be permanently removed.`}
           confirmText="Delete"
           type="danger"
         />

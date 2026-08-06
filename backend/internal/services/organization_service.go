@@ -290,7 +290,15 @@ func (s *OrganizationService) ListEmployees(orgID uuid.UUID, search, layer, dept
 		FROM employees e
 		LEFT JOIN departments d ON d.id = e.department_id
 		%s
-		ORDER BY e.first_name, e.last_name
+		ORDER BY
+			CASE e.layer
+				WHEN 'layer1' THEN 1
+				WHEN 'layer2' THEN 2
+				WHEN 'layer3' THEN 3
+				ELSE 4
+			END,
+			e.first_name,
+			e.last_name
 		LIMIT $%d OFFSET $%d
 	`, where, argIdx, argIdx+1)
 	args = append(args, pageSize, (page-1)*pageSize)
