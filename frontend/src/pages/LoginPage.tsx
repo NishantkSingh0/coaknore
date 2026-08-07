@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useFullscreen } from '../hooks/useFullscreen'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 
@@ -9,17 +8,11 @@ const DOMAIN = '@oaknore.in'
 
 export default function LoginPage() {
   const { user, login } = useAuth()
-  const { enterFullscreen } = useFullscreen()
   const [nameInput, setNameInput] = useState('')     // exactly what's in the visible input
   const [suggestionExpired, setSuggestionExpired] = useState(false)
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [anim, setAnim] = useState("");
-
-  // Enter fullscreen when login page loads
-  useEffect(() => {
-    enterFullscreen()
-  }, [enterFullscreen])
 
   if (user) return <Navigate to="/dashboard" replace />
 
