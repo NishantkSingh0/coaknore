@@ -12,6 +12,7 @@ interface AuthContextValue {
   isAdmin: boolean
   isLayerTwo: boolean
   isLayerThree: boolean
+  exitFullscreen: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -20,6 +21,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<Employee | null>(null)
   const [token, setToken] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+
+  const exitFullscreen = useCallback(() => {
+    if (document.exitFullscreen) {
+      document.exitFullscreen()
+    } else if ((document as any).webkitExitFullscreen) {
+      (document as any).webkitExitFullscreen()
+    } else if ((document as any).mozCancelFullScreen) {
+      (document as any).mozCancelFullScreen()
+    } else if ((document as any).msExitFullscreen) {
+      (document as any).msExitFullscreen()
+    }
+  }, [])
 
   useEffect(() => {
     const storedToken = localStorage.getItem('pms_token')
@@ -37,7 +50,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('pms_user', JSON.stringify(res.employee))
     setToken(res.token)
     setUser(res.employee)
-  }, [])
+    
+    // Exit fullscreen after successful login
+    exitFullscreen()
+  }, [exitFullscreen])
 
   const logout = useCallback(() => {
     localStorage.removeItem('pms_token')
@@ -56,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isLayerThree = user?.layer === 'layer3'
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser, isAdmin, isLayerTwo, isLayerThree }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateUser, isAdmin, isLayerTwo, isLayerThree, exitFullscreen }}>
       {children}
     </AuthContext.Provider>
   )
