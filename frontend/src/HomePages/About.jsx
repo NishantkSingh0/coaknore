@@ -110,7 +110,7 @@ export default function About() {
             </p>
             <div className="hero-enter hero-enter-delay-3 flex flex-wrap gap-4 pt-2">
               <Link to="/products" className="rounded-full bg-white text-[#131042] px-8 py-3 text-sm font-semibold tracking-wide transition hover:bg-slate-100 hover:scale-105">
-                Explore Collection
+                Explore Factory
               </Link>
               <Link to="/contact" className="rounded-full border border-white/40 bg-white/10 backdrop-blur px-8 py-3 text-sm font-semibold tracking-wide text-white transition hover:bg-white/20 hover:scale-105">
                 Start a Project
