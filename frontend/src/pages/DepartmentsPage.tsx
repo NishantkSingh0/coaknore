@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PlusIcon, BuildingOfficeIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline'
+import { useDepartments, useCreateDepartment } from '../hooks/useQueries'
 import { orgApi } from '../services/api'
-import { useAsync, useAsyncAction } from '../hooks/useAsync'
 import Modal from '../components/ui/Modal'
 import ConfirmationModal from '../components/ui/ConfirmationModal'
 import toast from 'react-hot-toast'
@@ -9,8 +9,8 @@ import type { DepartmentLayer } from '../types'
 import clsx from 'clsx'
 
 export default function DepartmentsPage() {
-  const { data: depts, loading, refetch } = useAsync(() => orgApi.listDepartments(), [])
-  const { execute, loading: actLoading } = useAsyncAction()
+  const { data: depts, isLoading, refetch } = useDepartments()
+  const createDepartment = useCreateDepartment()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', layer: 'layer3' as DepartmentLayer })
@@ -18,20 +18,23 @@ export default function DepartmentsPage() {
 
   const handleCreate = async () => {
     if (!form.name) { toast.error('Name is required'); return }
-    const ok = await execute(() => orgApi.createDepartment(form))
-    if (ok !== null) {
+    try {
+      await createDepartment.mutateAsync(form)
       toast.success('Department created')
       setCreateOpen(false)
       setForm({ name: '', description: '', layer: 'layer3' })
-      refetch()
+    } catch (error) {
+      toast.error('Failed to create department')
     }
   }
 
   const handleToggle = async (id: string, active: boolean) => {
-    const ok = await execute(() => orgApi.toggleDepartment(id, active))
-    if (ok !== null) {
+    try {
+      await orgApi.toggleDepartment(id, active)
       toast.success(active ? 'Department enabled' : 'Department disabled')
       refetch()
+    } catch (error) {
+      toast.error('Failed to toggle department')
     }
   }
 
@@ -84,7 +87,7 @@ export default function DepartmentsPage() {
         </button>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>
@@ -128,8 +131,8 @@ export default function DepartmentsPage() {
         footer={
           <>
             <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
-            <button onClick={handleCreate} disabled={actLoading} className="btn-primary">
-              {actLoading ? 'Creating...' : 'Create'}
+            <button onClick={handleCreate} disabled={createDepartment.isPending} className="btn-primary">
+              {createDepartment.isPending ? 'Creating...' : 'Create'}
             </button>
           </>
         }

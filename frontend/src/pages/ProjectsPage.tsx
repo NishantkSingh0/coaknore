@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { PlusIcon, MagnifyingGlassIcon, FunnelIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { useProjects, useDeleteProject } from '../hooks/useQueries'
 import { projectApi } from '../services/api'
-import { useAsync, useAsyncAction } from '../hooks/useAsync'
 import { useAuth } from '../context/AuthContext'
 import { fmtDate } from '../utils/helpers'
 import { ProjectBadge } from '../components/ui/StatusBadge'
@@ -28,7 +28,7 @@ export default function ProjectsPage() {
   const [search, setSearch] = useState('')
   const { openPreview } = usePreviewModal()
   const navigate = useNavigate()
-  const { execute, loading: actLoading } = useAsyncAction()
+  const deleteProject = useDeleteProject()
   const [status, setStatus] = useState<ProjectStatus | ''>(
 
     (searchParams.get('status') as ProjectStatus) || ''
@@ -36,16 +36,14 @@ export default function ProjectsPage() {
   const [page, setPage] = useState(1)
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
 
-  const { data, loading, refetch } = useAsync(
-    () => projectApi.list({ page, page_size: 20, search, status: status || undefined }),
-    [page, search, status]
-  )
+  const { data, isLoading, refetch } = useProjects({ page, page_size: 20, search, status: status || undefined })
 
   const handleDelete = async (id: string) => {
-    const ok = await execute(() => projectApi.delete(id))
-    if (ok !== null) {
+    try {
+      await deleteProject.mutateAsync(id)
       toast.success('Project deleted')
-      refetch()
+    } catch (error) {
+      toast.error('Failed to delete project')
     }
   }
 
@@ -90,7 +88,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* Table */}
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ClockIcon, CubeIcon, CalendarDaysIcon, LockClosedIcon } from '@heroicons/react/24/outline'
+import { useMyTasks, useUpdateTaskStatus } from '../hooks/useQueries'
 import { taskApi, projectApi } from '../services/api'
-import { useAsync } from '../hooks/useAsync'
 import { useAuth } from '../context/AuthContext'
 import { fmtDate, taskStatusColor, taskStatusLabel, priorityColor, priorityLabel } from '../utils/helpers'
 import { TaskBadge } from '../components/ui/StatusBadge'
@@ -23,10 +23,7 @@ export default function MyTasksPage() {
   const [status, setStatus] = useState<TaskStatus | ''>('')
   const [page, setPage] = useState(1)
 
-  const { data, loading } = useAsync(
-    () => taskApi.getMyTasks({ page, page_size: 20, status: status || undefined }),
-    [page, status]
-  )
+  const { data, isLoading } = useMyTasks()
 
   return (
     <div className="space-y-6">
@@ -47,7 +44,7 @@ export default function MyTasksPage() {
         ))}
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>

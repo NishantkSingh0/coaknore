@@ -23,8 +23,8 @@ import {
   ClockIcon,
 } from '@heroicons/react/24/outline'
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid'
-import { notifApi } from '../services/api'
-import { useAsync } from '../hooks/useAsync'
+import { useNotifications, useMarkNotificationRead } from '../hooks/useQueries'
+import { notificationApi } from '../services/api'
 import { fmtRelative } from '../utils/helpers'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
@@ -135,27 +135,36 @@ export default function NotificationsPage() {
   const [page, setPage] = useState(1)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
 
-  const { data, loading, refetch } = useAsync(
-    () => notifApi.list({ page, page_size: 30, unread: unreadOnly }),
-    [page, unreadOnly]
-  )
+  const { data, isLoading, refetch } = useNotifications()
+  const markNotificationRead = useMarkNotificationRead()
 
   const markRead = async (id: string) => {
-    await notifApi.markRead(id)
-    refetch()
+    try {
+      await markNotificationRead.mutateAsync(id)
+    } catch (error) {
+      toast.error('Failed to mark as read')
+    }
   }
 
   const markAllRead = async () => {
-    await notifApi.markAllRead()
-    toast.success('All notifications marked as read')
-    refetch()
+    try {
+      await notificationApi.markAllRead()
+      toast.success('All notifications marked as read')
+      refetch()
+    } catch (error) {
+      toast.error('Failed to mark all as read')
+    }
   }
 
   const deleteReadNotifications = async () => {
-    await notifApi.deleteRead()
-    toast.success('Readed notifications deleted')
-    refetch()
-    setDeleteModalOpen(false)
+    try {
+      await notificationApi.deleteRead()
+      toast.success('Read notifications deleted')
+      refetch()
+      setDeleteModalOpen(false)
+    } catch (error) {
+      toast.error('Failed to delete read notifications')
+    }
   }
 
   return (
@@ -186,7 +195,7 @@ export default function NotificationsPage() {
       </div>
 
       {/* Priority legend — orients people before they scan the list */}
-      {!loading && data?.data && data.data.length > 0 && (
+      {!isLoading && data?.data && data.data.length > 0 && (
         <div className="flex items-center gap-4 px-1 text-xs text-gray-500 dark:text-gray-400">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: PRIORITY_HEX.critical }} />
@@ -203,7 +212,7 @@ export default function NotificationsPage() {
         </div>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex justify-center py-16">
           <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>

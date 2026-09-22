@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('pms_user', JSON.stringify(res.employee))
     setToken(res.token)
     setUser(res.employee)
-  }, [authApi])
+  }, [])
 
   const logout = useCallback(() => {
     localStorage.removeItem('pms_token')

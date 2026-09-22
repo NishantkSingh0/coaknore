@@ -7,7 +7,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 import { useAsync } from '../hooks/useAsync'
-import { searchApi, taskApi, reportApi, issueApi, reworkApi, materialApi, routingApi } from '../services/api'
+import { useDashboardStats } from '../hooks/useQueries'
+import { taskApi, reportApi, issueApi, reworkApi, materialApi } from '../services/api'
 import { fmtDate, fmtRelative, taskStatusColor, taskStatusLabel, issueStatusColor } from '../utils/helpers'
 import { ProjectBadge, IssueBadge, ReworkBadge } from '../components/ui/StatusBadge'
 import clsx from 'clsx'
@@ -242,9 +243,9 @@ function StatCard({
 // ── Admin / Layer1 Dashboard ─────────────────────────────────────────────────
 
 function AdminDashboard() {
-  const { data: stats, loading: statsLoading } = useAsync(() => searchApi.getDashboardStats(), [])
-  const { data: recentIssues, loading: issuesLoading } = useAsync(() => issueApi.list({ page_size: 5 }), [])
-  const { data: recentReports, loading: reportsLoading } = useAsync(() => reportApi.list({ page_size: 5 }), [])
+  const { data: stats, isLoading: statsLoading } = useDashboardStats()
+  const { data: recentIssues, isLoading: issuesLoading } = useAsync(() => issueApi.list({ page_size: 5 }), [])
+  const { data: recentReports, isLoading: reportsLoading } = useAsync(() => reportApi.list({ page_size: 5 }), [])
 
   if (statsLoading || issuesLoading || reportsLoading) {
     return <LoadingSpinner />

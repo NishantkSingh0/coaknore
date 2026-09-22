@@ -1,9 +1,7 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BellIcon, ArrowRightOnRectangleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline'
+import { ArrowRightOnRectangleIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon } from '@heroicons/react/24/outline'
 import { useAuth } from '../../context/AuthContext'
-import { notifApi } from '../../services/api'
-import { useEffect } from 'react'
+import { useNotificationCount } from '../../hooks/useQueries'
 import BellButton from './bellIcon'
 import { useFullscreen } from '../../hooks/useFullscreen'
 
@@ -11,22 +9,8 @@ import { useFullscreen } from '../../hooks/useFullscreen'
 export default function TopBar() {
   const { logout } = useAuth()
   const { isFullscreen, toggleFullscreen } = useFullscreen()
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    loadUnreadCount()
-    const interval = setInterval(loadUnreadCount, 30000) // Poll every 30s
-    return () => clearInterval(interval)
-  }, [toggleFullscreen])
-
-  const loadUnreadCount = async () => {
-    try {
-      const res = await notifApi.getCount()
-      setUnreadCount(res.count)
-    } catch {
-      // silent
-    }
-  }
+  const { data: notifData } = useNotificationCount()
+  const unreadCount = notifData?.count || 0
 
   return (
     <header className="h-[55px] bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 flex-shrink-0">
