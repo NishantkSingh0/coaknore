@@ -202,8 +202,8 @@ export const routingApi = {
   update: (id: string, data: Partial<Routing>) => 
     api.put<ApiResponse<Routing>>(`/routings/${id}`, data).then(unwrap),
   
-  createNewVersion: (id: string) => 
-    api.post<ApiResponse<Routing>>(`/routings/${id}/new-version`).then(unwrap),
+  createNewVersion: (id: string, data: { name?: string; description?: string; change_reason: string; steps: any[] }) =>
+    api.post<ApiResponse<Routing>>(`/routings/${id}/new-version`, data).then(unwrap),
   
   publish: (id: string) => 
     api.post<ApiResponse<Routing>>(`/routings/${id}/publish`).then(unwrap),
