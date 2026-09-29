@@ -31,7 +31,6 @@ api.interceptors.response.use(
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('pms_token')
-      localStorage.removeItem('pms_user')
       window.location.href = '/login'
     }
     return Promise.reject(error)
@@ -250,8 +249,8 @@ export const taskApi = {
   setDates: (id: string, start_date?: string, due_date?: string) => 
     api.patch<ApiResponse<DepartmentTask>>(`/tasks/${id}/dates`, { start_date, due_date }).then(unwrap),
   
-  setExpectedCompletion: (id: string, expected_completion: string) => 
-    api.patch<ApiResponse<DepartmentTask>>(`/tasks/${id}/expected-completion`, { expected_completion }).then(unwrap),
+  setExpectedCompletion: (id: string, expected_completion: string) =>
+    api.patch<ApiResponse<DepartmentTask>>(`/tasks/${id}/expected-completion`, { expected_completion_date: expected_completion }).then(unwrap),
   
   uploadDepartmentFile: (id: string, file: File) => {
     const formData = new FormData()

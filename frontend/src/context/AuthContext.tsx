@@ -23,31 +23,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const storedToken = localStorage.getItem('pms_token')
-    const storedUser = localStorage.getItem('pms_user')
-    if (storedToken && storedUser) {
+    if (storedToken) {
       setToken(storedToken)
-      setUser(JSON.parse(storedUser))
+      // Fetch fresh user data from backend
+      authApi.me()
+        .then(employee => setUser(employee))
+        .catch(() => {
+          // If token is invalid, clear it
+          localStorage.removeItem('pms_token')
+          setToken(null)
+        })
+        .finally(() => setIsLoading(false))
+    } else {
+      setIsLoading(false)
     }
-    setIsLoading(false)
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await authApi.login(email, password)
     localStorage.setItem('pms_token', res.token)
-    localStorage.setItem('pms_user', JSON.stringify(res.employee))
     setToken(res.token)
     setUser(res.employee)
   }, [])
 
   const logout = useCallback(() => {
     localStorage.removeItem('pms_token')
-    localStorage.removeItem('pms_user')
     setToken(null)
     setUser(null)
   }, [])
 
   const updateUser = useCallback((updatedUser: Employee) => {
-    localStorage.setItem('pms_user', JSON.stringify(updatedUser))
     setUser(updatedUser)
   }, [])
 

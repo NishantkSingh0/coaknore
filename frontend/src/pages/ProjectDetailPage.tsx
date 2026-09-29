@@ -20,12 +20,8 @@ type Tab = 'overview' | 'routing' | 'tasks' | 'timeline' | 'revisions'
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { isAdmin, isLayerTwo, isLayerThree } = useAuth()
-  const storageKey = `project-tab-${id}`
 
-  const [activeTab, setActiveTab] = useState<Tab>(() => {
-    const saved = sessionStorage.getItem(storageKey) as Tab | null
-    return saved ?? 'overview'
-  })
+  const [activeTab, setActiveTab] = useState<Tab>('overview')
   const navigate = useNavigate()
   const [editConfirm, setEditConfirm] = useState(false)
 
@@ -68,10 +64,6 @@ export default function ProjectDetailPage() {
     return items;
   };
 
-  useEffect(() => {
-    sessionStorage.setItem(storageKey, activeTab)
-  }, [storageKey, activeTab])
-  
   if (loading) {
     return (
       <div className="flex justify-center py-16">

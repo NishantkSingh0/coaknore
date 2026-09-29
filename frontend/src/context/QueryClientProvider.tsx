@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 /**
  * React Query Configuration
- * Balances speed and freshness with smart caching strategies
+ * No caching - all data is fetched fresh from backend
  */
 export function QueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -11,23 +11,23 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // Data is fresh for 2 minutes - no refetches needed
-            staleTime: 2 * 60 * 1000,
-            
-            // Keep data in cache for 10 minutes before garbage collection
-            gcTime: 10 * 60 * 1000,
-            
+            // Data is immediately stale - always refetch
+            staleTime: 0,
+
+            // No cache - data is garbage collected immediately
+            gcTime: 0,
+
             // Retry failed requests once
             retry: 1,
-            
+
             // Refetch on window focus (user returns to tab)
             refetchOnWindowFocus: true,
-            
+
             // Refetch on reconnect (network recovery)
             refetchOnReconnect: true,
-            
-            // Don't refetch on mount if data is fresh
-            refetchOnMount: false,
+
+            // Always refetch on mount since no caching
+            refetchOnMount: true,
           },
           mutations: {
             // Retry mutations once
