@@ -15,13 +15,19 @@ export default function DepartmentsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', layer: 'layer3' as DepartmentLayer })
   const [toggleConfirm, setToggleConfirm] = useState<{ id: string; active: boolean; name: string } | null>(null)
+  const [createConfirm, setCreateConfirm] = useState(false)
 
   const handleCreate = async () => {
     if (!form.name) { toast.error('Name is required'); return }
+    setCreateConfirm(true)
+  }
+
+  const confirmCreate = async () => {
     try {
       await createDepartment.mutateAsync(form)
       toast.success('Department created')
       setCreateOpen(false)
+      setCreateConfirm(false)
       setForm({ name: '', description: '', layer: 'layer3' })
     } catch (error) {
       toast.error('Failed to create department')
@@ -131,7 +137,7 @@ export default function DepartmentsPage() {
         footer={
           <>
             <button onClick={() => setCreateOpen(false)} className="btn-secondary">Cancel</button>
-            <button onClick={handleCreate} disabled={createDepartment.isPending} className="btn-primary">
+            <button onClick={handleCreate} disabled={!form.name || createDepartment.isPending} className="btn-primary">
               {createDepartment.isPending ? 'Creating...' : 'Create'}
             </button>
           </>
@@ -176,6 +182,21 @@ export default function DepartmentsPage() {
           }
           confirmText={toggleConfirm.active ? 'Enable' : 'Disable'}
           type={toggleConfirm.active ? 'info' : 'warning'}
+        />
+      )}
+
+      {createConfirm && (
+        <ConfirmationModal
+          open={createConfirm}
+          onClose={() => setCreateConfirm(false)}
+          onConfirm={async () => {
+            setCreateConfirm(false)
+            await confirmCreate()
+          }}
+          title="Create Department"
+          message={`Are you sure you want to create the department "${form.name}"?`}
+          confirmText="Create"
+          type="info"
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -9,11 +10,12 @@ import (
 )
 
 type SearchService struct {
-	db *sql.DB
+	db     *sql.DB
+	cache  *CacheService
 }
 
-func NewSearchService(db *sql.DB) *SearchService {
-	return &SearchService{db: db}
+func NewSearchService(db *sql.DB, cache *CacheService) *SearchService {
+	return &SearchService{db: db, cache: cache}
 }
 
 type SearchResult struct {
@@ -247,40 +249,54 @@ type DashboardStats struct {
 	TotalDepartments  int `json:"total_departments"`
 }
 
-func (s *SearchService) GetDashboardStats(orgID uuid.UUID) (*DashboardStats, error) {
+func (s *SearchService) GetDashboardStats(ctx context.Context, orgID uuid.UUID) (*DashboardStats, error) {
+	cacheKey := GenerateOrgKey(orgID.String(), "dashboard_stats")
 	stats := &DashboardStats{}
 
-	s.db.QueryRow(`SELECT COUNT(*) FROM projects WHERE organization_id = $1`, orgID).Scan(&stats.TotalProjects)
-	s.db.QueryRow(`SELECT COUNT(*) FROM projects WHERE organization_id = $1 AND status = 'in_progress'`, orgID).Scan(&stats.ActiveProjects)
-	s.db.QueryRow(`
-		SELECT COUNT(*) FROM projects p
-		WHERE p.organization_id = $1 AND p.status NOT IN ('completed','archived')
-		AND EXISTS (
-			SELECT 1 FROM department_tasks t
-			LEFT JOIN departments d ON d.id = t.department_id
-			WHERE t.project_id = p.id AND t.due_date < NOW() AND t.status != 'completed'
-		)
-	`, orgID).Scan(&stats.DelayedProjects)
-	s.db.QueryRow(`SELECT COUNT(*) FROM projects WHERE organization_id = $1 AND status = 'completed'`, orgID).Scan(&stats.CompletedProjects)
-	s.db.QueryRow(`
-		SELECT COUNT(*) FROM issues i
-		LEFT JOIN departments d ON d.id = i.department_id
-		WHERE d.organization_id = $1 AND i.status NOT IN ('closed','rejected')
-	`, orgID).Scan(&stats.OpenIssues)
-	s.db.QueryRow(`
-		SELECT COUNT(*) FROM rework_requests r
-		LEFT JOIN projects p ON p.id = r.project_id
-		WHERE p.organization_id = $1 AND r.status = 'pending'
-	`, orgID).Scan(&stats.PendingReworks)
-	s.db.QueryRow(`
-		SELECT COUNT(*) FROM material_requisitions m
-		LEFT JOIN departments d ON d.id = m.department_id
-		WHERE d.organization_id = $1 AND m.status = 'pending'
-	`, orgID).Scan(&stats.PendingMaterials)
-	s.db.QueryRow(`SELECT COUNT(*) FROM employees WHERE organization_id = $1 AND is_active = TRUE`, orgID).Scan(&stats.TotalEmployees)
-	s.db.QueryRow(`SELECT COUNT(*) FROM departments WHERE organization_id = $1 AND is_active = TRUE`, orgID).Scan(&stats.TotalDepartments)
+	// Try to get from cache first
+	err := s.cache.GetOrSet(ctx, cacheKey, TTLShort, func() (interface{}, error) {
+		stats := &DashboardStats{}
 
-	return stats, nil
+		s.db.QueryRow(`SELECT COUNT(*) FROM projects WHERE organization_id = $1`, orgID).Scan(&stats.TotalProjects)
+		s.db.QueryRow(`SELECT COUNT(*) FROM projects WHERE organization_id = $1 AND status = 'in_progress'`, orgID).Scan(&stats.ActiveProjects)
+		s.db.QueryRow(`
+			SELECT COUNT(*) FROM projects p
+			WHERE p.organization_id = $1 AND p.status NOT IN ('completed','archived')
+			AND EXISTS (
+				SELECT 1 FROM department_tasks t
+				LEFT JOIN departments d ON d.id = t.department_id
+				WHERE t.project_id = p.id AND t.due_date < NOW() AND t.status != 'completed'
+			)
+		`, orgID).Scan(&stats.DelayedProjects)
+		s.db.QueryRow(`SELECT COUNT(*) FROM projects WHERE organization_id = $1 AND status = 'completed'`, orgID).Scan(&stats.CompletedProjects)
+		s.db.QueryRow(`
+			SELECT COUNT(*) FROM issues i
+			LEFT JOIN departments d ON d.id = i.department_id
+			WHERE d.organization_id = $1 AND i.status NOT IN ('closed','rejected')
+		`, orgID).Scan(&stats.OpenIssues)
+		s.db.QueryRow(`
+			SELECT COUNT(*) FROM rework_requests r
+			LEFT JOIN projects p ON p.id = r.project_id
+			WHERE p.organization_id = $1 AND r.status = 'pending'
+		`, orgID).Scan(&stats.PendingReworks)
+		s.db.QueryRow(`
+			SELECT COUNT(*) FROM material_requisitions m
+			LEFT JOIN departments d ON d.id = m.department_id
+			WHERE d.organization_id = $1 AND m.status = 'pending'
+		`, orgID).Scan(&stats.PendingMaterials)
+		s.db.QueryRow(`SELECT COUNT(*) FROM employees WHERE organization_id = $1 AND is_active = TRUE`, orgID).Scan(&stats.TotalEmployees)
+		s.db.QueryRow(`SELECT COUNT(*) FROM departments WHERE organization_id = $1 AND is_active = TRUE`, orgID).Scan(&stats.TotalDepartments)
+
+		return stats, nil
+	}, stats)
+
+	return stats, err
+}
+
+// InvalidateDashboardStatsCache invalidates the dashboard stats cache for an organization
+func (s *SearchService) InvalidateDashboardStatsCache(ctx context.Context, orgID uuid.UUID) error {
+	cacheKey := GenerateOrgKey(orgID.String(), "dashboard_stats")
+	return s.cache.Delete(ctx, cacheKey)
 }
 
 func buildSearchWhere(conditions []string) string {

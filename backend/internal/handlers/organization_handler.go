@@ -46,7 +46,7 @@ func (h *OrganizationHandler) CreateDepartment(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	dept, err := h.orgSvc.CreateDepartment(orgID, req.Name, req.Description, req.Layer)
+	dept, err := h.orgSvc.CreateDepartment(r.Context(), orgID, req.Name, req.Description, req.Layer)
 	if err != nil {
 		utils.BadRequest(w, err.Error())
 		return
@@ -67,7 +67,7 @@ func (h *OrganizationHandler) UpdateDepartment(w http.ResponseWriter, r *http.Re
 	}
 	json.NewDecoder(r.Body).Decode(&req)
 
-	dept, err := h.orgSvc.UpdateDepartment(id, req.Name, req.Description)
+	dept, err := h.orgSvc.UpdateDepartment(r.Context(), id, req.Name, req.Description)
 	if err != nil {
 		utils.BadRequest(w, err.Error())
 		return
@@ -85,7 +85,7 @@ func (h *OrganizationHandler) ToggleDepartment(w http.ResponseWriter, r *http.Re
 	var req struct{ Active bool `json:"active"` }
 	json.NewDecoder(r.Body).Decode(&req)
 
-	if err := h.orgSvc.ToggleDepartment(id, req.Active); err != nil {
+	if err := h.orgSvc.ToggleDepartment(r.Context(), id, req.Active); err != nil {
 		utils.InternalError(w, err.Error())
 		return
 	}
@@ -96,7 +96,7 @@ func (h *OrganizationHandler) ListDepartments(w http.ResponseWriter, r *http.Req
 	orgID := middleware.GetOrgID(r)
 	layer := r.URL.Query().Get("layer")
 
-	depts, err := h.orgSvc.ListDepartments(orgID, layer)
+	depts, err := h.orgSvc.ListDepartments(r.Context(), orgID, layer)
 	if err != nil {
 		utils.InternalError(w, err.Error())
 		return
@@ -139,7 +139,7 @@ func (h *OrganizationHandler) CreateEmployee(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	emp, err := h.orgSvc.CreateEmployee(orgID, req)
+	emp, err := h.orgSvc.CreateEmployee(r.Context(), orgID, req)
 	if err != nil {
 		utils.BadRequest(w, err.Error())
 		return
@@ -157,7 +157,7 @@ func (h *OrganizationHandler) UpdateEmployee(w http.ResponseWriter, r *http.Requ
 	var req services.UpdateEmployeeRequest
 	json.NewDecoder(r.Body).Decode(&req)
 
-	emp, err := h.orgSvc.UpdateEmployee(id, req)
+	emp, err := h.orgSvc.UpdateEmployee(r.Context(), id, req)
 	if err != nil {
 		utils.BadRequest(w, err.Error())
 		return
@@ -175,7 +175,7 @@ func (h *OrganizationHandler) ToggleEmployee(w http.ResponseWriter, r *http.Requ
 	var req struct{ Active bool `json:"active"` }
 	json.NewDecoder(r.Body).Decode(&req)
 
-	if err := h.orgSvc.ToggleEmployee(id, req.Active); err != nil {
+	if err := h.orgSvc.ToggleEmployee(r.Context(), id, req.Active); err != nil {
 		utils.InternalError(w, err.Error())
 		return
 	}
@@ -221,7 +221,7 @@ func (h *OrganizationHandler) ListEmployees(w http.ResponseWriter, r *http.Reque
 		active = &a
 	}
 
-	employees, total, err := h.orgSvc.ListEmployees(orgID, p.Search, layer, deptID, active, p.Page, p.PageSize)
+	employees, total, err := h.orgSvc.ListEmployees(r.Context(), orgID, p.Search, layer, deptID, active, p.Page, p.PageSize)
 	if err != nil {
 		utils.InternalError(w, err.Error())
 		return

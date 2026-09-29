@@ -268,7 +268,7 @@ export default function ConfirmationModal({
                         onChange={(e) =>
                           setValidationText(e.target.value)
                         }
-                        placeholder="9876543210 - i am aware of what i am doing"
+                        placeholder="YOURXMOBXNUMB - i am aware of what i am doing"
                         autoComplete="off"
                         autoCorrect="off"
                         spellCheck={false}

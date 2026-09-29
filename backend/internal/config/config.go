@@ -45,6 +45,8 @@ type Config struct {
 
 	GeminiAPIKey string
 
+	RedisURL string
+
 	GroqAPIKey1 string
 	GroqAPIKey2 string
 	GroqAPIKey3 string
@@ -108,6 +110,8 @@ func Load() {
 		PasswordResetExpiryHours: pwResetExpiry,
 
 		GeminiAPIKey: getEnv("GEMINI_API_KEY", ""),
+
+		RedisURL: getEnv("REDIS_URL", "redis://localhost:6379"),
 
 		GroqAPIKey1: getEnv("GROQ_API_KEY1", ""),
 		GroqAPIKey2: getEnv("GROQ_API_KEY2", ""),

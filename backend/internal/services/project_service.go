@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -16,10 +17,12 @@ type ProjectService struct {
 	auditSvc *AuditService
 	notifSvc *NotificationService
 	fileSvc  *FileService
+	cache    *CacheService
+	searchSvc *SearchService
 }
 
-func NewProjectService(db *sql.DB, audit *AuditService, notif *NotificationService, fileSvc *FileService) *ProjectService {
-	return &ProjectService{db: db, auditSvc: audit, notifSvc: notif, fileSvc: fileSvc}
+func NewProjectService(db *sql.DB, audit *AuditService, notif *NotificationService, fileSvc *FileService, cache *CacheService, searchSvc *SearchService) *ProjectService {
+	return &ProjectService{db: db, auditSvc: audit, notifSvc: notif, fileSvc: fileSvc, cache: cache, searchSvc: searchSvc}
 }
 
 type CreateProjectRequest struct {
@@ -44,7 +47,7 @@ type CreateProjectRequest struct {
 	DrawingFileID     string `json:"drawing_file_id"`
 }
 
-func (s *ProjectService) CreateProject(orgID, createdBy uuid.UUID, req CreateProjectRequest) (*models.Project, error) {
+func (s *ProjectService) CreateProject(ctx context.Context, orgID, createdBy uuid.UUID, req CreateProjectRequest) (*models.Project, error) {
 	var deliveryDate interface{}
 	if req.DeliveryDate != "" {
 		t, err := time.Parse("2006-01-02", req.DeliveryDate)
@@ -127,10 +130,18 @@ func (s *ProjectService) CreateProject(orgID, createdBy uuid.UUID, req CreatePro
 		"New Project Created", fmt.Sprintf("Project %s (%s) has been created", p.ProjectName, p.PONumber),
 		&p.ID, "project", &p.ID)
 
+	// Invalidate cache
+	s.InvalidateProjectsCache(ctx, orgID)
+
+	// Also invalidate dashboard stats cache
+	if s.searchSvc != nil {
+		s.searchSvc.InvalidateDashboardStatsCache(ctx, orgID)
+	}
+
 	return p, nil
 }
 
-func (s *ProjectService) UpdateProject(orgID, updatedBy, projectID uuid.UUID, req CreateProjectRequest, revisionReason, clientRequest string) (*models.Project, error) {
+func (s *ProjectService) UpdateProject(ctx context.Context, orgID, updatedBy, projectID uuid.UUID, req CreateProjectRequest, revisionReason, clientRequest string) (*models.Project, error) {
 	current, err := s.GetProject(projectID)
 	if err != nil {
 		return nil, err
@@ -233,6 +244,14 @@ func (s *ProjectService) UpdateProject(orgID, updatedBy, projectID uuid.UUID, re
 	go s.notifSvc.NotifyOrg(orgID, models.NotifProjectRevision,
 		"Project Revised", fmt.Sprintf("Project %s has been updated (Rev %d)", p.ProjectName, p.CurrentRevision),
 		&p.ID, "project", &p.ID)
+
+	// Invalidate cache
+	s.InvalidateProjectsCache(ctx, orgID)
+
+	// Also invalidate dashboard stats cache
+	if s.searchSvc != nil {
+		s.searchSvc.InvalidateDashboardStatsCache(ctx, orgID)
+	}
 
 	return p, nil
 }
@@ -386,7 +405,38 @@ func (s *ProjectService) GetProjectRestricted(projectID, deptID uuid.UUID) (map[
 	return result, nil
 }
 
-func (s *ProjectService) ListProjects(orgID uuid.UUID, status, search string, page, pageSize int) ([]models.Project, int, error) {
+func (s *ProjectService) ListProjects(ctx context.Context, orgID uuid.UUID, status, search string, page, pageSize int) ([]models.Project, int, error) {
+	// Only cache simple lists without search/filter
+	cacheKey := ""
+	if status == "" && search == "" && page == 1 && pageSize == 20 {
+		cacheKey = GenerateOrgKey(orgID.String(), "projects:first_page")
+	}
+
+	// Try cache for simple case
+	if cacheKey != "" {
+		cachedData := struct {
+			Projects []models.Project `json:"projects"`
+			Total    int              `json:"total"`
+		}{}
+
+		err := s.cache.GetOrSet(ctx, cacheKey, TTLShort, func() (interface{}, error) {
+			projects, total, err := s.fetchProjectsFromDB(orgID, status, search, page, pageSize)
+			return struct {
+				Projects []models.Project `json:"projects"`
+				Total    int              `json:"total"`
+			}{Projects: projects, Total: total}, err
+		}, &cachedData)
+
+		if err == nil {
+			return cachedData.Projects, cachedData.Total, nil
+		}
+	}
+
+	// Fallback to DB for complex queries or cache miss
+	return s.fetchProjectsFromDB(orgID, status, search, page, pageSize)
+}
+
+func (s *ProjectService) fetchProjectsFromDB(orgID uuid.UUID, status, search string, page, pageSize int) ([]models.Project, int, error) {
 	conditions := []string{"p.organization_id = $1"}
 	args := []interface{}{orgID}
 	argIdx := 2
@@ -545,6 +595,12 @@ func (s *ProjectService) ListProjects(orgID uuid.UUID, status, search string, pa
 	}
 
 	return projects, total, nil
+}
+
+// InvalidateProjectsCache invalidates the projects cache for an organization
+func (s *ProjectService) InvalidateProjectsCache(ctx context.Context, orgID uuid.UUID) error {
+	pattern := fmt.Sprintf("org:%s:projects:*", orgID)
+	return s.cache.DeleteByPattern(ctx, pattern)
 }
 
 func (s *ProjectService) UpdateProjectStatus(projectID uuid.UUID, status models.ProjectStatus, actorID uuid.UUID) error {

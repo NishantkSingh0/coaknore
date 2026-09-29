@@ -37,7 +37,7 @@ func (h *ProjectHandler) CreateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, err := h.projectSvc.CreateProject(orgID, empID, req)
+	project, err := h.projectSvc.CreateProject(r.Context(), orgID, empID, req)
 	if err != nil {
 		// Catch FK violation — means the token's employee_id doesn't exist in DB.
 		// ValidateEmployee middleware should prevent this, but guard here too.
@@ -74,7 +74,7 @@ func (h *ProjectHandler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	project, err := h.projectSvc.UpdateProject(orgID, empID, projectID, body.CreateProjectRequest, body.RevisionReason, body.ClientRequest)
+	project, err := h.projectSvc.UpdateProject(r.Context(), orgID, empID, projectID, body.CreateProjectRequest, body.RevisionReason, body.ClientRequest)
 	if err != nil {
 		utils.BadRequest(w, err.Error())
 		return
@@ -102,7 +102,7 @@ func (h *ProjectHandler) ListProjects(w http.ResponseWriter, r *http.Request) {
 	p := utils.GetPagination(r)
 	status := r.URL.Query().Get("status")
 
-	projects, total, err := h.projectSvc.ListProjects(orgID, status, p.Search, p.Page, p.PageSize)
+	projects, total, err := h.projectSvc.ListProjects(r.Context(), orgID, status, p.Search, p.Page, p.PageSize)
 	if err != nil {
 		utils.InternalError(w, err.Error())
 		return

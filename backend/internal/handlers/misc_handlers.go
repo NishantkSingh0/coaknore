@@ -466,7 +466,7 @@ func (h *SearchHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 func (h *SearchHandler) GetDashboardStats(w http.ResponseWriter, r *http.Request) {
 	orgID := middleware.GetOrgID(r)
-	stats, err := h.searchSvc.GetDashboardStats(orgID)
+	stats, err := h.searchSvc.GetDashboardStats(r.Context(), orgID)
 	if err != nil {
 		utils.InternalError(w, err.Error())
 		return

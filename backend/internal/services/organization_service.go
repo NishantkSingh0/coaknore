@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -11,18 +12,19 @@ import (
 )
 
 type OrganizationService struct {
-	db *sql.DB
+	db    *sql.DB
+	cache *CacheService
 }
 
-func NewOrganizationService(db *sql.DB) *OrganizationService {
-	return &OrganizationService{db: db}
+func NewOrganizationService(db *sql.DB, cache *CacheService) *OrganizationService {
+	return &OrganizationService{db: db, cache: cache}
 }
 
 // ============================================================
 // DEPARTMENTS
 // ============================================================
 
-func (s *OrganizationService) CreateDepartment(orgID uuid.UUID, name, description string, layer models.DepartmentLayer) (*models.Department, error) {
+func (s *OrganizationService) CreateDepartment(ctx context.Context, orgID uuid.UUID, name, description string, layer models.DepartmentLayer) (*models.Department, error) {
 	dept := &models.Department{}
 	err := s.db.QueryRow(`
 		INSERT INTO departments (organization_id, name, description, layer)
@@ -35,10 +37,14 @@ func (s *OrganizationService) CreateDepartment(orgID uuid.UUID, name, descriptio
 	if err != nil {
 		return nil, fmt.Errorf("failed to create department: %w", err)
 	}
+
+	// Invalidate cache
+	s.InvalidateDepartmentsCache(ctx, orgID)
+
 	return dept, nil
 }
 
-func (s *OrganizationService) UpdateDepartment(id uuid.UUID, name, description string) (*models.Department, error) {
+func (s *OrganizationService) UpdateDepartment(ctx context.Context, id uuid.UUID, name, description string) (*models.Department, error) {
 	dept := &models.Department{}
 	err := s.db.QueryRow(`
 		UPDATE departments SET name = $1, description = $2, updated_at = NOW()
@@ -51,50 +57,82 @@ func (s *OrganizationService) UpdateDepartment(id uuid.UUID, name, description s
 	if err != nil {
 		return nil, fmt.Errorf("failed to update department: %w", err)
 	}
+
+	// Invalidate cache
+	s.InvalidateDepartmentsCache(ctx, dept.OrganizationID)
+
 	return dept, nil
 }
 
-func (s *OrganizationService) ToggleDepartment(id uuid.UUID, active bool) error {
-	_, err := s.db.Exec(`UPDATE departments SET is_active = $1, updated_at = NOW() WHERE id = $2`, active, id)
-	return err
+func (s *OrganizationService) ToggleDepartment(ctx context.Context, id uuid.UUID, active bool) error {
+	// Get orgID first for cache invalidation
+	var orgID uuid.UUID
+	err := s.db.QueryRow(`SELECT organization_id FROM departments WHERE id = $1`, id).Scan(&orgID)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.db.Exec(`UPDATE departments SET is_active = $1, updated_at = NOW() WHERE id = $2`, active, id)
+	if err != nil {
+		return err
+	}
+
+	// Invalidate cache
+	s.InvalidateDepartmentsCache(ctx, orgID)
+
+	return nil
 }
 
-func (s *OrganizationService) ListDepartments(orgID uuid.UUID, layer string) ([]models.Department, error) {
-	query := `
-		SELECT d.id, d.organization_id, d.name, d.description, d.layer, d.is_active, d.created_at, d.updated_at,
-		       COUNT(e.id) as employee_count
-		FROM departments d
-		LEFT JOIN employees e ON e.department_id = d.id AND e.is_active = TRUE
-		WHERE d.organization_id = $1
-	`
-	args := []interface{}{orgID}
-
-	if layer != "" {
-		query += ` AND d.layer = $2`
-		args = append(args, layer)
-	}
-
-	query += ` GROUP BY d.id ORDER BY d.layer, d.name`
-
-	rows, err := s.db.Query(query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
+func (s *OrganizationService) ListDepartments(ctx context.Context, orgID uuid.UUID, layer string) ([]models.Department, error) {
+	cacheKey := GenerateOrgKey(orgID.String(), fmt.Sprintf("departments:%s", layer))
 	var depts []models.Department
-	for rows.Next() {
-		var d models.Department
-		err := rows.Scan(
-			&d.ID, &d.OrganizationID, &d.Name, &d.Description,
-			&d.Layer, &d.IsActive, &d.CreatedAt, &d.UpdatedAt, &d.EmployeeCount,
-		)
+
+	// Try to get from cache first
+	err := s.cache.GetOrSet(ctx, cacheKey, TTLMedium, func() (interface{}, error) {
+		query := `
+			SELECT d.id, d.organization_id, d.name, d.description, d.layer, d.is_active, d.created_at, d.updated_at,
+			       COUNT(e.id) as employee_count
+			FROM departments d
+			LEFT JOIN employees e ON e.department_id = d.id AND e.is_active = TRUE
+			WHERE d.organization_id = $1
+		`
+		args := []interface{}{orgID}
+
+		if layer != "" {
+			query += ` AND d.layer = $2`
+			args = append(args, layer)
+		}
+
+		query += ` GROUP BY d.id ORDER BY d.layer, d.name`
+
+		rows, err := s.db.Query(query, args...)
 		if err != nil {
 			return nil, err
 		}
-		depts = append(depts, d)
-	}
-	return depts, nil
+		defer rows.Close()
+
+		var depts []models.Department
+		for rows.Next() {
+			var d models.Department
+			err := rows.Scan(
+				&d.ID, &d.OrganizationID, &d.Name, &d.Description,
+				&d.Layer, &d.IsActive, &d.CreatedAt, &d.UpdatedAt, &d.EmployeeCount,
+			)
+			if err != nil {
+				return nil, err
+			}
+			depts = append(depts, d)
+		}
+		return depts, nil
+	}, &depts)
+
+	return depts, err
+}
+
+// InvalidateDepartmentsCache invalidates the departments cache for an organization
+func (s *OrganizationService) InvalidateDepartmentsCache(ctx context.Context, orgID uuid.UUID) error {
+	pattern := fmt.Sprintf("org:%s:departments:*", orgID)
+	return s.cache.DeleteByPattern(ctx, pattern)
 }
 
 func (s *OrganizationService) GetDepartment(id uuid.UUID) (*models.Department, error) {
@@ -138,7 +176,7 @@ type UpdateEmployeeRequest struct {
 	Layer        string `json:"layer"`
 }
 
-func (s *OrganizationService) CreateEmployee(orgID uuid.UUID, req CreateEmployeeRequest) (*models.Employee, error) {
+func (s *OrganizationService) CreateEmployee(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest) (*models.Employee, error) {
 	// Check if email exists
 	var count int
 	s.db.QueryRow(`SELECT COUNT(*) FROM employees WHERE email = $1`, req.Email).Scan(&count)
@@ -189,10 +227,14 @@ func (s *OrganizationService) CreateEmployee(orgID uuid.UUID, req CreateEmployee
 		emp.AvatarURL = avatarURL.String
 	}
 	emp.FullName = emp.FirstName + " " + emp.LastName
+
+	// Invalidate cache
+	s.InvalidateEmployeesCache(context.Background(), orgID)
+
 	return emp, nil
 }
 
-func (s *OrganizationService) UpdateEmployee(id uuid.UUID, req UpdateEmployeeRequest) (*models.Employee, error) {
+func (s *OrganizationService) UpdateEmployee(ctx context.Context, id uuid.UUID, req UpdateEmployeeRequest) (*models.Employee, error) {
 	var deptIDArg interface{}
 	if req.DepartmentID != "" {
 		did, err := uuid.Parse(req.DepartmentID)
@@ -233,12 +275,30 @@ func (s *OrganizationService) UpdateEmployee(id uuid.UUID, req UpdateEmployeeReq
 		emp.AvatarURL = avatarURL.String
 	}
 	emp.FullName = emp.FirstName + " " + emp.LastName
+
+	// Invalidate cache
+	s.InvalidateEmployeesCache(ctx, emp.OrganizationID)
+
 	return emp, nil
 }
 
-func (s *OrganizationService) ToggleEmployee(id uuid.UUID, active bool) error {
-	_, err := s.db.Exec(`UPDATE employees SET is_active = $1, updated_at = NOW() WHERE id = $2`, active, id)
-	return err
+func (s *OrganizationService) ToggleEmployee(ctx context.Context, id uuid.UUID, active bool) error {
+	// Get orgID first for cache invalidation
+	var orgID uuid.UUID
+	err := s.db.QueryRow(`SELECT organization_id FROM employees WHERE id = $1`, id).Scan(&orgID)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.db.Exec(`UPDATE employees SET is_active = $1, updated_at = NOW() WHERE id = $2`, active, id)
+	if err != nil {
+		return err
+	}
+
+	// Invalidate cache
+	s.InvalidateEmployeesCache(ctx, orgID)
+
+	return nil
 }
 
 func (s *OrganizationService) TransferEmployee(empID, newDeptID uuid.UUID) error {
@@ -248,7 +308,38 @@ func (s *OrganizationService) TransferEmployee(empID, newDeptID uuid.UUID) error
 	return err
 }
 
-func (s *OrganizationService) ListEmployees(orgID uuid.UUID, search, layer, deptID string, active *bool, page, pageSize int) ([]models.Employee, int, error) {
+func (s *OrganizationService) ListEmployees(ctx context.Context, orgID uuid.UUID, search, layer, deptID string, active *bool, page, pageSize int) ([]models.Employee, int, error) {
+	// Only cache simple lists without search/filter
+	cacheKey := ""
+	if search == "" && layer == "" && deptID == "" && active == nil && page == 1 && pageSize == 20 {
+		cacheKey = GenerateOrgKey(orgID.String(), "employees:first_page")
+	}
+
+	// Try cache for simple case
+	if cacheKey != "" {
+		cachedData := struct {
+			Employees []models.Employee `json:"employees"`
+			Total     int              `json:"total"`
+		}{}
+
+		err := s.cache.GetOrSet(ctx, cacheKey, TTLShort, func() (interface{}, error) {
+			employees, total, err := s.fetchEmployeesFromDB(orgID, search, layer, deptID, active, page, pageSize)
+			return struct {
+				Employees []models.Employee `json:"employees"`
+				Total     int              `json:"total"`
+			}{Employees: employees, Total: total}, err
+		}, &cachedData)
+
+		if err == nil {
+			return cachedData.Employees, cachedData.Total, nil
+		}
+	}
+
+	// Fallback to DB for complex queries or cache miss
+	return s.fetchEmployeesFromDB(orgID, search, layer, deptID, active, page, pageSize)
+}
+
+func (s *OrganizationService) fetchEmployeesFromDB(orgID uuid.UUID, search, layer, deptID string, active *bool, page, pageSize int) ([]models.Employee, int, error) {
 	conditions := []string{"e.organization_id = $1"}
 	args := []interface{}{orgID}
 	argIdx := 2
@@ -342,6 +433,12 @@ func (s *OrganizationService) ListEmployees(orgID uuid.UUID, search, layer, dept
 		employees = append(employees, e)
 	}
 	return employees, total, nil
+}
+
+// InvalidateEmployeesCache invalidates the employees cache for an organization
+func (s *OrganizationService) InvalidateEmployeesCache(ctx context.Context, orgID uuid.UUID) error {
+	pattern := fmt.Sprintf("org:%s:employees:*", orgID)
+	return s.cache.DeleteByPattern(ctx, pattern)
 }
 
 func (s *OrganizationService) GetEmployee(id uuid.UUID) (*models.Employee, error) {

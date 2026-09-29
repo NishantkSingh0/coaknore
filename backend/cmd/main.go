@@ -36,6 +36,13 @@ func main() {
 	}
 
 	log.Printf("Starting PMS backend [%s] on port %s", cfg.AppEnv, port)
+
+	// Connect to Redis
+	if err := config.InitRedis(); err != nil {
+		log.Printf("WARNING: Redis connection failed: %v. Caching and job queue will be disabled.", err)
+	}
+	defer config.CloseRedis()
+
 	// Connect to DB
 	db := database.Connect()
 	defer db.Close()
@@ -56,10 +63,12 @@ func main() {
 	_ = newMigrations // kept so the variable is used; used above for clarity
 
 	// ── Services ────────────────────────────────────────────────────────────
+	cacheSvc := services.NewCacheService()
 	auditSvc := services.NewAuditService(db)
 	notifSvc := services.NewNotificationService(db)
-	orgSvc := services.NewOrganizationService(db)
+	orgSvc := services.NewOrganizationService(db, cacheSvc)
 	authSvc := services.NewAuthService(db)
+	searchSvc := services.NewSearchService(db, cacheSvc)
 
 	var fileSvc *services.FileService
 	fileSvc, err = services.NewFileService(db)
@@ -67,7 +76,7 @@ func main() {
 		log.Printf("WARNING: S3 file service unavailable (%v) — uploads will fail", err)
 	}
 
-	projectSvc := services.NewProjectService(db, auditSvc, notifSvc, fileSvc)
+	projectSvc := services.NewProjectService(db, auditSvc, notifSvc, fileSvc, cacheSvc, searchSvc)
 	routingSvc := services.NewRoutingService(db, auditSvc, notifSvc)
 	taskSvc := services.NewTaskService(db, auditSvc, notifSvc, routingSvc)
 	routingSvc.SetTaskService(taskSvc)
@@ -76,8 +85,56 @@ func main() {
 	issueSvc := services.NewIssueService(db, auditSvc, notifSvc)
 	querySvc := services.NewQueryService(db, auditSvc, notifSvc)
 	reportSvc := services.NewDailyReportService(db, auditSvc, notifSvc)
-	searchSvc := services.NewSearchService(db)
 	aiSvc := services.NewAIService(db)
+
+	// ── Job Queue ─────────────────────────────────────────────────────────
+	jobQueue := services.NewJobQueue("background_jobs", 3) // 3 workers
+	services.RegisterJobHandlers(jobQueue, taskSvc, notifSvc, db)
+
+	// Start job queue workers
+	ctx := context.Background()
+	jobQueue.StartWorkers(ctx)
+
+	// Schedule initial overdue task check
+	if config.IsRedisAvailable() {
+		go func() {
+			time.Sleep(1 * time.Minute) // Wait for startup
+			services.ScheduleOverdueTaskCheck(ctx, jobQueue)
+			// Schedule recurring check every hour
+			ticker := time.NewTicker(1 * time.Hour)
+			defer ticker.Stop()
+			for range ticker.C {
+				services.ScheduleOverdueTaskCheck(ctx, jobQueue)
+			}
+		}()
+	} else {
+		// Fallback to original goroutine if Redis unavailable
+		// Overdue task notifier — runs every hour
+		go func() {
+			ticker := time.NewTicker(1 * time.Hour)
+			defer ticker.Stop()
+			for range ticker.C {
+				tasks, err := taskSvc.GetOverdueTasks(uuid.Nil) // uuid.Nil = scan all orgs
+				if err != nil {
+					continue
+				}
+				for _, t := range tasks {
+					var orgID uuid.UUID
+					db.QueryRow(`SELECT organization_id FROM projects WHERE id = $1`, t.ProjectID).Scan(&orgID)
+					if orgID == uuid.Nil {
+						continue
+					}
+					notifSvc.NotifyLayer(orgID,
+						[]models.LayerType{models.LayerTwo, models.LayerOne, models.LayerSuperAdmin},
+						models.NotifOverdueTask,
+						"Overdue Task",
+						t.DepartmentName+" task is past its due date",
+						&t.ProjectID, "task", &t.ID,
+					)
+				}
+			}
+		}()
+	}
 
 	// ── Handlers ────────────────────────────────────────────────────────────
 	authHandler := handlers.NewAuthHandler(authSvc, orgSvc, fileSvc)
@@ -271,33 +328,6 @@ func main() {
 		r.Post("/api/materials", matHandler.CreateRequisition)
 		r.Get("/api/materials/{id}", matHandler.GetRequisition)
 	})
-
-	// ── Background jobs ──────────────────────────────────────────────────────
-	// Overdue task notifier — runs every hour
-	go func() {
-		ticker := time.NewTicker(1 * time.Hour)
-		defer ticker.Stop()
-		for range ticker.C {
-			tasks, err := taskSvc.GetOverdueTasks(uuid.Nil) // uuid.Nil = scan all orgs
-			if err != nil {
-				continue
-			}
-			for _, t := range tasks {
-				var orgID uuid.UUID
-				db.QueryRow(`SELECT organization_id FROM projects WHERE id = $1`, t.ProjectID).Scan(&orgID)
-				if orgID == uuid.Nil {
-					continue
-				}
-				notifSvc.NotifyLayer(orgID,
-					[]models.LayerType{models.LayerTwo, models.LayerOne, models.LayerSuperAdmin},
-					models.NotifOverdueTask,
-					"Overdue Task",
-					t.DepartmentName+" task is past its due date",
-					&t.ProjectID, "task", &t.ID,
-				)
-			}
-		}
-	}()
 
 	// ── Server ───────────────────────────────────────────────────────────────
 	srv := &http.Server{
