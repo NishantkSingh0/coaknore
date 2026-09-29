@@ -301,7 +301,7 @@ export const issueApi = {
     api.post<ApiResponse<Issue>>(`/issues/${id}/resolve`, { resolution_notes }).then(unwrap),
   
   review: (id: string, approved: boolean, review_notes?: string) => 
-    api.post<ApiResponse<Issue>>(`/issues/${id}/review`, { approved, review_notes }).then(unwrap),
+    api.post<ApiResponse<Issue>>(`/issues/${id}/review`, { approve: approved, review_notes }).then(unwrap),
   
   uploadFiles: (id: string, files: File[]) => {
     const formData = new FormData()
