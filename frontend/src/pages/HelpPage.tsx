@@ -1412,13 +1412,6 @@ export default function HelpPage() {
             <EnvelopeIcon className="w-4 h-4" />
             bot@oaknore.in
           </a>
-          <a
-            href="mailto:productdesign@oaknore.in"
-            className="inline-flex items-center gap-2 rounded-full border border-gray-400 dark:border-gray-600 px-5 py-2.5 text-sm font-semibold text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
-          >
-            <EnvelopeIcon className="w-4 h-4" />
-            productdesign@oaknore.in
-          </a>
         </div>
       </div>
 
