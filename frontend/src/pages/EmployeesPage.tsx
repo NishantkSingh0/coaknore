@@ -210,6 +210,7 @@ export default function EmployeesPage() {
                         <button
                           onClick={() => setDeleteConfirm({ id: emp.id, name: `${emp.first_name} ${emp.last_name}` })}
                           className="btn-ghost btn-sm text-xs text-red-600 hover:text-red-700"
+                          disabled={emp.layer === 'layer1'} // Disable delete button for Admins
                         >
                           <TrashIcon className="w-4 h-4" />
                         </button>
