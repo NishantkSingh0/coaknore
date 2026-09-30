@@ -13,10 +13,11 @@ type IssueService struct {
 	db       *sql.DB
 	auditSvc *AuditService
 	notifSvc *NotificationService
+	fileSvc  *FileService
 }
 
-func NewIssueService(db *sql.DB, audit *AuditService, notif *NotificationService) *IssueService {
-	return &IssueService{db: db, auditSvc: audit, notifSvc: notif}
+func NewIssueService(db *sql.DB, audit *AuditService, notif *NotificationService, fileSvc *FileService) *IssueService {
+	return &IssueService{db: db, auditSvc: audit, notifSvc: notif, fileSvc: fileSvc}
 }
 
 type CreateIssueRequest struct {
@@ -246,6 +247,15 @@ func (s *IssueService) ResolveIssue(orgID, issueID, resolvedBy uuid.UUID, resolu
 		OrgID: orgID, ProjectID: &projectID, ActorID: &resolvedBy,
 		Action: models.AuditResolved, EntityType: "issue", EntityID: &issueID, EntityName: issueTitle,
 	})
+
+	// Delete all files attached to this issue from R2
+	if s.fileSvc != nil {
+		go func() {
+			if err := s.fileSvc.DeleteFilesByOwner(models.FileOwnerIssue, issueID); err != nil {
+				fmt.Printf("Warning: failed to delete files for issue %s: %v\n", issueID, err)
+			}
+		}()
+	}
 
 	return nil
 }

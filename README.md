@@ -395,12 +395,12 @@ DB_SSLMODE=disable
 JWT_SECRET="your-32-character-secret-key"
 JWT_EXPIRY_HOURS=24
 
-# AWS S3
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your_aws_access_key_id
-AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
-AWS_S3_BUCKET=pms-documents-bucket
-AWS_S3_ENDPOINT=
+# Cloudflare R2 (S3-compatible storage)
+R2_ACCOUNT_ID=your_r2_account_id
+R2_ACCESS_KEY_ID=your_r2_access_key_id
+R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
+R2_BUCKET_NAME=pms-documents-bucket
+R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 
 # CORS
 CORS_ALLOWED_ORIGINS=http://localhost:5173
@@ -571,8 +571,10 @@ docker build -t pms-backend .
 docker run -p 8080:8080 \
   -e DB_HOST=your-db-host \
   -e DB_PASSWORD=your-db-password \
-  -e AWS_ACCESS_KEY_ID=your-aws-key \
-  -e AWS_SECRET_ACCESS_KEY=your-aws-secret \
+  -e R2_ACCESS_KEY_ID=your-r2-key \
+  -e R2_SECRET_ACCESS_KEY=your-r2-secret \
+  -e R2_BUCKET_NAME=your-bucket-name \
+  -e R2_ENDPOINT=your-r2-endpoint \
   pms-backend
 ```
 

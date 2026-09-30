@@ -26,11 +26,11 @@ type Config struct {
 	JWTSecret      string
 	JWTExpiryHours int
 
-	AWSRegion          string
-	AWSAccessKeyID     string
-	AWSSecretAccessKey string
-	AWSS3Bucket        string
-	AWSS3Endpoint      string
+	R2AccountID      string
+	R2AccessKeyID    string
+	R2SecretAccessKey string
+	R2BucketName     string
+	R2Endpoint       string
 
 	CORSAllowedOrigins string
 	MaxUploadSizeMB    int64
@@ -94,11 +94,11 @@ func Load() {
 		JWTSecret:      getEnv("JWT_SECRET", ""),
 		JWTExpiryHours: jwtExpiry,
 
-		AWSRegion:          getEnv("AWS_REGION", "us-east-1"),
-		AWSAccessKeyID:     getEnv("AWS_ACCESS_KEY_ID", ""),
-		AWSSecretAccessKey: getEnv("AWS_SECRET_ACCESS_KEY", ""),
-		AWSS3Bucket:        getEnv("AWS_S3_BUCKET", ""),
-		AWSS3Endpoint:      getEnv("AWS_S3_ENDPOINT", ""),
+		R2AccountID:      getEnv("R2_ACCOUNT_ID", ""),
+		R2AccessKeyID:    getEnv("R2_ACCESS_KEY_ID", ""),
+		R2SecretAccessKey: getEnv("R2_SECRET_ACCESS_KEY", ""),
+		R2BucketName:     getEnv("R2_BUCKET_NAME", ""),
+		R2Endpoint:       getEnv("R2_ENDPOINT", ""),
 
 		MaxUploadSizeMB: maxUpload,
 
@@ -124,10 +124,10 @@ func Load() {
 		log.Fatal("JWT_SECRET must be set in environment")
 	}
 
-	// Warn if AWS credentials are not configured (file uploads will fail)
-	if App.AWSAccessKeyID == "" || App.AWSSecretAccessKey == "" || App.AWSS3Bucket == "" {
-		log.Println("WARNING: AWS S3 credentials not configured. File uploads will fail.")
-		log.Println("Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_S3_BUCKET in .env")
+	// Warn if R2 credentials are not configured (file uploads will fail)
+	if App.R2AccessKeyID == "" || App.R2SecretAccessKey == "" || App.R2BucketName == "" {
+		log.Println("WARNING: Cloudflare R2 credentials not configured. File uploads will fail.")
+		log.Println("Set R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_BUCKET_NAME in .env")
 	}
 }
 

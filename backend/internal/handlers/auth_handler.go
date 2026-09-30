@@ -172,7 +172,7 @@ func (h *AuthHandler) RemoveAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete avatar from S3
+	// Delete avatar from R2
 	if emp.AvatarURL != "" {
 		h.fileSvc.DeleteAvatar(emp.AvatarURL)
 	}

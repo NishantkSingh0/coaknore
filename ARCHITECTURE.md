@@ -1092,10 +1092,11 @@ notifSvc.NotifyLayer(orgID,
 **Backend:**
 - `DATABASE_URL`: PostgreSQL connection string
 - `JWT_SECRET`: JWT signing secret
-- `AWS_ACCESS_KEY_ID`: S3 access key
-- `AWS_SECRET_ACCESS_KEY`: S3 secret key
-- `AWS_REGION`: S3 region
-- `S3_BUCKET`: S3 bucket name
+- `R2_ACCOUNT_ID`: Cloudflare R2 account ID
+- `R2_ACCESS_KEY_ID`: R2 access key
+- `R2_SECRET_ACCESS_KEY`: R2 secret key
+- `R2_BUCKET_NAME`: R2 bucket name
+- `R2_ENDPOINT`: R2 endpoint URL
 - `APP_ENV`: Environment (development, production)
 
 **Frontend:**

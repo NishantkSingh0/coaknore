@@ -31,28 +31,28 @@ func NewFileService(db *sql.DB) (*FileService, error) {
 	var awsCfg aws.Config
 	var err error
 
-	if cfg.AWSAccessKeyID != "" && cfg.AWSSecretAccessKey != "" {
+	if cfg.R2AccessKeyID != "" && cfg.R2SecretAccessKey != "" {
 		awsCfg, err = config.LoadDefaultConfig(context.Background(),
-			config.WithRegion(cfg.AWSRegion),
+			config.WithRegion("auto"),
 			config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
-				cfg.AWSAccessKeyID,
-				cfg.AWSSecretAccessKey,
+				cfg.R2AccessKeyID,
+				cfg.R2SecretAccessKey,
 				"",
 			)),
 		)
 	} else {
 		// Use instance role / environment credentials
 		awsCfg, err = config.LoadDefaultConfig(context.Background(),
-			config.WithRegion(cfg.AWSRegion),
+			config.WithRegion("auto"),
 		)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to configure AWS: %w", err)
+		return nil, fmt.Errorf("failed to configure R2: %w", err)
 	}
 
 	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
-		if cfg.AWSS3Endpoint != "" {
-			o.BaseEndpoint = aws.String(cfg.AWSS3Endpoint)
+		if cfg.R2Endpoint != "" {
+			o.BaseEndpoint = aws.String(cfg.R2Endpoint)
 			o.UsePathStyle = true
 		}
 	})
@@ -60,7 +60,7 @@ func NewFileService(db *sql.DB) (*FileService, error) {
 	return &FileService{
 		db:                 db,
 		s3Client:           s3Client,
-		bucket:             cfg.AWSS3Bucket,
+		bucket:             cfg.R2BucketName,
 		compressionService: NewCompressionService(),
 	}, nil
 }
@@ -88,7 +88,7 @@ func (s *FileService) UploadFile(
 	uniqueName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
 	s3Key := buildS3Key(orgID, ownerType, ownerID, uniqueName)
 
-	// Upload to S3 (no ACL - use presigned URLs for access)
+	// Upload to R2 (no ACL - use presigned URLs for access)
 	_, err = s.s3Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucket),
 		Key:         aws.String(s3Key),
@@ -99,7 +99,7 @@ func (s *FileService) UploadFile(
 		),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to upload file to S3: %w", err)
+		return nil, fmt.Errorf("failed to upload file to R2: %w", err)
 	}
 
 	// Generate presigned URL for immediate access (1 hour expiry)
@@ -109,12 +109,7 @@ func (s *FileService) UploadFile(
 	}
 
 	// Store base URL in DB, but return presigned URL
-	s3URL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s",
-		s.bucket, appconfig.App.AWSRegion, s3Key)
-
-	if appconfig.App.AWSS3Endpoint != "" {
-		s3URL = fmt.Sprintf("%s/%s/%s", appconfig.App.AWSS3Endpoint, s.bucket, s3Key)
-	}
+	s3URL := fmt.Sprintf("%s/%s/%s", appconfig.App.R2Endpoint, s.bucket, s3Key)
 
 	asset := &models.FileAsset{}
 	var pID interface{}
@@ -211,8 +206,8 @@ func (s *FileService) DeleteFile(fileID, requesterID uuid.UUID) error {
 		return fmt.Errorf("file not found")
 	}
 
-	// Only uploader can delete
-	if uploaderID != requesterID {
+	// Only uploader can delete, unless requesterID is Nil (for project deletion)
+	if requesterID != uuid.Nil && uploaderID != requesterID {
 		return fmt.Errorf("not authorized to delete this file")
 	}
 
@@ -221,10 +216,62 @@ func (s *FileService) DeleteFile(fileID, requesterID uuid.UUID) error {
 		Key:    aws.String(s3Key),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to delete from S3: %w", err)
+		return fmt.Errorf("failed to delete from R2: %w", err)
 	}
 
 	s.db.Exec(`DELETE FROM file_assets WHERE id = $1`, fileID)
+	return nil
+}
+
+// DeleteFilesByOwner deletes all files owned by a specific entity (e.g., issue)
+// This is used when an entity is resolved/deleted and its files should be cleaned up
+func (s *FileService) DeleteFilesByOwner(ownerType models.FileOwnerType, ownerID uuid.UUID) error {
+	// Get all files for this owner
+	rows, err := s.db.Query(`
+		SELECT id, s3_key FROM file_assets 
+		WHERE owner_type = $1 AND owner_id = $2
+	`, ownerType, ownerID)
+	if err != nil {
+		return fmt.Errorf("failed to query files: %w", err)
+	}
+	defer rows.Close()
+
+	var fileIDs []uuid.UUID
+	var s3Keys []string
+
+	for rows.Next() {
+		var fileID uuid.UUID
+		var s3Key string
+		if err := rows.Scan(&fileID, &s3Key); err != nil {
+			continue
+		}
+		fileIDs = append(fileIDs, fileID)
+		s3Keys = append(s3Keys, s3Key)
+	}
+
+	// Delete from R2
+	for _, s3Key := range s3Keys {
+		_, err := s.s3Client.DeleteObject(context.Background(), &s3.DeleteObjectInput{
+			Bucket: aws.String(s.bucket),
+			Key:    aws.String(s3Key),
+		})
+		if err != nil {
+			// Log error but continue with other files
+			fmt.Printf("Warning: failed to delete file from R2: %v\n", err)
+		}
+	}
+
+	// Delete from database
+	if len(fileIDs) > 0 {
+		_, err = s.db.Exec(`
+			DELETE FROM file_assets 
+			WHERE owner_type = $1 AND owner_id = $2
+		`, ownerType, ownerID)
+		if err != nil {
+			return fmt.Errorf("failed to delete files from database: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -284,15 +331,10 @@ func (s *FileService) UploadAvatar(
 		ContentType: aws.String(compressedHeader.Header.Get("Content-Type")),
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to upload avatar to S3: %w", err)
+		return "", fmt.Errorf("failed to upload avatar to R2: %w", err)
 	}
 
-	s3URL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s",
-		s.bucket, appconfig.App.AWSRegion, s3Key)
-
-	if appconfig.App.AWSS3Endpoint != "" {
-		s3URL = fmt.Sprintf("%s/%s/%s", appconfig.App.AWSS3Endpoint, s.bucket, s3Key)
-	}
+	s3URL := fmt.Sprintf("%s/%s/%s", appconfig.App.R2Endpoint, s.bucket, s3Key)
 
 	return s3URL, nil
 }
@@ -312,17 +354,12 @@ func (s *FileService) DeleteAvatar(avatarURL string) {
 }
 
 func extractS3KeyFromURL(s3URL, bucket string) string {
-	// Look for bucket name in URL
+	// Look for bucket name in URL (R2 path-style)
 	idx := strings.Index(s3URL, "/"+bucket+"/")
 	if idx != -1 {
 		return s3URL[idx+len(bucket)+2:]
 	}
-	// Otherwise look for standard amazonaws.com format: https://<bucket>.s3.<region>.amazonaws.com/<key>
-	prefix := ".amazonaws.com/"
-	idx = strings.Index(s3URL, prefix)
-	if idx != -1 {
-		return s3URL[idx+len(prefix):]
-	}
+	// Fallback for other URL formats
 	return ""
 }
 

@@ -330,7 +330,7 @@ func (s *ProjectService) GetProject(id uuid.UUID) (*models.Project, error) {
 		// Generate presigned URL for drawing file
 		presignedURL := drawFileURL.String // fallback to stored URL
 		if s.fileSvc != nil {
-			// Get the S3 key from the file_assets table
+			// Get the R2 key from the file_assets table
 			var s3Key sql.NullString
 			s.db.QueryRow(`SELECT s3_key FROM file_assets WHERE id = $1`, fileID).Scan(&s3Key)
 			if s3Key.Valid {
@@ -713,6 +713,38 @@ func nullBytes(b []byte) interface{} {
 }
 
 func (s *ProjectService) DeleteProject(id uuid.UUID) error {
+	// First, delete all files from R2 (before DB deletion)
+	// We need to delete files by project_id since files can be owned by different entities
+	if s.fileSvc != nil {
+		go func() {
+			// Get all file IDs for this project
+			var fileIDs []uuid.UUID
+			rows, err := s.db.Query(`
+				SELECT id FROM file_assets WHERE project_id = $1
+			`, id)
+			if err != nil {
+				fmt.Printf("Warning: failed to query files for project %s: %v\n", id, err)
+				return
+			}
+			defer rows.Close()
+
+			for rows.Next() {
+				var fileID uuid.UUID
+				if err := rows.Scan(&fileID); err == nil {
+					fileIDs = append(fileIDs, fileID)
+				}
+			}
+
+			// Delete each file from R2
+			for _, fileID := range fileIDs {
+				// Use a special case: delete files with any requester since we're deleting the project
+				if err := s.fileSvc.DeleteFile(fileID, uuid.Nil); err != nil {
+					fmt.Printf("Warning: failed to delete file %s from R2: %v\n", fileID, err)
+				}
+			}
+		}()
+	}
+
 	// Start a transaction for safe cascade deletion
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -721,7 +753,7 @@ func (s *ProjectService) DeleteProject(id uuid.UUID) error {
 	defer tx.Rollback()
 
 	// Delete in order of dependencies to avoid foreign key violations
-	
+
 	// 1. First, set drawing_file_id to NULL in projects (to remove FK constraint to file_assets)
 	_, err = tx.Exec(`UPDATE projects SET drawing_file_id = NULL WHERE id = $1`, id)
 	if err != nil {
@@ -770,31 +802,37 @@ func (s *ProjectService) DeleteProject(id uuid.UUID) error {
 		return err
 	}
 
-	// 9. Delete routings (already cascades from project)
+	// 9. Delete routing edit timeline (must be done before deleting routings due to FK constraints)
+	_, err = tx.Exec(`DELETE FROM routing_edit_timeline WHERE routing_id IN (SELECT id FROM routings WHERE project_id = $1) OR new_routing_id IN (SELECT id FROM routings WHERE project_id = $1) OR previous_routing_id IN (SELECT id FROM routings WHERE project_id = $1)`, id)
+	if err != nil {
+		return err
+	}
+
+	// 10. Delete routings (already cascades from project)
 	_, err = tx.Exec(`DELETE FROM routings WHERE project_id = $1`, id)
 	if err != nil {
 		return err
 	}
 
-	// 10. Delete project revisions (already cascades from project)
+	// 11. Delete project revisions (already cascades from project)
 	_, err = tx.Exec(`DELETE FROM project_revisions WHERE project_id = $1`, id)
 	if err != nil {
 		return err
 	}
 
-	// 11. Delete notifications related to this project
+	// 12. Delete notifications related to this project
 	_, err = tx.Exec(`DELETE FROM notifications WHERE project_id = $1`, id)
 	if err != nil {
 		return err
 	}
 
-	// 12. Delete audit logs related to this project
+	// 13. Delete audit logs related to this project
 	_, err = tx.Exec(`DELETE FROM audit_logs WHERE project_id = $1`, id)
 	if err != nil {
 		return err
 	}
 
-	// 13. Finally delete the project
+	// 14. Finally delete the project
 	_, err = tx.Exec(`DELETE FROM projects WHERE id = $1`, id)
 	if err != nil {
 		return err

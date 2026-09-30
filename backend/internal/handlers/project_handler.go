@@ -161,7 +161,7 @@ func (h *ProjectHandler) GetTimeline(w http.ResponseWriter, r *http.Request) {
 	utils.Success(w, utils.BuildPaginatedResponse(logs, total, p.Page, p.PageSize))
 }
 
-// UploadDrawing uploads a drawing file to S3 and attaches it as the project's primary drawing.
+// UploadDrawing uploads a drawing file to R2 and attaches it as the project's primary drawing.
 func (h *ProjectHandler) UploadDrawing(w http.ResponseWriter, r *http.Request) {
 	orgID := middleware.GetOrgID(r)
 	empID := middleware.GetEmployeeID(r)
@@ -172,27 +172,27 @@ func (h *ProjectHandler) UploadDrawing(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.fileSvc == nil {
-		utils.InternalError(w, "File service unavailable")
+		utils.InternalError(w, "File service unavailable - R2 credentials may not be configured")
 		return
 	}
 
 	r.ParseMultipartForm(50 << 20)
-	file, header, err := r.FormFile("file")
+	file, header, err := r.FormFile("drawing")
 	if err != nil {
-		utils.BadRequest(w, "file is required")
+		utils.BadRequest(w, "file is required: "+err.Error())
 		return
 	}
 	defer file.Close()
 
 	asset, err := h.fileSvc.UploadFile(orgID, empID, &projectID, models.FileOwnerProject, projectID, file, header)
 	if err != nil {
-		utils.InternalError(w, err.Error())
+		utils.InternalError(w, "Failed to upload file to R2: "+err.Error())
 		return
 	}
 
 	// Link as the drawing
 	if err := h.projectSvc.AttachDrawingFile(projectID, asset.ID); err != nil {
-		utils.InternalError(w, err.Error())
+		utils.InternalError(w, "Failed to attach drawing to project: "+err.Error())
 		return
 	}
 

@@ -73,7 +73,7 @@ func main() {
 	var fileSvc *services.FileService
 	fileSvc, err = services.NewFileService(db)
 	if err != nil {
-		log.Printf("WARNING: S3 file service unavailable (%v) — uploads will fail", err)
+		log.Printf("WARNING: R2 file service unavailable (%v) — uploads will fail", err)
 	}
 
 	projectSvc := services.NewProjectService(db, auditSvc, notifSvc, fileSvc, cacheSvc, searchSvc)
@@ -82,8 +82,8 @@ func main() {
 	routingSvc.SetTaskService(taskSvc)
 	matSvc := services.NewMaterialService(db, auditSvc, notifSvc)
 	reworkSvc := services.NewReworkService(db, auditSvc, notifSvc, routingSvc)
-	issueSvc := services.NewIssueService(db, auditSvc, notifSvc)
-	querySvc := services.NewQueryService(db, auditSvc, notifSvc)
+	issueSvc := services.NewIssueService(db, auditSvc, notifSvc, fileSvc)
+	querySvc := services.NewQueryService(db, auditSvc, notifSvc, fileSvc)
 	reportSvc := services.NewDailyReportService(db, auditSvc, notifSvc)
 	aiSvc := services.NewAIService(db)
 

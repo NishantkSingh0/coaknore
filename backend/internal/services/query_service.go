@@ -13,10 +13,11 @@ type QueryService struct {
 	db       *sql.DB
 	auditSvc *AuditService
 	notifSvc *NotificationService
+	fileSvc  *FileService
 }
 
-func NewQueryService(db *sql.DB, audit *AuditService, notif *NotificationService) *QueryService {
-	return &QueryService{db: db, auditSvc: audit, notifSvc: notif}
+func NewQueryService(db *sql.DB, audit *AuditService, notif *NotificationService, fileSvc *FileService) *QueryService {
+	return &QueryService{db: db, auditSvc: audit, notifSvc: notif, fileSvc: fileSvc}
 }
 
 type CreateQueryRequest struct {
@@ -193,6 +194,15 @@ func (s *QueryService) MarkResolved(queryID, employeeID uuid.UUID) error {
 			"Query Closed",
 			fmt.Sprintf("Query '%s' has been closed by both parties", q.Subject),
 			&q.ProjectID, "query", &queryID)
+
+		// Delete all files attached to this query from R2
+		if s.fileSvc != nil {
+			go func() {
+				if err := s.fileSvc.DeleteFilesByOwner(models.FileOwnerQuery, queryID); err != nil {
+					fmt.Printf("Warning: failed to delete files for query %s: %v\n", queryID, err)
+				}
+			}()
+		}
 	} else if employeeID == q.SenderID {
 		s.db.Exec(`UPDATE queries SET status = 'sender_resolved', updated_at = NOW() WHERE id = $1`, queryID)
 	} else {
